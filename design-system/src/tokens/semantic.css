@@ -1,0 +1,218 @@
+/* ============================================================================
+   ANJU MACE · DESIGN SYSTEM
+   tokens/semantic.css — CAMADA 2: SEMÂNTICOS (com tema)
+   ----------------------------------------------------------------------------
+   Tokens com PROPÓSITO. É esta a camada que componentes consomem.
+   Troca de tema via atributo: <html data-theme="light"> | data-theme="dark">.
+   :root assume LIGHT por padrão. Todas as combinações texto/fundo principais
+   foram checadas em WCAG AA (ver docs/foundations/color.md).
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   LIGHT THEME (padrão)
+   ---------------------------------------------------------------------------- */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* SUPERFÍCIES */
+  --surface-base:      var(--cream-100);  /* fundo de página (creme da marca) */
+  --surface:           var(--white);      /* card/painel padrão */
+  --surface-elevated:  var(--white);      /* elemento elevado (+ sombra) */
+  --surface-sunken:    var(--mist-100);   /* área recuada/inset */
+  --surface-muted:     var(--mist-100);   /* superfície secundária neutra */
+  --surface-warm:      var(--sand-50);    /* superfície acolhedora alternativa */
+  --surface-inverse:   var(--graphite-800); /* bloco invertido (seção dark numa página light) */
+  --surface-glass:     rgba(255, 255, 255, 0.65); /* vidro claro (+ backdrop-blur) */
+
+  /* TEXTO */
+  --text-primary:    var(--graphite-800); /* 13–15:1 AAA */
+  --text-secondary:  var(--graphite-600);
+  --text-muted:      var(--graphite-500); /* AA ✓ corpo */
+  --text-subtle:     var(--slate-500);    /* labels/decorativo (large only) */
+  --text-inverse:    var(--cream-100);    /* texto em superfície inversa */
+  --text-on-accent:  var(--graphite-900); /* sobre sálvia (AA 6.06) */
+  --text-on-accent-2:var(--graphite-900); /* sobre dourado (AAA 8.19) */
+  --text-link:       var(--sage-700);     /* AA ✓ */
+  --text-link-hover: var(--sage-900);
+
+  /* ACENTO PRIMÁRIO · SÁLVIA */
+  --accent:          var(--sage-400);     /* cor de marca (fills, ícones, chips) */
+  --accent-hover:    var(--sage-500);
+  --accent-active:   var(--sage-600);
+  --accent-subtle:   var(--sage-100);     /* fundo tint suave */
+  --accent-subtle-hover: var(--sage-200);
+  --accent-text:     var(--sage-700);     /* sálvia legível como TEXTO/link */
+  --on-accent:       var(--graphite-900); /* texto/ícone sobre fill sálvia */
+
+  /* ACENTO SECUNDÁRIO · DOURADO */
+  --accent-2:        var(--gold-300);     /* premium/VIP/badges */
+  --accent-2-hover:  var(--gold-400);
+  --accent-2-active: var(--gold-500);
+  --accent-2-subtle: var(--gold-100);
+  --accent-2-text:   var(--gold-700);     /* dourado legível como TEXTO */
+  --on-accent-2:     var(--graphite-900); /* texto/ícone sobre fill dourado */
+
+  /* BORDAS / DIVISORES */
+  --border:          var(--mist-300);     /* borda padrão */
+  --border-strong:   var(--graphite-200);
+  --border-subtle:   var(--mist-200);
+  --border-accent:   var(--sage-300);
+  --border-inverse:  var(--graphite-600);
+
+  /* FOCO */
+  --focus-ring:      var(--sage-400);
+  --focus-shadow:    var(--shadow-focus);
+
+  /* FEEDBACK · SUCESSO */
+  --success:         var(--green-600);
+  --success-surface: var(--green-100);
+  --success-text:    var(--green-600);
+  --on-success:      var(--white);
+  /* FEEDBACK · AVISO */
+  --warning:         var(--amber-600);
+  --warning-surface: var(--amber-100);
+  --warning-text:    var(--gold-700);
+  --on-warning:      var(--graphite-900);
+  /* FEEDBACK · ERRO */
+  --danger:          var(--red-600);      /* sólido (white text AA ✓) */
+  --danger-surface:  var(--red-100);
+  --danger-text:     var(--red-800);      /* AAA ✓ */
+  --on-danger:       var(--white);
+  /* FEEDBACK · INFO */
+  --info:            var(--blue-600);
+  --info-surface:    var(--blue-100);
+  --info-text:       var(--blue-600);
+  --on-info:         var(--white);
+
+  /* OVERLAY / SCRIM */
+  --overlay-scrim:   rgba(28, 28, 28, 0.48);
+  --shadow-ambient:  var(--shadow-lg);
+}
+
+/* ----------------------------------------------------------------------------
+   DARK THEME — "grafite" da marca
+   ---------------------------------------------------------------------------- */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* SUPERFÍCIES */
+  --surface-base:      var(--graphite-950);
+  --surface:           var(--graphite-800); /* grafite de marca */
+  --surface-elevated:  var(--graphite-700);
+  --surface-sunken:    var(--graphite-900);
+  --surface-muted:     var(--graphite-700);
+  --surface-warm:      var(--graphite-700);
+  --surface-inverse:   var(--cream-100);
+  --surface-glass:     rgba(40, 40, 40, 0.55);
+
+  /* TEXTO */
+  --text-primary:    var(--cream-100);    /* 13:1 AAA */
+  --text-secondary:  var(--mist-200);
+  --text-muted:      var(--slate-400);    /* AA ✓ 5.09 */
+  --text-subtle:     var(--slate-500);
+  --text-inverse:    var(--graphite-800);
+  --text-on-accent:  var(--graphite-900);
+  --text-on-accent-2:var(--graphite-900);
+  --text-link:       var(--sage-300);
+  --text-link-hover: var(--sage-200);
+
+  /* ACENTO PRIMÁRIO · SÁLVIA (mais claro p/ contraste em fundo escuro) */
+  --accent:          var(--sage-400);     /* 6.06 sobre grafite ✓ */
+  --accent-hover:    var(--sage-300);
+  --accent-active:   var(--sage-200);
+  --accent-subtle:   var(--sage-900);
+  --accent-subtle-hover: var(--sage-800);
+  --accent-text:     var(--sage-300);
+  --on-accent:       var(--graphite-900);
+
+  /* ACENTO SECUNDÁRIO · DOURADO */
+  --accent-2:        var(--gold-300);     /* 8.19 sobre grafite ✓ */
+  --accent-2-hover:  var(--gold-200);
+  --accent-2-active: var(--gold-100);
+  --accent-2-subtle: var(--gold-800);
+  --accent-2-text:   var(--gold-300);
+  --on-accent-2:     var(--graphite-900);
+
+  /* BORDAS */
+  --border:          var(--graphite-600);
+  --border-strong:   var(--graphite-500);
+  --border-subtle:   var(--graphite-700);
+  --border-accent:   var(--sage-700);
+  --border-inverse:  var(--graphite-200);
+
+  /* FOCO */
+  --focus-ring:      var(--sage-400);
+  --focus-shadow:    0 0 0 4px rgba(158, 171, 135, 0.45);
+
+  /* FEEDBACK */
+  --success:         var(--green-400);
+  --success-surface: rgba(127, 168, 107, 0.15);
+  --success-text:    var(--green-400);
+  --on-success:      var(--graphite-900);
+  --warning:         var(--gold-300);
+  --warning-surface: rgba(218, 190, 129, 0.15);
+  --warning-text:    var(--gold-300);
+  --on-warning:      var(--graphite-900);
+  --danger:          var(--red-400);
+  --danger-surface:  rgba(249, 82, 82, 0.15);
+  --danger-text:     var(--red-400);
+  --on-danger:       var(--graphite-900);
+  --info:            var(--blue-400);
+  --info-surface:    rgba(106, 136, 168, 0.15);
+  --info-text:       var(--blue-400);
+  --on-info:         var(--graphite-900);
+
+  /* OVERLAY */
+  --overlay-scrim:   rgba(0, 0, 0, 0.64);
+  --shadow-ambient:  0 13px 58px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================================
+   CAMADA 3: TOKENS DE COMPONENTE (derivam dos semânticos)
+   Só os recorrentes. Trocam de tema automaticamente via herança.
+   ============================================================================ */
+:root {
+  /* BUTTON */
+  --button-primary-bg:        var(--accent);
+  --button-primary-bg-hover:  var(--accent-hover);
+  --button-primary-bg-active: var(--accent-active);
+  --button-primary-text:      var(--on-accent);
+
+  --button-secondary-bg:        var(--accent-2);
+  --button-secondary-bg-hover:  var(--accent-2-hover);
+  --button-secondary-bg-active: var(--accent-2-active);
+  --button-secondary-text:      var(--on-accent-2);
+
+  --button-ghost-text:        var(--text-primary);
+  --button-ghost-bg-hover:    var(--surface-sunken);
+  --button-outline-border:    var(--border-strong);
+
+  --button-radius:            var(--radius-full); /* pills da marca */
+  --button-height-sm:         2.25rem; /* 36 */
+  --button-height-md:         2.75rem; /* 44 */
+  --button-height-lg:         3.25rem; /* 52 */
+
+  /* INPUT */
+  --input-bg:           var(--surface);
+  --input-text:         var(--text-primary);
+  --input-placeholder:  var(--text-subtle);
+  --input-border:       var(--border);
+  --input-border-hover: var(--border-strong);
+  --input-border-focus: var(--accent);
+  --input-radius:       var(--radius-md);
+  --input-height:       var(--button-height-md);
+
+  /* CARD */
+  --card-bg:        var(--surface);
+  --card-border:    var(--border-subtle);
+  --card-radius:    var(--radius-2xl);
+  --card-shadow:    var(--shadow-md);
+  --card-padding:   var(--space-6);
+
+  /* CHIP / BADGE */
+  --chip-radius:    var(--radius-full);
+
+  /* NAV */
+  --nav-height:     4.5rem; /* 72 */
+}

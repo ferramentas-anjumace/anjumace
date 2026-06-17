@@ -1,0 +1,243 @@
+/* ============================================================================
+   ANJU MACE · DESIGN SYSTEM
+   tokens/primitives.css — CAMADA 1: PRIMITIVOS
+   ----------------------------------------------------------------------------
+   Valores brutos extraídos do material visual (Figma "Anju Mace — MCP").
+   NÃO consuma estes tokens direto em componentes — use a camada semântica.
+   Cada ramp foi derivada de cores reais amostradas em 9.194 nós do arquivo.
+   ============================================================================ */
+
+:root {
+  /* --------------------------------------------------------------------------
+     COR · GRAPHITE (neutro escuro — base "preto grafite" da marca)
+     âncora de marca: --graphite-800 #282828 (cor mais usada nas superfícies escuras)
+     -------------------------------------------------------------------------- */
+  --graphite-50:  #F4F4F4;
+  --graphite-100: #E6E6E6;
+  --graphite-200: #CCCCCC;
+  --graphite-300: #A6A6A6;
+  --graphite-400: #808080;
+  --graphite-500: #5C5C5C;
+  --graphite-600: #3D3D3D;
+  --graphite-700: #2F2F2F;
+  --graphite-800: #282828; /* ⭐ brand graphite */
+  --graphite-900: #222222;
+  --graphite-950: #1A1A1A;
+  --black:        #000000;
+
+  /* --------------------------------------------------------------------------
+     COR · CREME (neutro claro quente esverdeado — base "creme" da marca)
+     âncora de marca: --cream-100 #F5F5DD (superfície clara principal)
+     -------------------------------------------------------------------------- */
+  --cream-50:  #FCFCF2;
+  --cream-100: #F5F5DD; /* ⭐ brand cream */
+  --cream-200: #ECECC9;
+  --cream-300: #E5E5CA;
+
+  /* COR · SAND (creme quente/rosado — superfícies acolhedoras) */
+  --sand-50:  #FFF7F0; /* ⭐ brand warm surface */
+  --sand-100: #FAF0E6;
+  --sand-200: #EDDCCB;
+
+  /* COR · MIST (neutro claro frio — "system gray" estilo Apple) */
+  --white:    #FFFFFF;
+  --mist-50:  #FAFAFC;
+  --mist-100: #F5F5F7; /* apple light gray */
+  --mist-200: #EBEAEE;
+  --mist-300: #E6E6E6;
+
+  /* --------------------------------------------------------------------------
+     COR · SAGE (acento PRIMÁRIO — verde sálvia/oliva)
+     âncora de marca: --sage-400 #9EAB87 · oliva profundo --sage-600 #7A8569
+     -------------------------------------------------------------------------- */
+  --sage-50:  #F2F5EC;
+  --sage-100: #E3EAD6;
+  --sage-200: #CDD9B8;
+  --sage-300: #B5C59C;
+  --sage-400: #9EAB87; /* ⭐ brand sage (primário) */
+  --sage-500: #889573;
+  --sage-600: #7A8569; /* ⭐ oliva profundo */
+  --sage-700: #636E55;
+  --sage-800: #4D5443;
+  --sage-900: #3A3F33;
+
+  /* COR · CELERY (tint amarelo-esverdeado claro — destaques suaves) */
+  --celery-100: #EDF5E0;
+  --celery-200: #E6E6AD;
+  --celery-300: #E5E5CA;
+
+  /* --------------------------------------------------------------------------
+     COR · GOLD (acento SECUNDÁRIO — dourado/"amarelo suave")
+     âncora de marca: --gold-300 #DABE81 · dourado profundo --gold-500 #BE9234
+     -------------------------------------------------------------------------- */
+  --gold-50:  #FAF4E6;
+  --gold-100: #F2E6C8;
+  --gold-200: #E9D4A4;
+  --gold-300: #DABE81; /* ⭐ brand gold (secundário) */
+  --gold-400: #CBA75E;
+  --gold-500: #BE9234; /* ⭐ dourado profundo */
+  --gold-600: #9E7B2C;
+  --gold-700: #7D6124;
+  --gold-800: #6B4A1E; /* bronze */
+
+  /* COR · TAUPE (neutro quente — apoio terroso) */
+  --taupe-100: #EDE6DD;
+  --taupe-300: #B8AE9F;
+  --taupe-500: #8A7F70;
+  --taupe-700: #6A6158; /* ⭐ brand taupe */
+
+  /* COR · SLATE (neutro frio — texto secundário/muted) */
+  --slate-200: #D2D7DD;
+  --slate-300: #B5BEC6;
+  --slate-400: #8F99A3;
+  --slate-500: #7B7E91; /* texto muted recorrente */
+  --slate-600: #6A7988;
+
+  /* --------------------------------------------------------------------------
+     COR · FEEDBACK (status)
+     -------------------------------------------------------------------------- */
+  --red-100: #FDE0E0;
+  --red-400: #F95252; /* ⭐ erro */
+  --red-600: #C13838;
+  --red-800: #9A2D2D;
+
+  --green-100: #E3EFD9;
+  --green-400: #7FA86B; /* sucesso (deriva de sage, mais legível) */
+  --green-600: #5E7E4A;
+
+  --amber-100: #F7ECCB;
+  --amber-400: #DABE81; /* aviso (= gold) */
+  --amber-600: #BE9234;
+
+  --blue-100: #E3ECF2;
+  --blue-400: #6A88A8; /* info (slate-azulado calmo) */
+  --blue-600: #4F6B89;
+
+  /* --------------------------------------------------------------------------
+     TIPOGRAFIA
+     Display: Lexend · Texto/UI: Outfit (decisão aprovada — brandbook)
+     -------------------------------------------------------------------------- */
+  --font-display: 'Lexend', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans:    'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  /* Tamanhos (rem, base 16px) — escala deduzida dos tamanhos recorrentes */
+  --text-2xs: 0.625rem;  /* 10px — micro/label */
+  --text-xs:  0.75rem;   /* 12px — caption */
+  --text-sm:  0.875rem;  /* 14px — body-sm */
+  --text-base:1rem;      /* 16px — body */
+  --text-lg:  1.125rem;  /* 18px */
+  --text-xl:  1.25rem;   /* 20px — h5 */
+  --text-2xl: 1.5rem;    /* 24px — h4 / body-lg */
+  --text-3xl: 1.75rem;   /* 28px — h3 */
+  --text-4xl: 2.125rem;  /* 34px — h2 */
+  --text-5xl: 2.5rem;    /* 40px — h1 */
+  --text-6xl: 3.125rem;  /* 50px — display-sm */
+  --text-7xl: 3.875rem;  /* 62px — display */
+
+  /* Pesos (Lexend e Outfit cobrem toda a faixa) */
+  --weight-thin:     100;
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-black:    900;
+
+  /* Line-heights (recorrentes: 100/110/120/130/150%) */
+  --leading-none:    1;
+  --leading-tight:   1.1;
+  --leading-snug:    1.2;
+  --leading-normal:  1.3;
+  --leading-relaxed: 1.5;
+
+  /* Letter-spacing (default de marca -1.1%; labels caixa-alta +16%) */
+  --tracking-tighter: -0.02em;
+  --tracking-tight:   -0.011em; /* ⭐ default dos títulos da marca */
+  --tracking-normal:  0em;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.16em;   /* ⭐ labels uppercase / wordmark */
+
+  /* --------------------------------------------------------------------------
+     ESPAÇAMENTO · base 4 / 8pt
+     -------------------------------------------------------------------------- */
+  --space-0:   0;
+  --space-px:  1px;
+  --space-0_5: 0.125rem; /* 2 */
+  --space-1:   0.25rem;  /* 4 */
+  --space-1_5: 0.375rem; /* 6 */
+  --space-2:   0.5rem;   /* 8 */
+  --space-3:   0.75rem;  /* 12 */
+  --space-4:   1rem;     /* 16 */
+  --space-5:   1.25rem;  /* 20 */
+  --space-6:   1.5rem;   /* 24 */
+  --space-8:   2rem;     /* 32 */
+  --space-10:  2.5rem;   /* 40 */
+  --space-12:  3rem;     /* 48 */
+  --space-16:  4rem;     /* 64 */
+  --space-20:  5rem;     /* 80 */
+  --space-24:  6rem;     /* 96 */
+  --space-32:  8rem;     /* 128 */
+  --space-40:  10rem;    /* 160 */
+  --space-48:  12rem;    /* 192 */
+  --space-64:  16rem;    /* 256 */
+
+  /* --------------------------------------------------------------------------
+     RAIO DE BORDA
+     -------------------------------------------------------------------------- */
+  --radius-none: 0;
+  --radius-xs:   0.25rem;  /* 4 */
+  --radius-sm:   0.5rem;   /* 8 */
+  --radius-md:   0.75rem;  /* 12 */
+  --radius-lg:   1rem;     /* 16 */
+  --radius-xl:   1.25rem;  /* 20 — cards */
+  --radius-2xl:  1.5rem;   /* 24 — cards grandes */
+  --radius-3xl:  2rem;     /* 32 */
+  --radius-full: 9999px;   /* pills, fotos, avatars */
+
+  /* --------------------------------------------------------------------------
+     ELEVAÇÃO · sombras suaves (profundidade sutil, nunca pesada)
+     -------------------------------------------------------------------------- */
+  --shadow-xs:    0 1px 2px 0 rgba(28, 28, 28, 0.05);
+  --shadow-sm:    0 2px 8px -2px rgba(28, 28, 28, 0.08);
+  --shadow-md:    0 8px 24px -6px rgba(28, 28, 28, 0.10);
+  --shadow-lg:    0 13px 58px -12px rgba(28, 28, 28, 0.12); /* card flutuante (extraído) */
+  --shadow-xl:    0 24px 80px -20px rgba(28, 28, 28, 0.16);
+  --shadow-glass: 0 1px 16px 0 rgba(0, 0, 0, 0.24);        /* chip/glass (extraído) */
+  --shadow-focus: 0 0 0 4px rgba(158, 171, 135, 0.35);     /* anel de foco sálvia */
+
+  /* --------------------------------------------------------------------------
+     BLUR (glassmorphism — backdrop)
+     -------------------------------------------------------------------------- */
+  --blur-sm:  8px;
+  --blur-md:  16px;
+  --blur-lg:  24px;
+  --blur-xl:  40px;  /* glass ~42px (extraído) */
+  --blur-2xl: 64px;
+
+  /* --------------------------------------------------------------------------
+     MOTION · durações curtas + easings premium (150–400ms)
+     -------------------------------------------------------------------------- */
+  --duration-instant:  100ms;
+  --duration-fast:     150ms;
+  --duration-base:     200ms;
+  --duration-moderate: 300ms;
+  --duration-slow:     400ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);   /* desaceleração suave (Apple-like) */
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out:   cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* leve overshoot */
+
+  /* --------------------------------------------------------------------------
+     Z-INDEX
+     -------------------------------------------------------------------------- */
+  --z-base:     0;
+  --z-dropdown: 1000;
+  --z-sticky:   1100;
+  --z-overlay:  1200;
+  --z-modal:    1300;
+  --z-toast:    1400;
+  --z-tooltip:  1500;
+}

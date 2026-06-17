@@ -1,0 +1,8 @@
+/* ============================================================================
+   ANJU MACE · DESIGN SYSTEM — tokens/index.css
+   Agregador das camadas de token. Importe este arquivo (ou o src/index.css
+   que já o inclui) para ter acesso a todos os custom properties.
+   Ordem importa: primitivos primeiro, semânticos depois (referenciam primitivos).
+   ============================================================================ */
+@import './primitives.css';
+@import './semantic.css';

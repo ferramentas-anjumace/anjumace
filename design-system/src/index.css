@@ -1,0 +1,184 @@
+/* ============================================================================
+   ANJU MACE · DESIGN SYSTEM — entrypoint de estilos
+   1) Fontes da marca  2) Tokens  3) Tailwind  4) Base  5) Utilitários
+   ============================================================================ */
+
+/* 1) FONTES — Lexend (display) + Outfit (texto). Pesos usados no DS. */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100;300;400;500;600;700;900&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* 2) TOKENS (primitivos + semânticos + componente) */
+@import './tokens/index.css';
+
+/* 3) TAILWIND */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----------------------------------------------------------------------------
+   4) BASE
+   ---------------------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-regular);
+    transition: background-color var(--duration-moderate) var(--ease-standard),
+                color var(--duration-moderate) var(--ease-standard);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-light);
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--on-accent);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-shadow);
+    border-radius: var(--radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   5) UTILITÁRIOS DE TIPOGRAFIA (escala da marca como classes)
+   Use .text-display … .text-caption no lugar de fixar tamanhos no componente.
+   ---------------------------------------------------------------------------- */
+@layer components {
+  .text-display {
+    font-family: var(--font-display);
+    font-size: var(--text-7xl);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-light);
+  }
+  .text-display-sm {
+    font-family: var(--font-display);
+    font-size: var(--text-6xl);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-light);
+  }
+  .text-h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-light);
+  }
+  .text-h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-light);
+  }
+  .text-h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-regular);
+  }
+  .text-h4 {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-regular);
+  }
+  .text-h5 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-tight);
+    font-weight: var(--weight-medium);
+  }
+  .text-h6 {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-normal);
+    font-weight: var(--weight-medium);
+  }
+  .text-body-lg {
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-tight);
+  }
+  .text-body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-tight);
+  }
+  .text-body-sm {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-tight);
+  }
+  .text-caption {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-normal);
+    color: var(--text-muted);
+  }
+  /* Eyebrow / label caixa-alta com tracking largo (assinatura da marca) */
+  .text-label {
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    font-weight: var(--weight-medium);
+  }
+
+  /* Superfície de vidro (glassmorphism) — chips, players, badges sobre foto */
+  .glass {
+    background-color: var(--surface-glass);
+    backdrop-filter: blur(var(--blur-xl));
+    -webkit-backdrop-filter: blur(var(--blur-xl));
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-glass);
+  }
+}
+
+/* Keyframes de overlay (Drawer/Toast) — fora dos layers para uso via animate-[] */
+@keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slide-in-left  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes slide-in-up    { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes toast-in       { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
