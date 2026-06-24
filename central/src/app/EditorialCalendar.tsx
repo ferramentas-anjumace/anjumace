@@ -1,0 +1,639 @@
+import { useMemo, useState } from 'react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  ExternalLink,
+  CalendarDays,
+  Send,
+  BadgeCheck,
+  LayoutTemplate,
+  Share2,
+  Link2,
+  Megaphone,
+  ListTodo,
+  ListChecks,
+  MessageSquare,
+  GalleryHorizontalEnd,
+  Film,
+  Scissors,
+  Image as ImageIcon,
+} from 'lucide-react'
+import {
+  Card,
+  Badge,
+  Button,
+  IconButton,
+  Tag,
+  Tabs,
+  TabList,
+  Tab,
+  Drawer,
+  Input,
+  Textarea,
+  Select,
+  DatePicker,
+  EmptyState,
+  Divider,
+  useToast,
+} from '@/components/ui'
+import {
+  APPROVAL_META,
+  ASSET_META,
+  CHANNEL_META,
+  FORMAT_META,
+  STAGE_META,
+  type EditorialApproval,
+  type EditorialAsset,
+  type EditorialChannel,
+  type EditorialFormat,
+  type EditorialPost,
+  type EditorialStage,
+} from './data'
+import { useEditorial } from './editorial'
+
+/* ---- Datas (ISO local, sem dependências) ------------------------------- */
+
+function parseISO(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function addMonths(d: Date, n: number) {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1)
+}
+function addDays(d: Date, n: number) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
+}
+function sameMonth(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+}
+
+const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const monthFmt = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
+const longFmt = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+const dayMonthFmt = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
+
+/** "Hoje" do mock — alinhado ao currentDate do ambiente. */
+const TODAY_ISO = '2026-06-22'
+
+/** Matriz 6×7 cobrindo o mês de `view`, começando no domingo. */
+function buildGrid(view: Date) {
+  const first = new Date(view.getFullYear(), view.getMonth(), 1)
+  const start = addDays(first, -first.getDay())
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i))
+}
+
+const FORMAT_ICON: Record<EditorialFormat, React.ReactNode> = {
+  carrossel: <GalleryHorizontalEnd size={13} strokeWidth={1.5} />,
+  reels: <Film size={13} strokeWidth={1.5} />,
+  corte: <Scissors size={13} strokeWidth={1.5} />,
+  imagem: <ImageIcon size={13} strokeWidth={1.5} />,
+}
+
+/* ---- Chip de postagem na célula do calendário -------------------------- */
+
+function PostChip({ post, onOpen }: { post: EditorialPost; onOpen: () => void }) {
+  const stage = STAGE_META[post.stage]
+  const fmt = FORMAT_META[post.format]
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group/chip flex w-full flex-col gap-1.5 rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus"
+    >
+      <span className="flex items-start gap-1.5">
+        <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{FORMAT_ICON[post.format]}</span>
+        <span className="line-clamp-2 text-body-s font-medium leading-snug text-strong">{post.title || 'Sem título'}</span>
+      </span>
+      <span className="flex flex-wrap items-center gap-1">
+        <Badge tone={fmt.tone} size="sm">{fmt.label}</Badge>
+        <Badge tone={stage.tone} size="sm">{stage.label}</Badge>
+      </span>
+    </button>
+  )
+}
+
+/* ---- Grade mensal ------------------------------------------------------ */
+
+function MonthGrid({
+  view,
+  byDay,
+  canManage,
+  onOpen,
+  onAdd,
+}: {
+  view: Date
+  byDay: Map<string, EditorialPost[]>
+  canManage: boolean
+  onOpen: (id: string) => void
+  onAdd: (iso: string) => void
+}) {
+  const days = buildGrid(view)
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[760px]">
+        <div className="grid grid-cols-7 border-b border-line">
+          {WEEKDAYS.map((w) => (
+            <div key={w} className="px-2 py-2 font-mono text-mono-label uppercase text-faint">{w}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 border-l border-line">
+          {days.map((d) => {
+            const iso = toISO(d)
+            const inMonth = sameMonth(d, view)
+            const isToday = iso === TODAY_ISO
+            const posts = byDay.get(iso) ?? []
+            return (
+              <div
+                key={iso}
+                className={`group/cell min-h-[8.5rem] border-b border-r border-line p-1.5 ${
+                  inMonth ? '' : 'bg-ink/40'
+                }`}
+              >
+                <div className="mb-1.5 flex items-center justify-between px-0.5">
+                  <span
+                    className={`grid size-6 place-items-center rounded-full font-mono text-mono-data tabular-nums ${
+                      isToday
+                        ? 'bg-steel-500 font-semibold text-accent-fg'
+                        : inMonth
+                          ? 'text-muted'
+                          : 'text-faint'
+                    }`}
+                  >
+                    {d.getDate()}
+                  </span>
+                  {canManage && inMonth && (
+                    <button
+                      type="button"
+                      onClick={() => onAdd(iso)}
+                      aria-label={`Nova postagem em ${longFmt.format(d)}`}
+                      className="grid size-5 place-items-center rounded-sm text-faint opacity-0 transition-[opacity,color,background-color] hover:bg-slate-700 hover:text-strong focus-visible:opacity-100 focus-visible:outline-none focus-visible:shadow-focus group-hover/cell:opacity-100"
+                    >
+                      <Plus size={14} strokeWidth={1.5} aria-hidden />
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {posts.map((p) => (
+                    <PostChip key={p.id} post={p} onOpen={() => onOpen(p.id)} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ---- Lista ------------------------------------------------------------- */
+
+function PostList({ posts, onOpen }: { posts: EditorialPost[]; onOpen: (id: string) => void }) {
+  if (posts.length === 0) {
+    return (
+      <EmptyState
+        icon={<CalendarDays size={22} strokeWidth={1.5} />}
+        title="Sem postagens"
+        description="Nenhuma postagem no calendário editorial ainda."
+      />
+    )
+  }
+  const sorted = [...posts].sort((a, b) => a.date.localeCompare(b.date))
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((p) => {
+        const d = parseISO(p.date)
+        const stage = STAGE_META[p.stage]
+        const fmt = FORMAT_META[p.format]
+        return (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onOpen(p.id)}
+            className="flex items-center gap-4 rounded-lg border border-line bg-slate-900 p-3 text-left transition-colors hover:border-strong hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            <div className="w-12 shrink-0 text-center">
+              <div className="font-mono text-mono-data font-semibold text-strong">{String(d.getDate()).padStart(2, '0')}</div>
+              <div className="font-mono text-[10px] uppercase text-faint">{dayMonthFmt.format(d).split(' ')[1]}</div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-body-s font-medium text-strong">{p.title || 'Sem título'}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <Badge tone={fmt.tone} size="sm">{fmt.label}</Badge>
+                {p.channels.map((ch) => (
+                  <Badge key={ch} tone={CHANNEL_META[ch].tone} size="sm">{CHANNEL_META[ch].label}</Badge>
+                ))}
+              </div>
+            </div>
+            <Badge tone={stage.tone}>{stage.label}</Badge>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---- Linha de propriedade no drawer ------------------------------------ */
+
+function PropertyRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5 py-2 sm:flex-row sm:items-start sm:gap-3">
+      <div className="flex shrink-0 items-center gap-2 pt-1 text-muted sm:w-40">
+        <span className="text-faint" aria-hidden>{icon}</span>
+        <span className="text-body-s">{label}</span>
+      </div>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  )
+}
+
+/** Conjunto de chips selecionáveis (mídia social / checklists). */
+function ChipToggle<T extends string>({
+  options,
+  selected,
+  onToggle,
+  canManage,
+  emptyTone,
+}: {
+  options: { value: T; label: string }[]
+  selected: T[]
+  onToggle: (value: T) => void
+  canManage: boolean
+  emptyTone: 'steel' | 'danger' | 'success'
+}) {
+  if (!canManage) {
+    if (selected.length === 0) return <span className="text-body-s text-faint">—</span>
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {selected.map((v) => {
+          const opt = options.find((o) => o.value === v)
+          return <Badge key={v} tone={emptyTone} size="sm">{opt?.label ?? v}</Badge>
+        })}
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <Tag key={o.value} selectable selected={selected.includes(o.value)} onSelect={() => onToggle(o.value)}>
+          {o.label}
+        </Tag>
+      ))}
+    </div>
+  )
+}
+
+/* ---- Drawer de detalhe / edição ---------------------------------------- */
+
+const FORMAT_OPTS = Object.entries(FORMAT_META).map(([value, m]) => ({ value: value as EditorialFormat, label: m.label }))
+const STAGE_OPTS = Object.entries(STAGE_META).map(([value, m]) => ({ value: value as EditorialStage, label: m.label }))
+const APPROVAL_OPTS = Object.entries(APPROVAL_META).map(([value, m]) => ({ value: value as EditorialApproval, label: m.label }))
+const CHANNEL_OPTS = Object.entries(CHANNEL_META).map(([value, m]) => ({ value: value as EditorialChannel, label: m.label }))
+const ASSET_OPTS = Object.entries(ASSET_META).map(([value, m]) => ({ value: value as EditorialAsset, label: m.label }))
+
+function PostDrawer({
+  clientId,
+  post,
+  canManage,
+  onClose,
+}: {
+  clientId: string
+  post: EditorialPost
+  canManage: boolean
+  onClose: () => void
+}) {
+  const { updatePost, removePost } = useEditorial()
+  const toast = useToast()
+
+  const set = (patch: Partial<Omit<EditorialPost, 'id'>>) => updatePost(clientId, post.id, patch)
+
+  const toggleIn = (key: 'channels' | 'pending' | 'ready', value: string) => {
+    const list = post[key] as string[]
+    const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
+    set({ [key]: next } as Partial<EditorialPost>)
+  }
+
+  const setCardText = (id: string, text: string) =>
+    set({ cards: post.cards.map((c) => (c.id === id ? { ...c, text } : c)) })
+  const addCard = () =>
+    set({ cards: [...post.cards, { id: `c-${Date.now().toString(36)}`, text: '' }] })
+  const removeCard = (id: string) => set({ cards: post.cards.filter((c) => c.id !== id) })
+
+  const fmt = FORMAT_META[post.format]
+  const stage = STAGE_META[post.stage]
+  const approval = APPROVAL_META[post.approval]
+
+  return (
+    <Drawer open onClose={onClose} width={560} title={undefined}>
+      {/* Cabeçalho: formato + título */}
+      <div className="mb-4 flex items-center gap-2">
+        <Badge tone={fmt.tone}>{fmt.label}</Badge>
+        <Badge tone={stage.tone}>{stage.label}</Badge>
+      </div>
+      {canManage ? (
+        <input
+          value={post.title}
+          onChange={(e) => set({ title: e.target.value })}
+          placeholder="Título da postagem"
+          aria-label="Título da postagem"
+          className="mb-4 w-full bg-transparent font-display text-h2 font-semibold text-strong placeholder:text-faint focus:outline-none"
+        />
+      ) : (
+        <h2 className="mb-4 font-display text-h2 font-semibold text-strong">{post.title || 'Sem título'}</h2>
+      )}
+
+      <div className="divide-y divide-line">
+        <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Aprovação Anju">
+          {canManage ? (
+            <Select value={post.approval} onChange={(e) => set({ approval: e.target.value as EditorialApproval })}>
+              {APPROVAL_OPTS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          ) : (
+            <Badge tone={approval.tone}>{approval.label}</Badge>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<MessageSquare size={16} strokeWidth={1.5} />} label="Comentário Anju">
+          {canManage ? (
+            <Textarea
+              rows={2}
+              value={post.comment ?? ''}
+              onChange={(e) => set({ comment: e.target.value })}
+              placeholder="Sem comentário"
+            />
+          ) : (
+            <p className="text-body-s text-fg">{post.comment || <span className="text-faint">—</span>}</p>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<CalendarDays size={16} strokeWidth={1.5} />} label="Data de publicação">
+          {canManage ? (
+            <DatePicker value={parseISO(post.date)} onChange={(d) => d && set({ date: toISO(d) })} />
+          ) : (
+            <span className="text-body-s capitalize text-fg">{longFmt.format(parseISO(post.date))}</span>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<Send size={16} strokeWidth={1.5} />} label="Enviar">
+          {canManage ? (
+            <Select value={post.stage} onChange={(e) => set({ stage: e.target.value as EditorialStage })}>
+              {STAGE_OPTS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          ) : (
+            <Badge tone={stage.tone}>{stage.label}</Badge>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<LayoutTemplate size={16} strokeWidth={1.5} />} label="Formato">
+          {canManage ? (
+            <Select value={post.format} onChange={(e) => set({ format: e.target.value as EditorialFormat })}>
+              {FORMAT_OPTS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          ) : (
+            <Badge tone={fmt.tone}>{fmt.label}</Badge>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<Share2 size={16} strokeWidth={1.5} />} label="Mídia social">
+          <ChipToggle
+            options={CHANNEL_OPTS}
+            selected={post.channels}
+            onToggle={(v) => toggleIn('channels', v)}
+            canManage={canManage}
+            emptyTone="steel"
+          />
+        </PropertyRow>
+
+        <PropertyRow icon={<Link2 size={16} strokeWidth={1.5} />} label="Link do upload">
+          {canManage ? (
+            <Input
+              type="url"
+              value={post.uploadUrl ?? ''}
+              onChange={(e) => set({ uploadUrl: e.target.value })}
+              placeholder="https://…"
+            />
+          ) : post.uploadUrl ? (
+            <a
+              href={post.uploadUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-body-s text-steel-300 hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <span className="truncate">{post.uploadUrl.replace(/^https?:\/\//, '')}</span>
+              <ExternalLink size={13} strokeWidth={1.5} aria-hidden />
+            </a>
+          ) : (
+            <span className="text-body-s text-faint">—</span>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<Megaphone size={16} strokeWidth={1.5} />} label="CTA">
+          {canManage ? (
+            <Input value={post.cta ?? ''} onChange={(e) => set({ cta: e.target.value })} placeholder="Chamada para ação" />
+          ) : (
+            <p className="text-body-s text-fg">{post.cta || <span className="text-faint">—</span>}</p>
+          )}
+        </PropertyRow>
+
+        <PropertyRow icon={<ListTodo size={16} strokeWidth={1.5} />} label="Falta o quê?">
+          <ChipToggle
+            options={ASSET_OPTS}
+            selected={post.pending}
+            onToggle={(v) => toggleIn('pending', v)}
+            canManage={canManage}
+            emptyTone="danger"
+          />
+        </PropertyRow>
+
+        <PropertyRow icon={<ListChecks size={16} strokeWidth={1.5} />} label="O que está pronto">
+          <ChipToggle
+            options={ASSET_OPTS}
+            selected={post.ready}
+            onToggle={(v) => toggleIn('ready', v)}
+            canManage={canManage}
+            emptyTone="success"
+          />
+        </PropertyRow>
+      </div>
+
+      {/* Conteúdo card-a-card */}
+      <Divider className="my-5" />
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-display text-h3 font-semibold text-strong">Conteúdo</h3>
+        <span className="font-mono text-mono-data text-faint">{post.cards.length} cards</span>
+      </div>
+
+      {post.cards.length === 0 && !canManage && (
+        <p className="text-body-s text-faint">Nenhum card de conteúdo.</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {post.cards.map((card, i) => (
+          <div key={card.id} className="rounded-lg border border-line bg-slate-900 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-mono text-mono-label uppercase tracking-wider text-steel-300">Card {i + 1}</span>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => removeCard(card.id)}
+                  aria-label={`Remover card ${i + 1}`}
+                  className="grid size-6 place-items-center rounded-sm text-faint transition-colors hover:bg-slate-700 hover:text-err focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  <Trash2 size={14} strokeWidth={1.5} aria-hidden />
+                </button>
+              )}
+            </div>
+            {canManage ? (
+              <Textarea rows={3} value={card.text} onChange={(e) => setCardText(card.id, e.target.value)} placeholder="Texto do card" />
+            ) : (
+              <p className="whitespace-pre-wrap text-body-s leading-relaxed text-fg">{card.text}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {canManage && (
+        <div className="mt-4 flex items-center justify-between">
+          <Button variant="ghost" size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={addCard}>
+            Adicionar card
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<Trash2 size={16} strokeWidth={1.5} />}
+            onClick={() => {
+              removePost(clientId, post.id)
+              toast.success('Postagem removida', post.title || 'Sem título')
+              onClose()
+            }}
+            className="text-err hover:text-err"
+          >
+            Excluir postagem
+          </Button>
+        </div>
+      )}
+    </Drawer>
+  )
+}
+
+/* ---- Componente principal ---------------------------------------------- */
+
+export function EditorialCalendar({ clientId, canManage }: { clientId: string; canManage: boolean }) {
+  const { getPosts, addPost } = useEditorial()
+  const posts = getPosts(clientId)
+
+  const [tab, setTab] = useState<'calendario' | 'lista'>('calendario')
+  const [view, setView] = useState<Date>(() => {
+    const first = [...posts].sort((a, b) => a.date.localeCompare(b.date))[0]
+    return first ? addMonths(parseISO(first.date), 0) : new Date()
+  })
+  const [openId, setOpenId] = useState<string | null>(null)
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, EditorialPost[]>()
+    for (const p of posts) {
+      const list = map.get(p.date) ?? []
+      list.push(p)
+      map.set(p.date, list)
+    }
+    return map
+  }, [posts])
+
+  const openPost = openId ? posts.find((p) => p.id === openId) ?? null : null
+
+  const createOn = (iso: string) => {
+    const id = addPost(clientId, {
+      date: iso,
+      title: '',
+      format: 'carrossel',
+      channels: ['instagram'],
+      stage: 'para-designer',
+      approval: 'em-producao',
+      pending: [],
+      ready: [],
+      cards: [],
+    })
+    setOpenId(id)
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        {/* Barra de controle */}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <IconButton size="sm" aria-label="Mês anterior" onClick={() => setView((v) => addMonths(v, -1))}>
+              <ChevronLeft size={18} strokeWidth={1.5} />
+            </IconButton>
+            <span className="min-w-44 text-center font-display text-h3 font-semibold capitalize text-strong sm:text-left">
+              {monthFmt.format(view)}
+            </span>
+            <IconButton size="sm" aria-label="Próximo mês" onClick={() => setView((v) => addMonths(v, 1))}>
+              <ChevronRight size={18} strokeWidth={1.5} />
+            </IconButton>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setView(new Date(parseISO(TODAY_ISO).getFullYear(), parseISO(TODAY_ISO).getMonth(), 1))}
+            >
+              Hoje
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as 'calendario' | 'lista')} variant="segmented">
+              <TabList aria-label="Visualização do calendário">
+                <Tab value="calendario">Calendário</Tab>
+                <Tab value="lista">Lista</Tab>
+              </TabList>
+            </Tabs>
+            {canManage && (
+              <Button
+                size="sm"
+                leftIcon={<Plus size={16} strokeWidth={1.5} />}
+                onClick={() => {
+                  const todayInView = sameMonth(view, parseISO(TODAY_ISO)) ? TODAY_ISO : toISO(new Date(view.getFullYear(), view.getMonth(), 1))
+                  createOn(todayInView)
+                }}
+              >
+                Nova postagem
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {tab === 'calendario' ? (
+          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={createOn} />
+        ) : (
+          <PostList posts={posts} onOpen={setOpenId} />
+        )}
+      </Card>
+
+      {!canManage && (
+        <p className="text-body-s text-faint">
+          Visualização — alterações no calendário ficam disponíveis para o time.
+        </p>
+      )}
+
+      {openPost && (
+        <PostDrawer
+          clientId={clientId}
+          post={openPost}
+          canManage={canManage}
+          onClose={() => setOpenId(null)}
+        />
+      )}
+    </div>
+  )
+}

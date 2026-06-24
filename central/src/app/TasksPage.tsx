@@ -1,0 +1,903 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Plus,
+  LayoutGrid,
+  List as ListIcon,
+  CalendarClock,
+  Flag,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Check,
+  History,
+  Building2,
+  ListChecks,
+  Loader2,
+} from 'lucide-react'
+import {
+  Button,
+  IconButton,
+  Card,
+  CardHeader,
+  CardTitle,
+  StatCard,
+  Badge,
+  Avatar,
+  AvatarGroup,
+  ProgressBar,
+  Checkbox,
+  Input,
+  Textarea,
+  Select,
+  DatePicker,
+  SearchField,
+  Drawer,
+  Modal,
+  EmptyState,
+  Divider,
+  useToast,
+} from '@/components/ui'
+import { useSession } from '@/lib/session'
+import { useTasks, type TaskInput } from './tasks'
+import { useProfiles } from './profiles'
+import {
+  TASK_STATUS_ORDER,
+  TASK_STATUS_META,
+  TASK_PRIORITY_ORDER,
+  TASK_PRIORITY_META,
+  TASK_TAG_TONE,
+  getClient,
+  type Task,
+  type TaskStatus,
+  type TaskPriority,
+  type TaskTag,
+} from './data'
+
+/* ----------------------------------------------------------------- helpers */
+
+const TAGS: TaskTag[] = ['Cliente', 'Suporte', 'Conteúdo', 'Interno']
+
+const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
+const fullDateTime = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+})
+
+function todayIso() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function isoToDate(iso?: string): Date | null {
+  if (!iso) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+function dateToIso(d: Date | null): string | undefined {
+  if (!d) return undefined
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+/** Estado do prazo de uma tarefa (para colorir o chip de data). */
+function dueState(task: Task): 'none' | 'overdue' | 'today' | 'upcoming' {
+  if (!task.due) return 'none'
+  if (task.status === 'concluida') return 'upcoming'
+  const t = todayIso()
+  if (task.due < t) return 'overdue'
+  if (task.due === t) return 'today'
+  return 'upcoming'
+}
+
+/* ----------------------------------------------------------- chips e avatares */
+
+function PriorityChip({ priority }: { priority: TaskPriority }) {
+  const meta = TASK_PRIORITY_META[priority]
+  return (
+    <Badge size="sm" tone={meta.tone}>
+      <Flag size={11} strokeWidth={2} aria-hidden /> {meta.label}
+    </Badge>
+  )
+}
+
+function DueChip({ task }: { task: Task }) {
+  const state = dueState(task)
+  if (state === 'none') return null
+  const d = isoToDate(task.due)
+  const tone = state === 'overdue' ? 'text-err' : state === 'today' ? 'text-warn' : 'text-faint'
+  return (
+    <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${tone}`}>
+      <CalendarClock size={12} strokeWidth={1.5} aria-hidden />
+      {d ? shortDate.format(d) : ''}
+      {state === 'overdue' && ' · atrasada'}
+      {state === 'today' && ' · hoje'}
+    </span>
+  )
+}
+
+function Assignees({ ids, size = 'sm' }: { ids: string[]; size?: 'sm' | 'xs' }) {
+  const { getMember } = useProfiles()
+  if (ids.length === 0) {
+    return <span className="font-mono text-[11px] text-faint">sem responsável</span>
+  }
+  return (
+    <AvatarGroup max={3}>
+      {ids.map((id) => {
+        const u = getMember(id)
+        return <Avatar key={id} size={size === 'xs' ? 'xs' : 'sm'} name={u?.name ?? '?'} />
+      })}
+    </AvatarGroup>
+  )
+}
+
+/* ----------------------------------------------------------------- task card */
+
+function TaskCard({
+  task,
+  canManage,
+  onOpen,
+  onToggle,
+  onDragStart,
+}: {
+  task: Task
+  canManage: boolean
+  onOpen: () => void
+  onToggle: () => void
+  onDragStart?: (e: React.DragEvent) => void
+}) {
+  const done = task.status === 'concluida'
+  const client = task.clientId ? getClient(task.clientId) : undefined
+  return (
+    <div
+      draggable={canManage}
+      onDragStart={onDragStart}
+      className={`group flex flex-col gap-2.5 rounded-lg border border-line bg-slate-900 p-3 transition-colors hover:border-strong ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="pt-0.5">
+          <Checkbox checked={done} onChange={onToggle} aria-label={done ? 'Reabrir tarefa' : 'Concluir tarefa'} />
+        </span>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
+        >
+          <span className={`text-body-s font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
+            {task.title}
+          </span>
+        </button>
+        {task.tag && (
+          <Badge size="sm" tone={TASK_TAG_TONE[task.tag]} className="shrink-0">
+            {task.tag}
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2 pl-[30px]">
+        <div className="flex items-center gap-2">
+          <PriorityChip priority={task.priority} />
+          <DueChip task={task} />
+        </div>
+        <div className="flex items-center gap-2">
+          {client && (
+            <span className="hidden items-center gap-1 font-mono text-[10px] uppercase text-faint sm:inline-flex">
+              <Building2 size={11} strokeWidth={1.5} aria-hidden /> {client.name.split(' ')[0]}
+            </span>
+          )}
+          <Assignees ids={task.assignees} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* --------------------------------------------------------------- board view */
+
+function BoardView({
+  groups,
+  canManage,
+  onOpen,
+  onToggle,
+  onDropTask,
+}: {
+  groups: Record<TaskStatus, Task[]>
+  canManage: boolean
+  onOpen: (t: Task) => void
+  onToggle: (t: Task) => void
+  onDropTask: (id: string, status: TaskStatus) => void
+}) {
+  const [over, setOver] = useState<TaskStatus | null>(null)
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {TASK_STATUS_ORDER.map((status) => {
+        const meta = TASK_STATUS_META[status]
+        const list = groups[status]
+        return (
+          <div
+            key={status}
+            onDragOver={canManage ? (e) => { e.preventDefault(); setOver(status) } : undefined}
+            onDragLeave={canManage ? () => setOver((s) => (s === status ? null : s)) : undefined}
+            onDrop={
+              canManage
+                ? (e) => {
+                    e.preventDefault()
+                    const id = e.dataTransfer.getData('text/plain')
+                    if (id) onDropTask(id, status)
+                    setOver(null)
+                  }
+                : undefined
+            }
+            className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
+              over === status ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
+            }`}
+          >
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Badge tone={meta.tone} dot>{meta.label}</Badge>
+              </div>
+              <span className="font-mono text-mono-data text-faint tabular-nums">{list.length}</span>
+            </div>
+            {list.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                canManage={canManage}
+                onOpen={() => onOpen(task)}
+                onToggle={() => onToggle(task)}
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+              />
+            ))}
+            {list.length === 0 && (
+              <p className="px-1 py-6 text-center text-body-s text-faint">Nada por aqui.</p>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ---------------------------------------------------------------- list view */
+
+function ListView({
+  groups,
+  canManage,
+  onOpen,
+  onToggle,
+}: {
+  groups: Record<TaskStatus, Task[]>
+  canManage: boolean
+  onOpen: (t: Task) => void
+  onToggle: (t: Task) => void
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      {TASK_STATUS_ORDER.map((status) => {
+        const meta = TASK_STATUS_META[status]
+        const list = groups[status]
+        if (list.length === 0) return null
+        return (
+          <section key={status} className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Badge tone={meta.tone} dot>{meta.label}</Badge>
+              <span className="font-mono text-mono-data text-faint tabular-nums">{list.length}</span>
+            </div>
+            <Card className="p-0">
+              <ul>
+                {list.map((task, i) => {
+                  const done = task.status === 'concluida'
+                  const client = task.clientId ? getClient(task.clientId) : undefined
+                  return (
+                    <li
+                      key={task.id}
+                      className={`flex items-center gap-3 px-4 py-3 ${i < list.length - 1 ? 'border-b border-subtle' : ''}`}
+                    >
+                      <Checkbox checked={done} onChange={() => onToggle(task)} aria-label={done ? 'Reabrir' : 'Concluir'} />
+                      <button
+                        type="button"
+                        onClick={() => onOpen(task)}
+                        className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
+                      >
+                        <span className={`text-body-s font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
+                          {task.title}
+                        </span>
+                        {client && (
+                          <span className="ml-2 font-mono text-[10px] uppercase text-faint">· {client.name}</span>
+                        )}
+                      </button>
+                      <div className="hidden items-center gap-3 sm:flex">
+                        <DueChip task={task} />
+                        <PriorityChip priority={task.priority} />
+                        {task.tag && <Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge>}
+                      </div>
+                      <Assignees ids={task.assignees} />
+                      {canManage && (
+                        <IconButton aria-label="Abrir" size="sm" onClick={() => onOpen(task)}>
+                          <MoreHorizontal size={16} strokeWidth={1.5} />
+                        </IconButton>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </Card>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------ admin summary */
+
+function AdminSummary({ tasks }: { tasks: Task[] }) {
+  const { members } = useProfiles()
+  const total = tasks.length
+  const inProgress = tasks.filter((t) => t.status === 'em-andamento' || t.status === 'em-revisao').length
+  const done = tasks.filter((t) => t.status === 'concluida').length
+  const t = todayIso()
+  const overdue = tasks.filter((x) => x.due && x.due < t && x.status !== 'concluida').length
+
+  // Progresso por pessoa (apenas quem tem tarefa atribuída).
+  const perPerson = members
+    .map((u) => {
+      const mine = tasks.filter((task) => task.assignees.includes(u.id))
+      const concl = mine.filter((task) => task.status === 'concluida').length
+      return { user: u, total: mine.length, done: concl }
+    })
+    .filter((p) => p.total > 0)
+    .sort((a, b) => b.total - a.total)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 lg:col-span-2 lg:grid-cols-4">
+        <StatCard label="Total" value={String(total)} />
+        <StatCard label="Em andamento" value={String(inProgress)} active />
+        <StatCard label="Concluídas" value={String(done)} delta={{ value: total ? `${Math.round((done / total) * 100)}%` : '0%', direction: 'up' }} />
+        <StatCard
+          label="Atrasadas"
+          value={String(overdue)}
+          delta={overdue > 0 ? { value: 'atenção', direction: 'down' } : undefined}
+        />
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Avanço por pessoa</CardTitle>
+          <Badge tone="steel" dot>admin</Badge>
+        </CardHeader>
+        <div className="flex flex-col gap-3">
+          {perPerson.length === 0 && <p className="text-body-s text-faint">Nenhuma tarefa atribuída.</p>}
+          {perPerson.map((p) => (
+            <div key={p.user.id} className="flex items-center gap-3">
+              <Avatar size="sm" name={p.user.name} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-body-s font-medium text-strong">{p.user.name}</span>
+                  <span className="shrink-0 font-mono text-[11px] text-faint tabular-nums">{p.done}/{p.total}</span>
+                </div>
+                <ProgressBar value={p.total ? (p.done / p.total) * 100 : 0} tone="success" className="mt-1" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+/* ----------------------------------------------------------- form (criar/editar) */
+
+type Draft = {
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  assignees: string[]
+  due: string
+  tag: '' | TaskTag
+  clientId: string
+}
+
+const EMPTY: Draft = {
+  title: '', description: '', status: 'a-fazer', priority: 'media',
+  assignees: [], due: '', tag: '', clientId: '',
+}
+
+function TaskFormModal({
+  open,
+  editing,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean
+  editing: Task | null
+  onClose: () => void
+  onSubmit: (draft: Draft) => void
+}) {
+  const { members } = useProfiles()
+  const [draft, setDraft] = useState<Draft>(EMPTY)
+
+  // Sincroniza o rascunho quando abre (cria ou edita).
+  useEffect(() => {
+    if (!open) return
+    setDraft(
+      editing
+        ? {
+            title: editing.title,
+            description: editing.description ?? '',
+            status: editing.status,
+            priority: editing.priority,
+            assignees: [...editing.assignees],
+            due: editing.due ?? '',
+            tag: editing.tag ?? '',
+            clientId: editing.clientId ?? '',
+          }
+        : EMPTY,
+    )
+  }, [open, editing])
+
+  const toggleAssignee = (id: string) =>
+    setDraft((d) => ({
+      ...d,
+      assignees: d.assignees.includes(id) ? d.assignees.filter((x) => x !== id) : [...d.assignees, id],
+    }))
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="lg"
+      title={editing ? 'Editar tarefa' : 'Nova tarefa'}
+      description="Defina responsáveis, prazo e prioridade."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSubmit(draft)}>{editing ? 'Salvar' : 'Criar tarefa'}</Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <Input
+          label="Título"
+          value={draft.title}
+          onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+          placeholder="Ex.: Revisar plano da Anju Mace"
+          autoFocus
+        />
+        <Textarea
+          label="Descrição"
+          optional
+          rows={3}
+          value={draft.description}
+          onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+          placeholder="Detalhes, contexto, links…"
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Status"
+            value={draft.status}
+            onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as TaskStatus }))}
+          >
+            {TASK_STATUS_ORDER.map((s) => (
+              <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
+            ))}
+          </Select>
+          <Select
+            label="Prioridade"
+            value={draft.priority}
+            onChange={(e) => setDraft((d) => ({ ...d, priority: e.target.value as TaskPriority }))}
+          >
+            {TASK_PRIORITY_ORDER.map((p) => (
+              <option key={p} value={p}>{TASK_PRIORITY_META[p].label}</option>
+            ))}
+          </Select>
+          <DatePicker
+            label="Prazo"
+            optional
+            value={isoToDate(draft.due)}
+            onChange={(d) => setDraft((dr) => ({ ...dr, due: dateToIso(d) ?? '' }))}
+          />
+          <Select
+            label="Categoria"
+            value={draft.tag}
+            onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value as Draft['tag'] }))}
+          >
+            <option value="">Sem categoria</option>
+            {TAGS.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <div className="mb-2 text-body-s font-medium text-strong">Responsáveis</div>
+          {members.length === 0 ? (
+            <p className="rounded-md border border-line bg-slate-900 p-3 text-body-s text-faint">
+              Nenhum membro cadastrado ainda. Crie usuários para poder atribuir.
+            </p>
+          ) : (
+            <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-md border border-line bg-slate-900 p-2 sm:grid-cols-2">
+              {members.map((u) => (
+                <label
+                  key={u.id}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-slate-800"
+                >
+                  <Checkbox checked={draft.assignees.includes(u.id)} onChange={() => toggleAssignee(u.id)} />
+                  <Avatar size="xs" name={u.name} />
+                  <span className="min-w-0 flex-1 truncate text-body-s text-strong">{u.name}</span>
+                  {u.team && <span className="font-mono text-[10px] uppercase text-faint">{u.team}</span>}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/* ------------------------------------------------------------- task drawer */
+
+function TaskDrawer({
+  task,
+  canManage,
+  onClose,
+  onMove,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  task: Task | null
+  canManage: boolean
+  onClose: () => void
+  onMove: (status: TaskStatus) => void
+  onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const navigate = useNavigate()
+  const { getMember } = useProfiles()
+  if (!task) return null
+  const done = task.status === 'concluida'
+  const client = task.clientId ? getClient(task.clientId) : undefined
+
+  return (
+    <Drawer
+      open={!!task}
+      onClose={onClose}
+      width={460}
+      title={task.title}
+      description={`Criada em ${fullDateTime.format(new Date(task.createdAt))}`}
+      footer={
+        <>
+          {canManage && (
+            <>
+              <Button variant="ghost" leftIcon={<Trash2 size={16} strokeWidth={1.5} />} onClick={onDelete}>
+                Excluir
+              </Button>
+              <Button variant="secondary" leftIcon={<Pencil size={16} strokeWidth={1.5} />} onClick={onEdit}>
+                Editar
+              </Button>
+            </>
+          )}
+          <Button
+            variant={done ? 'secondary' : 'primary'}
+            leftIcon={<Check size={16} strokeWidth={1.5} />}
+            onClick={onToggle}
+          >
+            {done ? 'Reabrir' : 'Concluir'}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {/* Status */}
+        <div>
+          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status</div>
+          {canManage ? (
+            <Select value={task.status} onChange={(e) => onMove(e.target.value as TaskStatus)}>
+              {TASK_STATUS_ORDER.map((s) => (
+                <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
+              ))}
+            </Select>
+          ) : (
+            <Badge tone={TASK_STATUS_META[task.status].tone} dot>{TASK_STATUS_META[task.status].label}</Badge>
+          )}
+        </div>
+
+        {/* Metadados */}
+        <dl className="grid grid-cols-2 gap-4">
+          <div>
+            <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prioridade</dt>
+            <dd><PriorityChip priority={task.priority} /></dd>
+          </div>
+          <div>
+            <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prazo</dt>
+            <dd>{task.due ? <DueChip task={task} /> : <span className="text-body-s text-faint">—</span>}</dd>
+          </div>
+          {task.tag && (
+            <div>
+              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Categoria</dt>
+              <dd><Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge></dd>
+            </div>
+          )}
+          {client && (
+            <div>
+              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Cliente</dt>
+              <dd>
+                <button
+                  onClick={() => navigate(`/app/clientes/${client.id}`)}
+                  className="inline-flex items-center gap-1.5 text-body-s text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  <Building2 size={14} strokeWidth={1.5} aria-hidden /> {client.name}
+                </button>
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {/* Responsáveis */}
+        <div>
+          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Responsáveis</div>
+          {task.assignees.length === 0 ? (
+            <span className="text-body-s text-faint">Sem responsável</span>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {task.assignees.map((id) => {
+                const u = getMember(id)
+                return (
+                  <li key={id} className="flex items-center gap-2.5">
+                    <Avatar size="sm" name={u?.name ?? '?'} />
+                    <span className="text-body-s text-strong">{u?.name ?? 'Desconhecido'}</span>
+                    {u && <span className="font-mono text-[11px] text-faint">{u.role === 'admin' ? 'Admin' : 'Colaborador'}{u.team ? ` · ${u.team}` : ''}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Descrição */}
+        {task.description && (
+          <div>
+            <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Descrição</div>
+            <p className="whitespace-pre-wrap text-body-s text-fg">{task.description}</p>
+          </div>
+        )}
+
+        <Divider />
+
+        {/* Histórico */}
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <History size={15} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+            <span className="text-body-s font-medium text-strong">Histórico</span>
+          </div>
+          <ol className="flex flex-col gap-3">
+            {[...task.history].reverse().map((ev) => (
+              <li key={ev.id} className="flex gap-3">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-steel-400" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-body-s text-fg">
+                    <span className="font-medium text-strong">{ev.who}</span> {ev.text}
+                  </p>
+                  <p className="font-mono text-[11px] text-faint">{fullDateTime.format(new Date(ev.at))}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </Drawer>
+  )
+}
+
+/* ============================================================== página ===== */
+
+export function TasksPage() {
+  const toast = useToast()
+  const { role, user } = useSession()
+  const { tasks, loading, addTask, editTask, moveTask, removeTask } = useTasks()
+  const { members } = useProfiles()
+  const canManage = role === 'admin'
+
+  const [view, setView] = useState<'board' | 'list'>('board')
+  const [search, setSearch] = useState('')
+  const [assignee, setAssignee] = useState<string>(canManage ? 'all' : 'mine')
+  const [tagFilter, setTagFilter] = useState<string>('all')
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Task | null>(null)
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) ?? null : null
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return tasks.filter((t) => {
+      if (assignee === 'mine' && !t.assignees.includes(user.id)) return false
+      if (assignee !== 'all' && assignee !== 'mine' && !t.assignees.includes(assignee)) return false
+      if (tagFilter !== 'all' && t.tag !== tagFilter) return false
+      if (q && !t.title.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [tasks, search, assignee, tagFilter, user.id])
+
+  const groups = useMemo(() => {
+    const g: Record<TaskStatus, Task[]> = { 'a-fazer': [], 'em-andamento': [], 'em-revisao': [], concluida: [] }
+    for (const t of filtered) g[t.status].push(t)
+    return g
+  }, [filtered])
+
+  const toggle = (t: Task) => {
+    const next: TaskStatus = t.status === 'concluida' ? 'a-fazer' : 'concluida'
+    moveTask(t.id, next)
+    toast.success(next === 'concluida' ? 'Tarefa concluída' : 'Tarefa reaberta', t.title)
+  }
+
+  const submitForm = (draft: Draft) => {
+    const title = draft.title.trim()
+    if (!title) {
+      toast.error('Informe um título')
+      return
+    }
+    const payload = {
+      title,
+      description: draft.description.trim() || undefined,
+      priority: draft.priority,
+      assignees: draft.assignees,
+      due: draft.due || undefined,
+      tag: draft.tag || undefined,
+      clientId: draft.clientId || undefined,
+    }
+    if (editing) {
+      editTask(editing.id, payload)
+      if (draft.status !== editing.status) moveTask(editing.id, draft.status)
+      toast.success('Tarefa atualizada', title)
+    } else {
+      addTask({ ...payload, status: draft.status } as TaskInput)
+      toast.success('Tarefa criada', title)
+    }
+    setFormOpen(false)
+    setEditing(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="grid place-items-center py-24 text-muted">
+          <Loader2 size={26} strokeWidth={1.5} className="animate-spin text-steel-300" aria-label="Carregando tarefas" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5 px-6 py-8">
+      {/* Cabeçalho */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span className="font-mono text-mono-label uppercase text-steel-400">Operação</span>
+          <h1 className="mt-1 font-display text-h1 font-semibold text-strong">Tarefas</h1>
+        </div>
+        {canManage && (
+          <Button
+            leftIcon={<Plus size={18} strokeWidth={1.5} />}
+            onClick={() => { setEditing(null); setFormOpen(true) }}
+          >
+            Nova tarefa
+          </Button>
+        )}
+      </div>
+
+      {/* Painel de admin */}
+      {canManage && <AdminSummary tasks={tasks} />}
+
+      {/* Barra de controles */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle de visão */}
+          <div className="inline-flex rounded-md border border-strong p-0.5">
+            <button
+              onClick={() => setView('board')}
+              className={`inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 font-mono text-mono-label uppercase transition-colors ${view === 'board' ? 'bg-slate-700 text-strong' : 'text-muted hover:text-strong'}`}
+            >
+              <LayoutGrid size={15} strokeWidth={1.5} /> Quadro
+            </button>
+            <button
+              onClick={() => setView('list')}
+              className={`inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 font-mono text-mono-label uppercase transition-colors ${view === 'list' ? 'bg-slate-700 text-strong' : 'text-muted hover:text-strong'}`}
+            >
+              <ListIcon size={15} strokeWidth={1.5} /> Lista
+            </button>
+          </div>
+
+          {/* Filtro de responsável */}
+          <div className="w-44">
+            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} aria-label="Filtrar por responsável">
+              <option value="all">Todos os responsáveis</option>
+              <option value="mine">Minhas tarefas</option>
+              {members.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Filtro de categoria */}
+          <div className="w-40">
+            <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrar por categoria">
+              <option value="all">Todas as categorias</option>
+              {TAGS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Select>
+          </div>
+        </div>
+
+        <div className="w-full sm:w-64">
+          <SearchField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
+            placeholder="Buscar tarefa…"
+            aria-label="Buscar tarefa"
+          />
+        </div>
+      </div>
+
+      {/* Conteúdo */}
+      {filtered.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<ListChecks size={22} strokeWidth={1.5} />}
+            title="Nenhuma tarefa encontrada"
+            description={tasks.length === 0 ? 'Crie a primeira tarefa do time.' : 'Ajuste os filtros para ver mais tarefas.'}
+            action={
+              canManage && tasks.length === 0 ? (
+                <Button leftIcon={<Plus size={18} strokeWidth={1.5} />} onClick={() => { setEditing(null); setFormOpen(true) }}>
+                  Nova tarefa
+                </Button>
+              ) : undefined
+            }
+          />
+        </Card>
+      ) : view === 'board' ? (
+        <BoardView
+          groups={groups}
+          canManage={canManage}
+          onOpen={(t) => setOpenTaskId(t.id)}
+          onToggle={toggle}
+          onDropTask={(id, status) => moveTask(id, status)}
+        />
+      ) : (
+        <ListView
+          groups={groups}
+          canManage={canManage}
+          onOpen={(t) => setOpenTaskId(t.id)}
+          onToggle={toggle}
+        />
+      )}
+
+      {/* Overlays */}
+      <TaskFormModal
+        open={formOpen}
+        editing={editing}
+        onClose={() => { setFormOpen(false); setEditing(null) }}
+        onSubmit={submitForm}
+      />
+      <TaskDrawer
+        task={openTask}
+        canManage={canManage}
+        onClose={() => setOpenTaskId(null)}
+        onMove={(status) => openTask && moveTask(openTask.id, status)}
+        onToggle={() => openTask && toggle(openTask)}
+        onEdit={() => {
+          if (!openTask) return
+          setEditing(openTask)
+          setOpenTaskId(null)
+          setFormOpen(true)
+        }}
+        onDelete={() => {
+          if (!openTask) return
+          removeTask(openTask.id)
+          toast.success('Tarefa removida', openTask.title)
+          setOpenTaskId(null)
+        }}
+      />
+    </div>
+  )
+}

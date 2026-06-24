@@ -1,0 +1,311 @@
+/* ============================================================================
+   ANJU MACE · Design Tokens — "Sálvia & Dourado / Editorial Ops"
+   ----------------------------------------------------------------------------
+   Fonte única de verdade. O Tailwind referencia estas variáveis; componentes
+   nunca devem hardcodar hex.
+
+   ARQUITETURA EM CAMADAS (white-label, ATIVA):
+   - Tokens de chrome (estrutura): superfícies, linhas, texto, raios, motion.
+     Mudam só entre temas (claro/escuro), nunca por cliente.
+   - Camada temável por cliente: APENAS o accent (steel-*) + foreground sobre
+     accent (--accent-fg). Um seletor [data-brand="x"] sobrescreve SÓ isso.
+   - Tema: [data-theme="dark"] no <html> troca todo o chrome para o grafite da
+     marca. :root (sem atributo, ou "light") = CLARO CREME, o padrão Anju.
+
+   NOMENCLATURA: os nomes de token (steel-*, sand-*, slate-*, ink) são mantidos
+   por compatibilidade com os componentes; os VALORES são a paleta Anju:
+     steel-*  → SÁLVIA (accent primário da marca)
+     sand-*   → DOURADO (assinatura quente / ênfase)
+     slate/ink→ GRAFITE & CREME (chrome)
+
+   COMBINAÇÃO: data-theme e data-brand se compõem. Ex.: escuro + marca dourado.
+   ========================================================================== */
+
+/* ============================================================================
+   TEMA CLARO — CREME (padrão, :root)
+   ----------------------------------------------------------------------------
+   Canvas creme da marca (#F5F5DD), cards brancos acima dele, interação escurece
+   progressivamente para um creme-cinza quente. Texto grafite. Accent sálvia.
+   ========================================================================== */
+:root {
+  /* ---- Cores · Fundo (creme da marca, em camadas) ------------------------ */
+  --ink: #f5f5dd;          /* canvas do app (creme-100) */
+  --ink-deep: #ececc9;     /* poços / fundo da sidebar (creme-200) */
+  --slate-900: #ffffff;    /* superfície (cards) */
+  --slate-800: #f4f4e4;    /* superfície elevada / hover */
+  --slate-700: #ececdc;    /* popovers, linhas ativas */
+  --slate-600: #e0e0cc;    /* superfície forte / pressed */
+
+  /* ---- Cores · Linhas (hairlines, grafite de baixa opacidade) ------------ */
+  --line-subtle: rgba(40, 40, 40, 0.06);
+  --line: rgba(40, 40, 40, 0.1);
+  --line-strong: rgba(40, 40, 40, 0.16);
+
+  /* ---- Cores · Texto (grafite da marca) ---------------------------------- */
+  --text-strong: #282828;  /* grafite-800 */
+  --text: #3d3d3d;         /* corpo padrão (grafite-600) */
+  --text-muted: #5c5c5c;   /* grafite-500 */
+  --text-faint: #a6a6a6;   /* grafite-300 */
+  --text-on-sand: #222222; /* texto escuro sobre superfícies Dourado */
+
+  /* ---- Foreground sobre preenchimento de accent + puck de controle ------- */
+  /* Texto sobre sálvia é sempre grafite escuro, nos dois temas (AA 6.06). */
+  --accent-fg: #222222;
+  --knob: #ffffff;
+
+  /* ====================================================================== */
+  /* camada temável — accent primário · SÁLVIA                               */
+  --steel-300: #cdd9b8;    /* sage-200 */
+  --steel-400: #b5c59c;    /* sage-300 */
+  --steel-500: #9eab87;    /* sage-400 — PRIMÁRIO (marca) */
+  --steel-600: #889573;    /* sage-500 */
+  --steel-700: #7a8569;    /* sage-600 */
+  --steel-tint: rgba(158, 171, 135, 0.16);  /* fills sutis / selecionado */
+  --steel-glow: rgba(158, 171, 135, 0.32);  /* anel de foco / glow */
+  /* fim camada temável (accent)                                            */
+  /* ====================================================================== */
+
+  /* ====================================================================== */
+  /* camada temável — superfície de ênfase quente · DOURADO                  */
+  --sand-100: #faf4e6;     /* gold-50 */
+  --sand-200: #f2e6c8;     /* gold-100 — superfície clara de ênfase */
+  --sand-300: #e9d4a4;     /* gold-200 */
+  --sand-deep: #2a2620;    /* variante de superfície quente-escura */
+  --sand-tint: rgba(218, 190, 129, 0.16);
+  /* fim camada temável (sand)                                              */
+  /* ====================================================================== */
+
+  /* ---- Cores · Status (dessaturados, sofisticados) ----------------------- */
+  --ok: #4f9a6a;
+  --ok-tint: rgba(79, 154, 106, 0.14);
+  --err: #c25a4d;
+  --err-tint: rgba(194, 90, 77, 0.14);
+  --warn: #9e7b2c;
+  --warn-tint: rgba(158, 123, 44, 0.16);
+  /* info: reutiliza o Sálvia */
+
+  /* ---- Ambient glow (no máximo um por view, sutil) ----------------------- */
+  --glow-steel: radial-gradient(circle at 50% 0%, rgba(158, 171, 135, 0.14), transparent 70%);
+
+  /* ---- Canais RGB (espelham os hex acima) ------------------------------- */
+  --ink-rgb: 245 245 221;
+  --ink-deep-rgb: 236 236 201;
+  --slate-900-rgb: 255 255 255;
+  --slate-800-rgb: 244 244 228;
+  --slate-700-rgb: 236 236 220;
+  --slate-600-rgb: 224 224 204;
+  --steel-300-rgb: 205 217 184;
+  --steel-400-rgb: 181 197 156;
+  --steel-500-rgb: 158 171 135;
+  --steel-600-rgb: 136 149 115;
+  --steel-700-rgb: 122 133 105;
+  --sand-100-rgb: 250 244 230;
+  --sand-200-rgb: 242 230 200;
+  --sand-300-rgb: 233 212 164;
+  --sand-deep-rgb: 42 38 32;
+  --ok-rgb: 79 154 106;
+  --err-rgb: 194 90 77;
+  --warn-rgb: 158 123 44;
+  --text-strong-rgb: 40 40 40;
+  --text-rgb: 61 61 61;
+  --text-muted-rgb: 92 92 92;
+  --text-faint-rgb: 166 166 166;
+  --text-on-sand-rgb: 34 34 34;
+
+  /* ---- Tipografia · Famílias --------------------------------------------- */
+  /* Lexend — display/títulos (pesos 300/400/500/600/700) */
+  --font-display: 'Lexend', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Outfit — UI / corpo */
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* "Voz de dados" (metadados/IDs/timestamps) — Outfit com números tabulares.
+     Mantém o nome --font-mono pelo papel funcional, não pela monoespaçação. */
+  --font-mono: 'Outfit', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ---- Espaçamento (base 4px) -------------------------------------------- */
+  --space-0: 0px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+
+  /* ---- Raio --------------------------------------------------------------- */
+  --r-xs: 6px;     /* inputs, chips */
+  --r-sm: 8px;
+  --r-md: 10px;    /* botões, badges */
+  --r-lg: 14px;    /* cards */
+  --r-xl: 18px;    /* painéis, modais */
+  --r-2xl: 24px;   /* cards-herói */
+  --r-full: 9999px;
+
+  /* ---- Elevação (clara — sombras quentes e suaves) ----------------------- */
+  --e1: 0 1px 2px rgba(40, 36, 28, 0.08);
+  --e2: 0 4px 14px rgba(40, 36, 28, 0.1);
+  --e3: 0 14px 40px rgba(40, 36, 28, 0.14);
+  --focus-ring: 0 0 0 3px var(--steel-glow);
+  --glow-active: 0 0 0 1px var(--steel-glow), 0 0 28px var(--steel-tint);
+
+  /* ---- Motion ------------------------------------------------------------- */
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 260ms;
+  --ease-out: cubic-bezier(0.22, 0.8, 0.26, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- Z-index ------------------------------------------------------------ */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-drawer: 1200;
+  --z-modal: 1300;
+  --z-popover: 1400;
+  --z-toast: 1500;
+  --z-tooltip: 1600;
+}
+
+/* ============================================================================
+   TEMA ESCURO — GRAFITE — [data-theme="dark"]
+   ----------------------------------------------------------------------------
+   Grafite da marca (#1A1A1A canvas, #282828 cards). Texto creme. Linhas creme
+   de baixa opacidade. Accent sálvia mantém-se (6.06 sobre grafite). Dourado
+   segue como assinatura quente. Status mais claros para ler sobre escuro.
+   ========================================================================== */
+:root[data-theme='dark'] {
+  /* Fundos */
+  --ink: #1a1a1a;          /* grafite-950 */
+  --ink-deep: #141414;
+  --slate-900: #282828;    /* grafite-800 (marca) */
+  --slate-800: #2f2f2f;    /* grafite-700 */
+  --slate-700: #3d3d3d;    /* grafite-600 */
+  --slate-600: #5c5c5c;    /* grafite-500 */
+
+  /* Linhas (creme de baixa opacidade) */
+  --line-subtle: rgba(245, 245, 221, 0.06);
+  --line: rgba(245, 245, 221, 0.1);
+  --line-strong: rgba(245, 245, 221, 0.18);
+
+  /* Texto (creme da marca) */
+  --text-strong: #f5f5dd;  /* creme-100 */
+  --text: #d9d9cc;
+  --text-muted: #9a968a;
+  --text-faint: #6e6a60;
+  --text-on-sand: #222222;
+
+  /* Foreground sobre accent + puck */
+  --accent-fg: #222222;
+  --knob: #f5f5dd;
+
+  /* Accent — SÁLVIA */
+  --steel-300: #cdd9b8;
+  --steel-400: #b5c59c;
+  --steel-500: #9eab87;
+  --steel-600: #889573;
+  --steel-700: #636e55;
+  --steel-tint: rgba(158, 171, 135, 0.16);
+  --steel-glow: rgba(158, 171, 135, 0.34);
+
+  /* Sand — DOURADO de ênfase */
+  --sand-100: #f2e6c8;
+  --sand-200: #e9d4a4;
+  --sand-300: #dabe81;
+  --sand-deep: #2a2620;
+  --sand-tint: rgba(218, 190, 129, 0.12);
+
+  /* Status */
+  --ok: #84c29a;
+  --ok-tint: rgba(132, 194, 154, 0.15);
+  --err: #e08b82;
+  --err-tint: rgba(224, 139, 130, 0.15);
+  --warn: #dabe81;
+  --warn-tint: rgba(218, 190, 129, 0.15);
+
+  --glow-steel: radial-gradient(circle at 50% 0%, rgba(158, 171, 135, 0.12), transparent 70%);
+
+  /* Canais RGB */
+  --ink-rgb: 26 26 26;
+  --ink-deep-rgb: 20 20 20;
+  --slate-900-rgb: 40 40 40;
+  --slate-800-rgb: 47 47 47;
+  --slate-700-rgb: 61 61 61;
+  --slate-600-rgb: 92 92 92;
+  --steel-300-rgb: 205 217 184;
+  --steel-400-rgb: 181 197 156;
+  --steel-500-rgb: 158 171 135;
+  --steel-600-rgb: 136 149 115;
+  --steel-700-rgb: 99 110 85;
+  --sand-100-rgb: 242 230 200;
+  --sand-200-rgb: 233 212 164;
+  --sand-300-rgb: 218 190 129;
+  --sand-deep-rgb: 42 38 32;
+  --ok-rgb: 132 194 154;
+  --err-rgb: 224 139 130;
+  --warn-rgb: 218 190 129;
+  --text-strong-rgb: 245 245 221;
+  --text-rgb: 217 217 204;
+  --text-muted-rgb: 154 150 138;
+  --text-faint-rgb: 110 106 96;
+  --text-on-sand-rgb: 34 34 34;
+
+  /* Elevação escura — sombras pretas suaves */
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --e2: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --e3: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   WHITE-LABEL — marca de exemplo [data-brand="gold"] · DOURADO
+   ----------------------------------------------------------------------------
+   Sobrescreve SOMENTE a camada de accent (steel-* + --accent-fg). O chrome
+   (superfícies, texto, linhas) permanece intacto. Compõe com qualquer tema.
+
+   Para adicionar uma nova marca, copie estes dois blocos e ajuste só o accent.
+   ========================================================================== */
+
+/* dourado sobre o tema claro (base) */
+:root[data-brand='gold'] {
+  --steel-300: #e9d4a4;
+  --steel-400: #cba75e;
+  --steel-500: #be9234;
+  --steel-600: #9e7b2c;
+  --steel-700: #7d6124;
+  --steel-tint: rgba(190, 146, 52, 0.16);
+  --steel-glow: rgba(190, 146, 52, 0.32);
+  --accent-fg: #222222;
+
+  --steel-300-rgb: 233 212 164;
+  --steel-400-rgb: 203 167 94;
+  --steel-500-rgb: 190 146 52;
+  --steel-600-rgb: 158 123 44;
+  --steel-700-rgb: 125 97 36;
+
+  --glow-steel: radial-gradient(circle at 50% 0%, rgba(190, 146, 52, 0.14), transparent 70%);
+}
+
+/* dourado sobre o tema escuro */
+:root[data-theme='dark'][data-brand='gold'] {
+  --steel-300: #f2e6c8;
+  --steel-400: #e9d4a4;
+  --steel-500: #dabe81;
+  --steel-600: #cba75e;
+  --steel-700: #be9234;
+  --steel-tint: rgba(218, 190, 129, 0.16);
+  --steel-glow: rgba(218, 190, 129, 0.34);
+  --accent-fg: #222222;
+
+  --steel-300-rgb: 242 230 200;
+  --steel-400-rgb: 233 212 164;
+  --steel-500-rgb: 218 190 129;
+  --steel-600-rgb: 203 167 94;
+  --steel-700-rgb: 190 146 52;
+
+  --glow-steel: radial-gradient(circle at 50% 0%, rgba(218, 190, 129, 0.12), transparent 70%);
+}

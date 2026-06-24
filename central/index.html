@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anju Mace · Central de operações</title>
+    <meta name="description" content="Central de operações Anju Mace — Sálvia & Dourado / Editorial Ops." />
+    <!-- Pré-paint: aplica tema/marca salvos antes do primeiro render (sem FOUC).
+         Padrão = claro (creme); respeita prefers-color-scheme só na primeira visita. -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement
+          var t = localStorage.getItem('anju-theme')
+          if (!t) {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          }
+          root.setAttribute('data-theme', t)
+          root.classList.toggle('dark', t === 'dark')
+          var b = localStorage.getItem('anju-brand')
+          if (b && b !== 'default') root.setAttribute('data-brand', b)
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
