@@ -3,6 +3,8 @@
    para dar vida às telas do design system.
 ---------------------------------------------------------------------------- */
 
+import { ANJU_ID } from '@/lib/tenant'
+
 export type UserStatus = 'ativo' | 'convidado' | 'suspenso'
 
 export interface User {
@@ -210,7 +212,7 @@ export interface ContentItem {
 }
 
 const CONTENT_SEED: Record<string, ContentItem[]> = {
-  'CLI-06': [
+  [ANJU_ID]: [
     { id: 'ct1', title: 'Calendário Editorial', section: 'canais', icon: 'calendar' },
     { id: 'ct2', title: 'Biografias', section: 'canais', icon: 'document' },
     { id: 'ct3', title: 'AV Batch 1', section: 'producao-av', icon: 'users' },
@@ -314,7 +316,7 @@ export interface EditorialPost {
 const c = (text: string): EditorialCard => ({ id: `c-${Math.random().toString(36).slice(2, 8)}`, text })
 
 const EDITORIAL_SEED: Record<string, EditorialPost[]> = {
-  'CLI-06': [
+  [ANJU_ID]: [
     { id: 'ed-12', date: '2026-06-12', title: 'Corte | Construção Real', format: 'corte', channels: ['instagram'], stage: 'concluido', approval: 'aprovado', pending: [], ready: ['copy', 'legenda', 'edicao'], cards: [] },
     { id: 'ed-13', date: '2026-06-13', title: 'Carrossel | Tipos de Falha', format: 'carrossel', channels: ['instagram'], stage: 'concluido', approval: 'aprovado', pending: [], ready: ['copy', 'legenda', 'imagens'], cards: [] },
     { id: 'ed-14', date: '2026-06-14', title: 'Carrossel | Consistência', format: 'carrossel', channels: ['instagram'], stage: 'concluido', approval: 'aprovado', pending: [], ready: ['copy', 'legenda', 'imagens'], cards: [] },
@@ -477,6 +479,13 @@ export interface TaskEvent {
   text: string
 }
 
+/** Item de checklist / subtarefa de uma tarefa. */
+export interface ChecklistItem {
+  id: string
+  text: string
+  done: boolean
+}
+
 export interface Task {
   id: string
   title: string
@@ -489,6 +498,8 @@ export interface Task {
   due?: string
   tag?: TaskTag
   clientId?: string
+  /** Subtarefas / checklist. */
+  checklist?: ChecklistItem[]
   /** ISO timestamp de criação. */
   createdAt: string
   /** ISO timestamp de conclusão. */

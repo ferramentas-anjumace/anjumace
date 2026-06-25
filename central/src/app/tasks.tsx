@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
-import { TASK_STATUS_META, type Task, type TaskStatus } from './data'
+import { TASK_STATUS_META, type ChecklistItem, type Task, type TaskStatus } from './data'
 
 /* ----------------------------------------------------------------------------
    Store de tarefas — Supabase (tabelas public.tasks + public.task_events)
@@ -30,6 +30,7 @@ interface TaskRow {
   due: string | null
   tag: Task['tag'] | null
   client_id: string | null
+  checklist: ChecklistItem[] | null
   created_at: string
   completed_at: string | null
   task_events: { id: string; at: string; who: string; text: string }[] | null
@@ -46,6 +47,7 @@ function mapRow(r: TaskRow): Task {
     due: r.due ?? undefined,
     tag: r.tag ?? undefined,
     clientId: r.client_id ?? undefined,
+    checklist: r.checklist ?? [],
     createdAt: r.created_at,
     completedAt: r.completed_at ?? undefined,
     history: (r.task_events ?? [])
@@ -61,6 +63,8 @@ interface TasksCtx {
   editTask: (id: string, patch: TaskPatch) => Promise<void>
   moveTask: (id: string, status: TaskStatus) => Promise<void>
   removeTask: (id: string) => Promise<void>
+  /** Atualiza a checklist sem registrar evento no histórico (evita poluir o log). */
+  setChecklist: (id: string, checklist: ChecklistItem[]) => Promise<void>
 }
 
 const Context = createContext<TasksCtx | null>(null)
@@ -169,9 +173,18 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     [fetchTasks],
   )
 
+  const setChecklist = useCallback(
+    async (id: string, checklist: ChecklistItem[]) => {
+      // Otimista: atualiza o estado local na hora para o check responder instantâneo.
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, checklist } : t)))
+      await supabase.from('tasks').update({ checklist }).eq('id', id)
+    },
+    [],
+  )
+
   const value = useMemo<TasksCtx>(
-    () => ({ tasks, loading, addTask, editTask, moveTask, removeTask }),
-    [tasks, loading, addTask, editTask, moveTask, removeTask],
+    () => ({ tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist }),
+    [tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   LayoutGrid,
   List as ListIcon,
+  CalendarDays,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
   Flag,
   MoreHorizontal,
   Pencil,
   Trash2,
   Check,
   History,
-  Building2,
   ListChecks,
   Loader2,
 } from 'lucide-react'
@@ -47,7 +48,7 @@ import {
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   TASK_TAG_TONE,
-  getClient,
+  type ChecklistItem,
   type Task,
   type TaskStatus,
   type TaskPriority,
@@ -143,7 +144,6 @@ function TaskCard({
   onDragStart?: (e: React.DragEvent) => void
 }) {
   const done = task.status === 'concluida'
-  const client = task.clientId ? getClient(task.clientId) : undefined
   return (
     <div
       draggable={canManage}
@@ -173,13 +173,9 @@ function TaskCard({
         <div className="flex items-center gap-2">
           <PriorityChip priority={task.priority} />
           <DueChip task={task} />
+          <SubtaskChip task={task} />
         </div>
         <div className="flex items-center gap-2">
-          {client && (
-            <span className="hidden items-center gap-1 font-mono text-[10px] uppercase text-faint sm:inline-flex">
-              <Building2 size={11} strokeWidth={1.5} aria-hidden /> {client.name.split(' ')[0]}
-            </span>
-          )}
           <Assignees ids={task.assignees} />
         </div>
       </div>
@@ -189,66 +185,161 @@ function TaskCard({
 
 /* --------------------------------------------------------------- board view */
 
+/* --------------------------------------------------------- agrupamento ----- */
+
+type Tone = 'neutral' | 'steel' | 'sand' | 'success' | 'danger' | 'warning'
+type GroupBy = 'status' | 'priority' | 'assignee'
+
+interface TaskGroup {
+  key: string
+  label: string
+  tone: Tone
+  items: Task[]
+}
+
+const GROUP_BY_META: Record<GroupBy, string> = {
+  status: 'Status',
+  priority: 'Prioridade',
+  assignee: 'Responsável',
+}
+
+const NONE_KEY = '__none__'
+
+/** Monta os grupos da visão conforme o critério de agrupamento escolhido. */
+function buildGroups(
+  tasks: Task[],
+  groupBy: GroupBy,
+  members: { id: string; name: string }[],
+): TaskGroup[] {
+  if (groupBy === 'priority') {
+    return TASK_PRIORITY_ORDER.map((p) => ({
+      key: p,
+      label: TASK_PRIORITY_META[p].label,
+      tone: TASK_PRIORITY_META[p].tone,
+      items: tasks.filter((t) => t.priority === p),
+    }))
+  }
+  if (groupBy === 'assignee') {
+    const groups: TaskGroup[] = members
+      .map((u) => ({
+        key: u.id,
+        label: u.name,
+        tone: 'steel' as Tone,
+        items: tasks.filter((t) => t.assignees.includes(u.id)),
+      }))
+      .filter((g) => g.items.length > 0)
+    const none = tasks.filter((t) => t.assignees.length === 0)
+    if (none.length > 0) groups.push({ key: NONE_KEY, label: 'Sem responsável', tone: 'neutral', items: none })
+    return groups
+  }
+  return TASK_STATUS_ORDER.map((s) => ({
+    key: s,
+    label: TASK_STATUS_META[s].label,
+    tone: TASK_STATUS_META[s].tone,
+    items: tasks.filter((t) => t.status === s),
+  }))
+}
+
+/** Progresso da checklist de uma tarefa (null se não houver itens). */
+function checklistProgress(task: Task): { done: number; total: number } | null {
+  const c = task.checklist
+  if (!c || c.length === 0) return null
+  return { done: c.filter((i) => i.done).length, total: c.length }
+}
+
+/** Chip compacto de progresso de subtarefas (ex.: "2/5"). */
+function SubtaskChip({ task }: { task: Task }) {
+  const p = checklistProgress(task)
+  if (!p) return null
+  const complete = p.done === p.total
+  return (
+    <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${complete ? 'text-ok' : 'text-faint'}`}>
+      <ListChecks size={12} strokeWidth={1.5} aria-hidden />
+      {p.done}/{p.total}
+    </span>
+  )
+}
+
+/** Linha de adição rápida — cria uma tarefa só com título no grupo atual. */
+function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
+  const [val, setVal] = useState('')
+  const submit = () => {
+    const t = val.trim()
+    if (!t) return
+    onAdd(t)
+    setVal('')
+  }
+  return (
+    <input
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
+      onBlur={submit}
+      placeholder="+ Adicionar tarefa"
+      className="w-full rounded-md border border-dashed border-line bg-transparent px-2.5 py-1.5 text-body-s text-strong placeholder:text-faint focus:border-steel-500 focus:outline-none"
+    />
+  )
+}
+
+/* ------------------------------------------------------------- board view -- */
+
 function BoardView({
   groups,
   canManage,
   onOpen,
   onToggle,
   onDropTask,
+  onQuickAdd,
 }: {
-  groups: Record<TaskStatus, Task[]>
+  groups: TaskGroup[]
   canManage: boolean
   onOpen: (t: Task) => void
   onToggle: (t: Task) => void
-  onDropTask: (id: string, status: TaskStatus) => void
+  onDropTask: (id: string, key: string) => void
+  onQuickAdd: (key: string, title: string) => void
 }) {
-  const [over, setOver] = useState<TaskStatus | null>(null)
+  const [over, setOver] = useState<string | null>(null)
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {TASK_STATUS_ORDER.map((status) => {
-        const meta = TASK_STATUS_META[status]
-        const list = groups[status]
-        return (
-          <div
-            key={status}
-            onDragOver={canManage ? (e) => { e.preventDefault(); setOver(status) } : undefined}
-            onDragLeave={canManage ? () => setOver((s) => (s === status ? null : s)) : undefined}
-            onDrop={
-              canManage
-                ? (e) => {
-                    e.preventDefault()
-                    const id = e.dataTransfer.getData('text/plain')
-                    if (id) onDropTask(id, status)
-                    setOver(null)
-                  }
-                : undefined
-            }
-            className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
-              over === status ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
-            }`}
-          >
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Badge tone={meta.tone} dot>{meta.label}</Badge>
-              </div>
-              <span className="font-mono text-mono-data text-faint tabular-nums">{list.length}</span>
-            </div>
-            {list.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                canManage={canManage}
-                onOpen={() => onOpen(task)}
-                onToggle={() => onToggle(task)}
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
-              />
-            ))}
-            {list.length === 0 && (
-              <p className="px-1 py-6 text-center text-body-s text-faint">Nada por aqui.</p>
-            )}
+      {groups.map((g) => (
+        <div
+          key={g.key}
+          onDragOver={canManage ? (e) => { e.preventDefault(); setOver(g.key) } : undefined}
+          onDragLeave={canManage ? () => setOver((s) => (s === g.key ? null : s)) : undefined}
+          onDrop={
+            canManage
+              ? (e) => {
+                  e.preventDefault()
+                  const id = e.dataTransfer.getData('text/plain')
+                  if (id) onDropTask(id, g.key)
+                  setOver(null)
+                }
+              : undefined
+          }
+          className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
+            over === g.key ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
+          }`}
+        >
+          <div className="flex items-center justify-between px-1">
+            <Badge tone={g.tone} dot>{g.label}</Badge>
+            <span className="font-mono text-mono-data text-faint tabular-nums">{g.items.length}</span>
           </div>
-        )
-      })}
+          {g.items.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              canManage={canManage}
+              onOpen={() => onOpen(task)}
+              onToggle={() => onToggle(task)}
+              onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+            />
+          ))}
+          {g.items.length === 0 && (
+            <p className="px-1 py-4 text-center text-body-s text-faint">Nada por aqui.</p>
+          )}
+          {canManage && <QuickAdd onAdd={(title) => onQuickAdd(g.key, title)} />}
+        </div>
+      ))}
     </div>
   )
 }
@@ -260,67 +351,197 @@ function ListView({
   canManage,
   onOpen,
   onToggle,
+  onQuickAdd,
 }: {
-  groups: Record<TaskStatus, Task[]>
+  groups: TaskGroup[]
   canManage: boolean
   onOpen: (t: Task) => void
   onToggle: (t: Task) => void
+  onQuickAdd: (key: string, title: string) => void
 }) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   return (
     <div className="flex flex-col gap-5">
-      {TASK_STATUS_ORDER.map((status) => {
-        const meta = TASK_STATUS_META[status]
-        const list = groups[status]
-        if (list.length === 0) return null
+      {groups.map((g) => {
+        const isCollapsed = !!collapsed[g.key]
         return (
-          <section key={status} className="flex flex-col gap-2">
+          <section key={g.key} className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Badge tone={meta.tone} dot>{meta.label}</Badge>
-              <span className="font-mono text-mono-data text-faint tabular-nums">{list.length}</span>
+              <button
+                type="button"
+                onClick={() => setCollapsed((c) => ({ ...c, [g.key]: !c[g.key] }))}
+                aria-expanded={!isCollapsed}
+                className="inline-flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                <ChevronRight
+                  size={15}
+                  strokeWidth={1.5}
+                  className={`text-muted transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  aria-hidden
+                />
+                <Badge tone={g.tone} dot>{g.label}</Badge>
+              </button>
+              <span className="font-mono text-mono-data text-faint tabular-nums">{g.items.length}</span>
             </div>
-            <Card className="p-0">
-              <ul>
-                {list.map((task, i) => {
-                  const done = task.status === 'concluida'
-                  const client = task.clientId ? getClient(task.clientId) : undefined
-                  return (
-                    <li
-                      key={task.id}
-                      className={`flex items-center gap-3 px-4 py-3 ${i < list.length - 1 ? 'border-b border-subtle' : ''}`}
-                    >
-                      <Checkbox checked={done} onChange={() => onToggle(task)} aria-label={done ? 'Reabrir' : 'Concluir'} />
-                      <button
-                        type="button"
-                        onClick={() => onOpen(task)}
-                        className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
-                      >
-                        <span className={`text-body-s font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
-                          {task.title}
-                        </span>
-                        {client && (
-                          <span className="ml-2 font-mono text-[10px] uppercase text-faint">· {client.name}</span>
-                        )}
-                      </button>
-                      <div className="hidden items-center gap-3 sm:flex">
-                        <DueChip task={task} />
-                        <PriorityChip priority={task.priority} />
-                        {task.tag && <Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge>}
-                      </div>
-                      <Assignees ids={task.assignees} />
-                      {canManage && (
-                        <IconButton aria-label="Abrir" size="sm" onClick={() => onOpen(task)}>
-                          <MoreHorizontal size={16} strokeWidth={1.5} />
-                        </IconButton>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </Card>
+            {!isCollapsed && (
+              <Card className="p-0">
+                {g.items.length > 0 && (
+                  <ul>
+                    {g.items.map((task, i) => {
+                      const done = task.status === 'concluida'
+                      return (
+                        <li
+                          key={task.id}
+                          className={`flex items-center gap-3 px-4 py-3 ${i < g.items.length - 1 ? 'border-b border-subtle' : ''}`}
+                        >
+                          <Checkbox checked={done} onChange={() => onToggle(task)} aria-label={done ? 'Reabrir' : 'Concluir'} />
+                          <button
+                            type="button"
+                            onClick={() => onOpen(task)}
+                            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
+                          >
+                            <span className={`text-body-s font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
+                              {task.title}
+                            </span>
+                          </button>
+                          <div className="hidden items-center gap-3 sm:flex">
+                            <SubtaskChip task={task} />
+                            <DueChip task={task} />
+                            <PriorityChip priority={task.priority} />
+                            {task.tag && <Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge>}
+                          </div>
+                          <Assignees ids={task.assignees} />
+                          {canManage && (
+                            <IconButton aria-label="Abrir" size="sm" onClick={() => onOpen(task)}>
+                              <MoreHorizontal size={16} strokeWidth={1.5} />
+                            </IconButton>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+                {canManage && (
+                  <div className="border-t border-subtle px-3 py-2 first:border-t-0">
+                    <QuickAdd onAdd={(title) => onQuickAdd(g.key, title)} />
+                  </div>
+                )}
+              </Card>
+            )}
           </section>
         )
       })}
     </div>
+  )
+}
+
+/* ----------------------------------------------------------- calendar view -- */
+
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
+const STATUS_DOT: Record<Tone, string> = {
+  neutral: 'bg-slate-500',
+  steel: 'bg-steel-400',
+  sand: 'bg-sand-400',
+  success: 'bg-ok',
+  danger: 'bg-err',
+  warning: 'bg-warn',
+}
+
+/** Calendário mensal — posiciona as tarefas pela data de prazo (due). */
+function CalendarView({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
+  const [cursor, setCursor] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const year = cursor.getFullYear()
+  const month = cursor.getMonth()
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const today = todayIso()
+
+  const byDay = useMemo(() => {
+    const m = new Map<string, Task[]>()
+    for (const t of tasks) {
+      if (!t.due) continue
+      const list = m.get(t.due) ?? []
+      list.push(t)
+      m.set(t.due, list)
+    }
+    return m
+  }, [tasks])
+
+  const cells: (number | null)[] = []
+  for (let i = 0; i < firstWeekday; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  return (
+    <Card>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-display text-h3 font-semibold capitalize text-strong">{monthLabel.format(cursor)}</h3>
+        <div className="flex items-center gap-1">
+          <IconButton size="sm" aria-label="Mês anterior" onClick={() => setCursor(new Date(year, month - 1, 1))}>
+            <ChevronLeft size={16} strokeWidth={1.5} />
+          </IconButton>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => { const d = new Date(); setCursor(new Date(d.getFullYear(), d.getMonth(), 1)) }}
+          >
+            Hoje
+          </Button>
+          <IconButton size="sm" aria-label="Próximo mês" onClick={() => setCursor(new Date(year, month + 1, 1))}>
+            <ChevronRight size={16} strokeWidth={1.5} />
+          </IconButton>
+        </div>
+      </div>
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-subtle bg-subtle">
+        {WEEKDAYS.map((w) => (
+          <div key={w} className="bg-ink-deep/40 px-2 py-1.5 text-center font-mono text-[10px] uppercase text-faint">
+            {w}
+          </div>
+        ))}
+        {cells.map((d, i) => {
+          if (d === null) return <div key={`e${i}`} className="min-h-[92px] bg-ink-deep/20" />
+          const iso = dateToIso(new Date(year, month, d))!
+          const dayTasks = byDay.get(iso) ?? []
+          const isToday = iso === today
+          return (
+            <div key={iso} className="min-h-[92px] bg-slate-900 p-1.5">
+              <div className="mb-1 text-right">
+                <span
+                  className={`inline-grid size-5 place-items-center rounded-full font-mono text-[11px] tabular-nums ${
+                    isToday ? 'bg-steel-500 text-accent-fg' : 'text-faint'
+                  }`}
+                >
+                  {d}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                {dayTasks.slice(0, 3).map((t) => {
+                  const meta = TASK_STATUS_META[t.status]
+                  const done = t.status === 'concluida'
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => onOpen(t)}
+                      title={t.title}
+                      className="flex items-center gap-1 rounded-xs bg-ink-deep/50 px-1.5 py-0.5 text-left text-[11px] text-strong transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
+                    >
+                      <span className={`size-1.5 shrink-0 rounded-full ${STATUS_DOT[meta.tone]}`} aria-hidden />
+                      <span className={`truncate ${done ? 'text-faint line-through' : ''}`}>{t.title}</span>
+                    </button>
+                  )
+                })}
+                {dayTasks.length > 3 && (
+                  <span className="px-1 text-[10px] text-faint">+{dayTasks.length - 3} mais</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
   )
 }
 
@@ -391,12 +612,11 @@ type Draft = {
   assignees: string[]
   due: string
   tag: '' | TaskTag
-  clientId: string
 }
 
 const EMPTY: Draft = {
   title: '', description: '', status: 'a-fazer', priority: 'media',
-  assignees: [], due: '', tag: '', clientId: '',
+  assignees: [], due: '', tag: '',
 }
 
 function TaskFormModal({
@@ -426,7 +646,6 @@ function TaskFormModal({
             assignees: [...editing.assignees],
             due: editing.due ?? '',
             tag: editing.tag ?? '',
-            clientId: editing.clientId ?? '',
           }
         : EMPTY,
     )
@@ -531,6 +750,73 @@ function TaskFormModal({
   )
 }
 
+/* --------------------------------------------------------- checklist ------- */
+
+function newChecklistId() {
+  return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+/** Seção de subtarefas/checklist dentro do drawer. Edita em lote via onChange. */
+function ChecklistSection({ task, onChange }: { task: Task; onChange: (items: ChecklistItem[]) => void }) {
+  const items = task.checklist ?? []
+  const [val, setVal] = useState('')
+  const done = items.filter((i) => i.done).length
+
+  const add = () => {
+    const t = val.trim()
+    if (!t) return
+    onChange([...items, { id: newChecklistId(), text: t, done: false }])
+    setVal('')
+  }
+  const toggle = (id: string) => onChange(items.map((i) => (i.id === id ? { ...i, done: !i.done } : i)))
+  const remove = (id: string) => onChange(items.filter((i) => i.id !== id))
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ListChecks size={15} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+          <span className="text-body-s font-medium text-strong">Subtarefas</span>
+        </div>
+        {items.length > 0 && (
+          <span className="font-mono text-[11px] text-faint tabular-nums">{done}/{items.length}</span>
+        )}
+      </div>
+      {items.length > 0 && (
+        <ProgressBar value={(done / items.length) * 100} tone="success" className="mb-3" />
+      )}
+      {items.length > 0 && (
+        <ul className="mb-2 flex flex-col gap-1.5">
+          {items.map((i) => (
+            <li key={i.id} className="group flex items-center gap-2.5">
+              <Checkbox
+                checked={i.done}
+                onChange={() => toggle(i.id)}
+                label={<span className={i.done ? 'text-faint line-through' : 'text-fg'}>{i.text}</span>}
+              />
+              <button
+                type="button"
+                onClick={() => remove(i.id)}
+                aria-label="Remover subtarefa"
+                className="ml-auto grid size-6 shrink-0 place-items-center rounded-xs text-faint opacity-0 transition hover:text-err focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100"
+              >
+                <Trash2 size={14} strokeWidth={1.5} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') add() }}
+        placeholder="+ Adicionar subtarefa"
+        className="w-full rounded-md border border-dashed border-line bg-transparent px-2.5 py-1.5 text-body-s text-strong placeholder:text-faint focus:border-steel-500 focus:outline-none"
+      />
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------- task drawer */
 
 function TaskDrawer({
@@ -541,6 +827,7 @@ function TaskDrawer({
   onToggle,
   onEdit,
   onDelete,
+  onChecklistChange,
 }: {
   task: Task | null
   canManage: boolean
@@ -549,12 +836,11 @@ function TaskDrawer({
   onToggle: () => void
   onEdit: () => void
   onDelete: () => void
+  onChecklistChange: (items: ChecklistItem[]) => void
 }) {
-  const navigate = useNavigate()
   const { getMember } = useProfiles()
   if (!task) return null
   const done = task.status === 'concluida'
-  const client = task.clientId ? getClient(task.clientId) : undefined
 
   return (
     <Drawer
@@ -616,19 +902,6 @@ function TaskDrawer({
               <dd><Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge></dd>
             </div>
           )}
-          {client && (
-            <div>
-              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Cliente</dt>
-              <dd>
-                <button
-                  onClick={() => navigate(`/app/clientes/${client.id}`)}
-                  className="inline-flex items-center gap-1.5 text-body-s text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
-                >
-                  <Building2 size={14} strokeWidth={1.5} aria-hidden /> {client.name}
-                </button>
-              </dd>
-            </div>
-          )}
         </dl>
 
         {/* Responsáveis */}
@@ -662,6 +935,11 @@ function TaskDrawer({
 
         <Divider />
 
+        {/* Subtarefas / checklist */}
+        <ChecklistSection task={task} onChange={onChecklistChange} />
+
+        <Divider />
+
         {/* Histórico */}
         <div>
           <div className="mb-3 flex items-center gap-2">
@@ -692,11 +970,12 @@ function TaskDrawer({
 export function TasksPage() {
   const toast = useToast()
   const { role, user } = useSession()
-  const { tasks, loading, addTask, editTask, moveTask, removeTask } = useTasks()
+  const { tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist } = useTasks()
   const { members } = useProfiles()
   const canManage = role === 'admin'
 
-  const [view, setView] = useState<'board' | 'list'>('board')
+  const [view, setView] = useState<'board' | 'list' | 'calendar'>('board')
+  const [groupBy, setGroupBy] = useState<GroupBy>('status')
   const [search, setSearch] = useState('')
   const [assignee, setAssignee] = useState<string>(canManage ? 'all' : 'mine')
   const [tagFilter, setTagFilter] = useState<string>('all')
@@ -717,16 +996,26 @@ export function TasksPage() {
     })
   }, [tasks, search, assignee, tagFilter, user.id])
 
-  const groups = useMemo(() => {
-    const g: Record<TaskStatus, Task[]> = { 'a-fazer': [], 'em-andamento': [], 'em-revisao': [], concluida: [] }
-    for (const t of filtered) g[t.status].push(t)
-    return g
-  }, [filtered])
+  const groups = useMemo(() => buildGroups(filtered, groupBy, members), [filtered, groupBy, members])
 
   const toggle = (t: Task) => {
     const next: TaskStatus = t.status === 'concluida' ? 'a-fazer' : 'concluida'
     moveTask(t.id, next)
     toast.success(next === 'concluida' ? 'Tarefa concluída' : 'Tarefa reaberta', t.title)
+  }
+
+  /** Drag-and-drop no quadro: aplica o campo do grupo (status/prioridade/responsável). */
+  const handleDropTask = (id: string, key: string) => {
+    if (groupBy === 'status') moveTask(id, key as TaskStatus)
+    else if (groupBy === 'priority') editTask(id, { priority: key as TaskPriority })
+    else editTask(id, { assignees: key === NONE_KEY ? [] : [key] })
+  }
+
+  /** Adição rápida dentro de um grupo: presetar o campo do grupo. */
+  const handleQuickAdd = (key: string, title: string) => {
+    if (groupBy === 'status') addTask({ title, status: key as TaskStatus })
+    else if (groupBy === 'priority') addTask({ title, priority: key as TaskPriority })
+    else addTask({ title, assignees: key === NONE_KEY ? [] : [key] })
   }
 
   const submitForm = (draft: Draft) => {
@@ -742,7 +1031,6 @@ export function TasksPage() {
       assignees: draft.assignees,
       due: draft.due || undefined,
       tag: draft.tag || undefined,
-      clientId: draft.clientId || undefined,
     }
     if (editing) {
       editTask(editing.id, payload)
@@ -804,7 +1092,24 @@ export function TasksPage() {
             >
               <ListIcon size={15} strokeWidth={1.5} /> Lista
             </button>
+            <button
+              onClick={() => setView('calendar')}
+              className={`inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 font-mono text-mono-label uppercase transition-colors ${view === 'calendar' ? 'bg-slate-700 text-strong' : 'text-muted hover:text-strong'}`}
+            >
+              <CalendarDays size={15} strokeWidth={1.5} /> Calendário
+            </button>
           </div>
+
+          {/* Agrupar por (não se aplica ao calendário) */}
+          {view !== 'calendar' && (
+            <div className="w-40">
+              <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} aria-label="Agrupar por">
+                {(Object.keys(GROUP_BY_META) as GroupBy[]).map((g) => (
+                  <option key={g} value={g}>Agrupar: {GROUP_BY_META[g]}</option>
+                ))}
+              </Select>
+            </div>
+          )}
 
           {/* Filtro de responsável */}
           <div className="w-44">
@@ -840,7 +1145,9 @@ export function TasksPage() {
       </div>
 
       {/* Conteúdo */}
-      {filtered.length === 0 ? (
+      {view === 'calendar' ? (
+        <CalendarView tasks={filtered} onOpen={(t) => setOpenTaskId(t.id)} />
+      ) : filtered.length === 0 ? (
         <Card>
           <EmptyState
             icon={<ListChecks size={22} strokeWidth={1.5} />}
@@ -861,7 +1168,8 @@ export function TasksPage() {
           canManage={canManage}
           onOpen={(t) => setOpenTaskId(t.id)}
           onToggle={toggle}
-          onDropTask={(id, status) => moveTask(id, status)}
+          onDropTask={handleDropTask}
+          onQuickAdd={handleQuickAdd}
         />
       ) : (
         <ListView
@@ -869,6 +1177,7 @@ export function TasksPage() {
           canManage={canManage}
           onOpen={(t) => setOpenTaskId(t.id)}
           onToggle={toggle}
+          onQuickAdd={handleQuickAdd}
         />
       )}
 
@@ -897,6 +1206,7 @@ export function TasksPage() {
           toast.success('Tarefa removida', openTask.title)
           setOpenTaskId(null)
         }}
+        onChecklistChange={(items) => openTask && setChecklist(openTask.id, items)}
       />
     </div>
   )

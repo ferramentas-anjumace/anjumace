@@ -8,8 +8,10 @@ import { createClient } from '@supabase/supabase-js'
    real fica nas policies (RLS) do Supabase. A service_role NUNCA entra aqui.
 ---------------------------------------------------------------------------- */
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Trim para tolerar valores vazios/com espaços vindos do ambiente (ex.: variável
+// criada no Vercel mas sem valor preenchido).
+const url = import.meta.env.VITE_SUPABASE_URL?.trim()
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
 
 /** Indica se as variáveis de ambiente foram configuradas. */
 export const isSupabaseConfigured = Boolean(url && anonKey)
@@ -22,7 +24,7 @@ if (!isSupabaseConfigured) {
   )
 }
 
-export const supabase = createClient(url ?? 'http://localhost', anonKey ?? 'public-anon-key', {
+export const supabase = createClient(url || 'http://localhost', anonKey || 'public-anon-key', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,

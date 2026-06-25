@@ -31,9 +31,10 @@ import { AppShell } from './app/AppShell'
 import { DashboardPage } from './app/DashboardPage'
 import { UsersPage } from './app/UsersPage'
 import { AgendaPage } from './app/AgendaPage'
-import { ClientsPage } from './app/ClientsPage'
-import { ClientDetailPage } from './app/ClientDetailPage'
 import { TasksPage } from './app/TasksPage'
+import { AccessPage } from './app/AccessPage'
+import { ContentPage } from './app/ContentPage'
+import { EditorialPage } from './app/EditorialPage'
 import { PlaceholderPage } from './app/PlaceholderPage'
 
 const router = createBrowserRouter([
@@ -49,11 +50,12 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: 'usuarios', element: <UsersPage /> },
-      { path: 'agenda', element: <AgendaPage /> },
+      { path: 'editorial', element: <EditorialPage /> },
       { path: 'tarefas', element: <TasksPage /> },
-      { path: 'clientes', element: <ClientsPage /> },
-      { path: 'clientes/:id', element: <ClientDetailPage /> },
+      { path: 'agenda', element: <AgendaPage /> },
+      { path: 'conteudo', element: <ContentPage /> },
+      { path: 'acessos', element: <AccessPage /> },
+      { path: 'usuarios', element: <UsersPage /> },
       { path: 'integracoes', element: <PlaceholderPage eyebrow="Sistema" title="Integrações" /> },
       { path: 'config', element: <PlaceholderPage eyebrow="Sistema" title="Configurações" /> },
     ],

@@ -3,6 +3,9 @@ import {
   Plus,
   ArrowRight,
   CalendarDays,
+  CalendarRange,
+  FolderOpen,
+  KeyRound,
   ListTodo,
 } from 'lucide-react'
 import {
@@ -19,16 +22,52 @@ import {
   Checkbox,
 } from '@/components/ui'
 import { useSession } from '@/lib/session'
-import { useClients } from './clients'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
-import { ClientAvatar } from './ClientAvatar'
 import {
-  CLIENT_STATUS_META,
   TASK_TAG_TONE,
   type UserStatus,
 } from './data'
+
+/* -------------------------------------------------- ecossistema (atalhos) */
+
+const ECOSYSTEM: { to: string; label: string; hint: string; icon: React.ReactNode }[] = [
+  { to: '/app/editorial', label: 'Editorial', hint: 'Calendário de criativos', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
+  { to: '/app/conteudo', label: 'Conteúdo', hint: 'Bancos e biblioteca', icon: <FolderOpen size={18} strokeWidth={1.5} /> },
+  { to: '/app/acessos', label: 'Acessos', hint: 'Credenciais das plataformas', icon: <KeyRound size={18} strokeWidth={1.5} /> },
+]
+
+/** Atalhos para as áreas do ecossistema da Anju. */
+function EcossistemaCard() {
+  const navigate = useNavigate()
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Ecossistema Anju</CardTitle>
+      </CardHeader>
+      <ul className="flex flex-col gap-1">
+        {ECOSYSTEM.map((it) => (
+          <li key={it.to}>
+            <button
+              onClick={() => navigate(it.to)}
+              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-slate-900 text-steel-300">
+                {it.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-body-s font-medium text-strong">{it.label}</div>
+                <div className="truncate font-mono text-[11px] text-faint">{it.hint}</div>
+              </div>
+              <ArrowRight size={14} strokeWidth={1.5} className="shrink-0 text-faint" aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
 
 /* -------------------------------------------------------------- compartilhado */
 
@@ -162,10 +201,10 @@ function WelcomeBanner({
 function AdminDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
-  const { clients } = useClients()
   const { members: team } = useProfiles()
+  const { tasks } = useTasks()
   const firstName = user.name.split(' ')[0]
-  const clientesAtivos = clients.filter((c) => c.status === 'ativo').length
+  const tarefasAbertas = tasks.filter((t) => t.status !== 'concluida').length
   const ativos = team.filter((u) => u.status === 'ativo').length
   const { events } = useAgenda()
   const todayAgenda = events.filter((e) => e.date === todayIso())
@@ -181,8 +220,8 @@ function AdminDashboard() {
 
       {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <button onClick={() => navigate('/app/clientes')} className="text-left focus-visible:outline-none">
-          <StatCard label="Clientes ativos" value={String(clientesAtivos)} className="h-full transition-colors hover:border-strong" />
+        <button onClick={() => navigate('/app/tarefas')} className="text-left focus-visible:outline-none">
+          <StatCard label="Tarefas abertas" value={String(tarefasAbertas)} className="h-full transition-colors hover:border-strong" />
         </button>
         <button onClick={() => navigate('/app/usuarios')} className="text-left focus-visible:outline-none">
           <StatCard label="Time" value={String(ativos)} delta={{ value: `de ${team.length}`, direction: 'neutral' }} className="h-full transition-colors hover:border-strong" />
@@ -258,41 +297,8 @@ function AdminDashboard() {
             </ul>
           </Card>
 
-          {/* Clientes ativos */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Clientes ativos</CardTitle>
-              <button
-                onClick={() => navigate('/app/clientes')}
-                className="font-mono text-mono-data text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
-              >
-                ver todos
-              </button>
-            </CardHeader>
-            <ul className="flex flex-col gap-2">
-              {clients.map((c) => {
-                const meta = CLIENT_STATUS_META[c.status]
-                return (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => navigate(`/app/clientes/${c.id}`)}
-                      className="flex w-full flex-col gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
-                    >
-                      <div className="flex items-center gap-3">
-                        <ClientAvatar src={c.avatar ?? undefined} name={c.name} className="size-8 rounded-md" iconSize={16} />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-body-s font-medium text-strong">{c.name}</div>
-                          <div className="truncate font-mono text-[11px] text-faint">{c.phase}</div>
-                        </div>
-                        <Badge tone={meta.tone}>{meta.label}</Badge>
-                      </div>
-                      <ProgressBar value={c.progress} tone={c.status === 'pausado' ? 'warning' : 'steel'} />
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </Card>
+          {/* Ecossistema Anju — atalhos */}
+          <EcossistemaCard />
         </div>
       </div>
     </div>
@@ -306,7 +312,6 @@ function AdminDashboard() {
 function CollaboratorDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
-  const { clients } = useClients()
   const { tasks: allTasks, moveTask } = useTasks()
   const firstName = user.name.split(' ')[0]
   const { greeting, dateLabel } = greetingFor()
@@ -322,7 +327,6 @@ function CollaboratorDashboard() {
 
   const { events } = useAgenda()
   const todayAgenda = events.filter((e) => e.date === todayIso() && e.people.includes(user.id))
-  const myClients = clients
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8">
@@ -380,15 +384,6 @@ function CollaboratorDashboard() {
                           }
                         />
                         <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5">
-                          {t.clientId && (
-                            <button
-                              onClick={() => navigate(`/app/clientes/${t.clientId}`)}
-                              aria-label="Abrir cliente"
-                              className="grid size-5 place-items-center rounded-xs text-faint transition-colors hover:bg-slate-700 hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
-                            >
-                              <ArrowRight size={14} strokeWidth={1.5} aria-hidden />
-                            </button>
-                          )}
                           {t.tag && (
                             <Badge size="sm" tone={TASK_TAG_TONE[t.tag]}>
                               {t.tag}
@@ -436,39 +431,8 @@ function CollaboratorDashboard() {
 
         {/* Coluna lateral */}
         <div className="flex flex-col gap-4">
-
-          {/* Área do cliente — atalhos */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Projetos ativos</CardTitle>
-              <button
-                onClick={() => navigate('/app/clientes')}
-                className="font-mono text-mono-data text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
-              >
-                ver todos
-              </button>
-            </CardHeader>
-            <ul className="flex flex-col gap-1">
-              {myClients.map((c) => {
-                const meta = CLIENT_STATUS_META[c!.status]
-                return (
-                  <li key={c!.id}>
-                    <button
-                      onClick={() => navigate(`/app/clientes/${c!.id}`)}
-                      className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
-                    >
-                      <ClientAvatar src={c!.avatar ?? undefined} name={c!.name} className="size-8 rounded-md" iconSize={16} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-body-s font-medium text-strong">{c!.name}</div>
-                        <div className="truncate font-mono text-[11px] text-faint">{c!.phase}</div>
-                      </div>
-                      <Badge tone={meta.tone} dot>{meta.label}</Badge>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </Card>
+          {/* Ecossistema Anju — atalhos */}
+          <EcossistemaCard />
         </div>
       </div>
     </div>

@@ -3,8 +3,10 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid,
   Users,
-  Building2,
   CalendarDays,
+  CalendarRange,
+  FolderOpen,
+  KeyRound,
   ListChecks,
   Plug,
   Settings2,
@@ -30,13 +32,11 @@ import {
   MenuSeparator,
 } from '@/components/ui'
 import { useSession } from '@/lib/session'
-import { useClients } from './clients'
 
 interface NavLink {
   to: string
   label: string
   icon: React.ReactNode
-  badge?: string
   /** Item visível apenas para administradores. */
   adminOnly?: boolean
 }
@@ -46,16 +46,18 @@ const NAV: { group: string; items: NavLink[]; adminOnly?: boolean }[] = [
     group: 'Operação',
     items: [
       { to: '/app', label: 'Visão geral', icon: <LayoutGrid size={18} strokeWidth={1.5} /> },
-      { to: '/app/usuarios', label: 'Usuários', icon: <Users size={18} strokeWidth={1.5} />, adminOnly: true },
-      { to: '/app/clientes', label: 'Clientes', icon: <Building2 size={18} strokeWidth={1.5} />, badge: '6' },
+      { to: '/app/editorial', label: 'Editorial', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
       { to: '/app/tarefas', label: 'Tarefas', icon: <ListChecks size={18} strokeWidth={1.5} /> },
-      { to: '/app/agenda', label: 'Agenda', icon: <CalendarDays size={18} strokeWidth={1.5} />, badge: '4' },
+      { to: '/app/agenda', label: 'Agenda', icon: <CalendarDays size={18} strokeWidth={1.5} /> },
+      { to: '/app/conteudo', label: 'Conteúdo', icon: <FolderOpen size={18} strokeWidth={1.5} /> },
+      { to: '/app/acessos', label: 'Acessos', icon: <KeyRound size={18} strokeWidth={1.5} /> },
     ],
   },
   {
     group: 'Sistema',
     adminOnly: true,
     items: [
+      { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} /> },
       { to: '/app/integracoes', label: 'Integrações', icon: <Plug size={18} strokeWidth={1.5} /> },
       { to: '/app/config', label: 'Configurações', icon: <Settings2 size={18} strokeWidth={1.5} /> },
     ],
@@ -66,7 +68,6 @@ export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { role, user, signOut } = useSession()
-  const { clients } = useClients()
   const [search, setSearch] = useState('')
   const isAdmin = role === 'admin'
 
@@ -79,9 +80,7 @@ export function AppShell() {
 
   const nav = NAV.filter((g) => !g.adminOnly || isAdmin).map((g) => ({
     ...g,
-    items: g.items
-      .filter((i) => !i.adminOnly || isAdmin)
-      .map((i) => (i.to === '/app/clientes' ? { ...i, badge: String(clients.length) } : i)),
+    items: g.items.filter((i) => !i.adminOnly || isAdmin),
   }))
 
   const go = (to: string) => (e: React.MouseEvent) => {
@@ -159,7 +158,6 @@ export function AppShell() {
                   href={item.to}
                   icon={item.icon}
                   active={isActive(item.to)}
-                  badge={item.badge}
                   onClick={go(item.to)}
                 >
                   {item.label}
