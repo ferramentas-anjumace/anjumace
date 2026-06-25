@@ -44,6 +44,8 @@ interface ProfilesCtx {
   /** Salva a foto (data URL, ou null para remover) de um membro. */
   setMemberAvatar: (id: string, avatar: string | null) => Promise<{ error: string | null }>
   createUser: (input: NewUserInput) => Promise<{ error: string | null }>
+  /** Exclui o usuário (via função serverless — remove do Auth e cascateia o perfil). */
+  removeUser: (id: string) => Promise<{ error: string | null }>
 }
 
 const Context = createContext<ProfilesCtx | null>(null)
@@ -123,9 +125,31 @@ export function ProfilesProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   )
 
+  /** Exclui um usuário via função serverless (precisa da service_role no servidor). */
+  const removeUser = useCallback(
+    async (id: string) => {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token ?? ''
+      try {
+        const res = await fetch('/api/admin-delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ id }),
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) return { error: body.error ?? `Falha ao excluir usuário (${res.status})` }
+        await refresh()
+        return { error: null }
+      } catch {
+        return { error: 'Não foi possível contatar o servidor (a exclusão de usuários só funciona em produção).' }
+      }
+    },
+    [refresh],
+  )
+
   const value = useMemo<ProfilesCtx>(
-    () => ({ members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser }),
-    [members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser],
+    () => ({ members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser, removeUser }),
+    [members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser, removeUser],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

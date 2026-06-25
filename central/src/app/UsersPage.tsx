@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, MoreHorizontal, Pencil, UserX, Loader2, ShieldCheck } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, UserX, Loader2, Trash2 } from 'lucide-react'
 import {
   SectionHeader,
   Button,
@@ -28,7 +28,6 @@ import {
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
-import { STATUS_META } from './data'
 import { AvatarUploader } from './AvatarUploader'
 
 const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral'> = {
@@ -38,7 +37,6 @@ const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral'> = {
 }
 /** Administrador e Liderança são gestores — recebem o ponto de destaque. */
 const MANAGER_ROLES: MemberRole[] = ['admin', 'lideranca']
-const STATUSES: MemberStatus[] = ['ativo', 'convidado', 'suspenso']
 
 /* ----------------------------------------------------------- modal de edição */
 function EditMemberModal({
@@ -57,14 +55,12 @@ function EditMemberModal({
   const [name, setName] = useState('')
   const [role, setRole] = useState<MemberRole>('time')
   const [team, setTeam] = useState('')
-  const [status, setStatus] = useState<MemberStatus>('ativo')
 
   useMemo(() => {
     if (member) {
       setName(member.name)
       setRole(member.role)
       setTeam(member.team ?? '')
-      setStatus(member.status)
     }
   }, [member])
 
@@ -78,7 +74,7 @@ function EditMemberModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(member.id, { name, role, team, status })}>Salvar</Button>
+          <Button onClick={() => onSave(member.id, { name, role, team, status: member.status })}>Salvar</Button>
         </>
       }
     >
@@ -90,18 +86,11 @@ function EditMemberModal({
           onError={onAvatarError}
         />
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            <option value="time">Time</option>
-            <option value="lideranca">Liderança</option>
-            <option value="admin">Administrador</option>
-          </Select>
-          <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value as MemberStatus)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{STATUS_META[s].label}</option>
-            ))}
-          </Select>
-        </div>
+        <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
+          <option value="time">Time</option>
+          <option value="lideranca">Liderança</option>
+          <option value="admin">Administrador</option>
+        </Select>
         <Input label="Time" optional value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Ex.: Conteúdo" />
       </div>
     </Modal>
@@ -165,13 +154,15 @@ function CreateUserModal({
 /* ============================================================== página ===== */
 export function UsersPage() {
   const toast = useToast()
-  const { role: myRole } = useSession()
-  const { members, loading, updateMember, setMemberAvatar, createUser } = useProfiles()
-  const isAdmin = myRole === 'admin'
+  const { isManager, user } = useSession()
+  const { members, loading, updateMember, setMemberAvatar, createUser, removeUser } = useProfiles()
+  const isAdmin = isManager
 
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState<'todos' | MemberStatus>('todos')
+  const [roleTab, setRoleTab] = useState<'todos' | MemberRole>('todos')
   const [editing, setEditing] = useState<Member | null>(null)
+  const [deleting, setDeleting] = useState<Member | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
 
@@ -179,16 +170,16 @@ export function UsersPage() {
     const q = query.trim().toLowerCase()
     return members.filter((u) => {
       const matchQ = !q || u.name.toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q)
-      const matchStatus = status === 'todos' || u.status === status
-      return matchQ && matchStatus
+      const matchRole = roleTab === 'todos' || u.role === roleTab
+      return matchQ && matchRole
     })
-  }, [members, query, status])
+  }, [members, query, roleTab])
 
   const counts = {
     todos: members.length,
-    ativo: members.filter((u) => u.status === 'ativo').length,
-    convidado: members.filter((u) => u.status === 'convidado').length,
-    suspenso: members.filter((u) => u.status === 'suspenso').length,
+    admin: members.filter((u) => u.role === 'admin').length,
+    lideranca: members.filter((u) => u.role === 'lideranca').length,
+    time: members.filter((u) => u.role === 'time').length,
   }
 
   const save = async (id: string, patch: { name: string; role: MemberRole; team: string; status: MemberStatus }) => {
@@ -202,6 +193,17 @@ export function UsersPage() {
     const { error } = await setMemberAvatar(id, avatar)
     if (error) toast.error('Falha ao salvar foto', error)
     else toast.success(avatar ? 'Foto atualizada' : 'Foto removida')
+  }
+
+  const remove = async (member: Member) => {
+    setRemovingId(member.id)
+    const { error } = await removeUser(member.id)
+    setRemovingId(null)
+    if (error) toast.error('Não foi possível excluir', error)
+    else {
+      toast.success('Usuário excluído', member.name || member.email || undefined)
+      setDeleting(null)
+    }
   }
 
   const create = async (input: { email: string; password: string; name: string; role: MemberRole; team: string }) => {
@@ -241,12 +243,12 @@ export function UsersPage() {
         }
       />
 
-      <Tabs value={status} onValueChange={(v) => setStatus(v as typeof status)} className="mb-4">
-        <TabList aria-label="Filtrar por status">
+      <Tabs value={roleTab} onValueChange={(v) => setRoleTab(v as typeof roleTab)} className="mb-4">
+        <TabList aria-label="Filtrar por papel">
           <Tab value="todos" badge={<Badge tone="neutral">{counts.todos}</Badge>}>Todos</Tab>
-          <Tab value="ativo" badge={<Badge tone="success">{counts.ativo}</Badge>}>Ativos</Tab>
-          <Tab value="convidado" badge={<Badge tone="steel">{counts.convidado}</Badge>}>Convidados</Tab>
-          <Tab value="suspenso" badge={<Badge tone="warning">{counts.suspenso}</Badge>}>Suspensos</Tab>
+          <Tab value="admin" badge={<Badge tone="steel">{counts.admin}</Badge>}>Administradores</Tab>
+          <Tab value="lideranca" badge={<Badge tone="success">{counts.lideranca}</Badge>}>Liderança</Tab>
+          <Tab value="time" badge={<Badge tone="neutral">{counts.time}</Badge>}>Time</Tab>
         </TabList>
       </Tabs>
 
@@ -271,13 +273,12 @@ export function UsersPage() {
               <TableHeaderCell>Usuário</TableHeaderCell>
               <TableHeaderCell>Papel</TableHeaderCell>
               <TableHeaderCell>Time</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
               {isAdmin && <TableHeaderCell className="w-12" align="right">Ações</TableHeaderCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableEmpty colSpan={isAdmin ? 5 : 4}>
+              <TableEmpty colSpan={isAdmin ? 4 : 3}>
                 <EmptyState
                   className="border-0 bg-transparent py-0"
                   icon={<UserX size={22} strokeWidth={1.5} />}
@@ -287,7 +288,7 @@ export function UsersPage() {
               </TableEmpty>
             ) : (
               filtered.map((u) => {
-                const meta = STATUS_META[u.status]
+                const isSelf = u.id === user.userId
                 return (
                   <TableRow key={u.id}>
                     <TableCell>
@@ -303,9 +304,6 @@ export function UsersPage() {
                       <Badge tone={ROLE_TONE[u.role]} dot={MANAGER_ROLES.includes(u.role)}>{ROLE_LABEL[u.role]}</Badge>
                     </TableCell>
                     <TableCell>{u.team || <span className="text-faint">—</span>}</TableCell>
-                    <TableCell>
-                      <Badge tone={meta.tone} dot>{meta.label}</Badge>
-                    </TableCell>
                     {isAdmin && (
                       <TableCell align="right">
                         <DropdownMenu
@@ -320,22 +318,14 @@ export function UsersPage() {
                             Editar
                           </MenuItem>
                           <MenuSeparator />
-                          {u.status !== 'suspenso' ? (
-                            <MenuItem
-                              icon={<UserX size={16} strokeWidth={1.5} />}
-                              destructive
-                              onClick={() => save(u.id, { name: u.name, role: u.role, team: u.team ?? '', status: 'suspenso' })}
-                            >
-                              Suspender
-                            </MenuItem>
-                          ) : (
-                            <MenuItem
-                              icon={<ShieldCheck size={16} strokeWidth={1.5} />}
-                              onClick={() => save(u.id, { name: u.name, role: u.role, team: u.team ?? '', status: 'ativo' })}
-                            >
-                              Reativar
-                            </MenuItem>
-                          )}
+                          <MenuItem
+                            icon={<Trash2 size={16} strokeWidth={1.5} />}
+                            destructive
+                            disabled={isSelf}
+                            onClick={() => setDeleting(u)}
+                          >
+                            {isSelf ? 'Excluir (você)' : 'Excluir usuário'}
+                          </MenuItem>
                         </DropdownMenu>
                       </TableCell>
                     )}
@@ -355,6 +345,26 @@ export function UsersPage() {
         onAvatarError={(msg) => toast.error('Imagem inválida', msg)}
       />
       <CreateUserModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={create} creating={creating} />
+
+      <Modal
+        open={!!deleting}
+        onClose={() => removingId ? undefined : setDeleting(null)}
+        title="Excluir usuário"
+        description={deleting?.email ?? undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={!!removingId}>Cancelar</Button>
+            <Button variant="danger" loading={!!removingId} onClick={() => deleting && remove(deleting)}>
+              Excluir
+            </Button>
+          </>
+        }
+      >
+        <p className="text-body-s text-muted">
+          Tem certeza que deseja excluir <span className="font-medium text-strong">{deleting?.name || 'este usuário'}</span>?
+          A conta de acesso é removida e a pessoa perde o login. Esta ação não pode ser desfeita.
+        </p>
+      </Modal>
     </div>
   )
 }

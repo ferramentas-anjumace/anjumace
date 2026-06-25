@@ -57,7 +57,8 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
           <img
             src={src}
             alt={name}
-            className="size-full object-cover"
+            draggable={false}
+            className="size-full rounded-full object-cover"
             onError={() => setErrored(true)}
           />
         ) : (

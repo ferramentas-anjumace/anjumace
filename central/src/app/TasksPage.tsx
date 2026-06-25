@@ -148,7 +148,7 @@ function TaskCard({
     <div
       draggable={canManage}
       onDragStart={onDragStart}
-      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canManage ? 'cursor-grab select-none active:cursor-grabbing' : ''}`}
     >
       <div className="flex items-start gap-3">
         <span className="pt-0.5">

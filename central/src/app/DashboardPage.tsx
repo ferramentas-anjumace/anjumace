@@ -71,11 +71,6 @@ function EcossistemaCard() {
 
 /* -------------------------------------------------------------- compartilhado */
 
-const AV_STATUS: Record<UserStatus, 'online' | 'away' | 'busy'> = {
-  ativo: 'online',
-  convidado: 'away',
-  suspenso: 'busy',
-}
 const PRESENCE_LABEL: Record<UserStatus, string> = {
   ativo: 'online',
   convidado: 'convidado',
@@ -184,7 +179,7 @@ function WelcomeBanner({
           <div className="flex shrink-0 items-center gap-4 rounded-xl border border-line bg-ink-deep/40 px-5 py-4">
             <AvatarGroup max={4}>
               {active.map((u) => (
-                <Avatar key={u.id} size="md" name={u.name} src={u.avatar ?? undefined} status="online" />
+                <Avatar key={u.id} size="md" name={u.name} src={u.avatar ?? undefined} />
               ))}
             </AvatarGroup>
             <div className="leading-tight">
@@ -281,7 +276,7 @@ function AdminDashboard() {
                     onClick={() => navigate('/app/usuarios')}
                     className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
                   >
-                    <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} status={AV_STATUS[u.status]} />
+                    <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-body-s font-medium text-strong">{u.name}</div>
                       <div className="truncate font-mono text-[11px] text-faint">

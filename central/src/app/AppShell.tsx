@@ -143,7 +143,7 @@ export function AppShell() {
               align="end"
               trigger={
                 <button className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus">
-                  <Avatar size="sm" name={user.name} src={myAvatar} status="online" />
+                  <Avatar size="sm" name={user.name} src={myAvatar} />
                   <ChevronDown size={16} strokeWidth={1.5} className="text-muted" aria-hidden />
                 </button>
               }
