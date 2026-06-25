@@ -148,9 +148,9 @@ function TaskCard({
     <div
       draggable={canManage}
       onDragStart={onDragStart}
-      className={`group flex flex-col gap-2.5 rounded-lg border border-line bg-slate-900 p-3 transition-colors hover:border-strong ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-start gap-3">
         <span className="pt-0.5">
           <Checkbox checked={done} onChange={onToggle} aria-label={done ? 'Reabrir tarefa' : 'Concluir tarefa'} />
         </span>
@@ -159,7 +159,7 @@ function TaskCard({
           onClick={onOpen}
           className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
         >
-          <span className={`text-body-s font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
+          <span className={`text-body-s font-medium leading-snug ${done ? 'text-faint line-through' : 'text-strong'}`}>
             {task.title}
           </span>
         </button>
@@ -169,15 +169,13 @@ function TaskCard({
           </Badge>
         )}
       </div>
-      <div className="flex items-center justify-between gap-2 pl-[30px]">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 pl-[30px]">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
           <PriorityChip priority={task.priority} />
           <DueChip task={task} />
           <SubtaskChip task={task} />
         </div>
-        <div className="flex items-center gap-2">
-          <Assignees ids={task.assignees} />
-        </div>
+        <Assignees ids={task.assignees} />
       </div>
     </div>
   )

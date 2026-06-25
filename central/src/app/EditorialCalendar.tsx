@@ -96,6 +96,16 @@ const FORMAT_ICON: Record<EditorialFormat, React.ReactNode> = {
 
 /* ---- Chip de postagem na célula do calendário -------------------------- */
 
+/** Labels curtos da etapa — a célula do calendário é estreita demais para os
+ *  rótulos completos (ex.: "Para edição de vídeo" estoura). No drawer/lista os
+ *  labels completos de STAGE_META continuam em uso. */
+const STAGE_SHORT: Record<EditorialStage, string> = {
+  'para-designer': 'Designer',
+  'para-edicao': 'Edição',
+  'para-anju': 'Anju',
+  concluido: 'Concluído',
+}
+
 function PostChip({ post, onOpen }: { post: EditorialPost; onOpen: () => void }) {
   const stage = STAGE_META[post.stage]
   const fmt = FORMAT_META[post.format]
@@ -103,15 +113,15 @@ function PostChip({ post, onOpen }: { post: EditorialPost; onOpen: () => void })
     <button
       type="button"
       onClick={onOpen}
-      className="group/chip flex w-full flex-col gap-1.5 rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus"
+      className="group/chip flex w-full flex-col gap-1.5 overflow-hidden rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus"
     >
       <span className="flex items-start gap-1.5">
         <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{FORMAT_ICON[post.format]}</span>
         <span className="line-clamp-2 text-body-s font-medium leading-snug text-strong">{post.title || 'Sem título'}</span>
       </span>
-      <span className="flex flex-wrap items-center gap-1">
-        <Badge tone={fmt.tone} size="sm">{fmt.label}</Badge>
-        <Badge tone={stage.tone} size="sm">{stage.label}</Badge>
+      <span className="flex min-w-0 flex-wrap items-center gap-1">
+        <Badge tone={fmt.tone} size="sm" className="max-w-full">{fmt.label}</Badge>
+        <Badge tone={stage.tone} size="sm" className="max-w-full">{STAGE_SHORT[post.stage]}</Badge>
       </span>
     </button>
   )
