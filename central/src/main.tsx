@@ -18,6 +18,7 @@ import './styles/globals.css'
 import { ToastProvider } from './components/ui'
 import { ThemeProvider } from './lib/theme'
 import { SessionProvider } from './lib/session'
+import { PresenceProvider } from './lib/presence'
 import { RequireAuth } from './lib/RequireAuth'
 import { LoginPage } from './pages/Login'
 import { ClientsProvider } from './app/clients'
@@ -66,6 +67,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <SessionProvider>
+        <PresenceProvider>
         <ClientsProvider>
           <EditorialProvider>
             <ContentProvider>
@@ -81,6 +83,7 @@ createRoot(document.getElementById('root')!).render(
             </ContentProvider>
           </EditorialProvider>
         </ClientsProvider>
+        </PresenceProvider>
       </SessionProvider>
     </ThemeProvider>
   </StrictMode>,

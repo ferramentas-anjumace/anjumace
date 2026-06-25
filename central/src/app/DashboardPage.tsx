@@ -25,10 +25,8 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
-import {
-  TASK_TAG_TONE,
-  type UserStatus,
-} from './data'
+import { usePresence } from '@/lib/presence'
+import { TASK_TAG_TONE } from './data'
 
 /* -------------------------------------------------- ecossistema (atalhos) */
 
@@ -70,12 +68,6 @@ function EcossistemaCard() {
 }
 
 /* -------------------------------------------------------------- compartilhado */
-
-const PRESENCE_LABEL: Record<UserStatus, string> = {
-  ativo: 'online',
-  convidado: 'convidado',
-  suspenso: 'ausente',
-}
 
 const dateFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -197,6 +189,7 @@ function AdminDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
   const { members: team } = useProfiles()
+  const { isOnline } = usePresence()
   const { tasks } = useTasks()
   const firstName = user.name.split(' ')[0]
   const tarefasAbertas = tasks.filter((t) => t.status !== 'concluida').length
@@ -283,8 +276,16 @@ function AdminDashboard() {
                         {ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}
                       </div>
                     </div>
-                    <span className="shrink-0 font-mono text-[11px] uppercase text-muted">
-                      {PRESENCE_LABEL[u.status]}
+                    <span
+                      className={`flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase ${
+                        isOnline(u.id) ? 'text-ok' : 'text-faint'
+                      }`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${isOnline(u.id) ? 'bg-ok' : 'bg-slate-600'}`}
+                        aria-hidden
+                      />
+                      {isOnline(u.id) ? 'online' : 'offline'}
                     </span>
                   </button>
                 </li>
