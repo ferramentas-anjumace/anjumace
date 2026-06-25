@@ -39,7 +39,7 @@ import {
   Divider,
   useToast,
 } from '@/components/ui'
-import { useSession } from '@/lib/session'
+import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
 import {
@@ -122,7 +122,7 @@ function Assignees({ ids, size = 'sm' }: { ids: string[]; size?: 'sm' | 'xs' }) 
     <AvatarGroup max={3}>
       {ids.map((id) => {
         const u = getMember(id)
-        return <Avatar key={id} size={size === 'xs' ? 'xs' : 'sm'} name={u?.name ?? '?'} />
+        return <Avatar key={id} size={size === 'xs' ? 'xs' : 'sm'} name={u?.name ?? '?'} src={u?.avatar ?? undefined} />
       })}
     </AvatarGroup>
   )
@@ -584,7 +584,7 @@ function AdminSummary({ tasks }: { tasks: Task[] }) {
           {perPerson.length === 0 && <p className="text-body-s text-faint">Nenhuma tarefa atribuída.</p>}
           {perPerson.map((p) => (
             <div key={p.user.id} className="flex items-center gap-3">
-              <Avatar size="sm" name={p.user.name} />
+              <Avatar size="sm" name={p.user.name} src={p.user.avatar ?? undefined} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-body-s font-medium text-strong">{p.user.name}</span>
@@ -735,7 +735,7 @@ function TaskFormModal({
                   className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-slate-800"
                 >
                   <Checkbox checked={draft.assignees.includes(u.id)} onChange={() => toggleAssignee(u.id)} />
-                  <Avatar size="xs" name={u.name} />
+                  <Avatar size="xs" name={u.name} src={u.avatar ?? undefined} />
                   <span className="min-w-0 flex-1 truncate text-body-s text-strong">{u.name}</span>
                   {u.team && <span className="font-mono text-[10px] uppercase text-faint">{u.team}</span>}
                 </label>
@@ -913,9 +913,9 @@ function TaskDrawer({
                 const u = getMember(id)
                 return (
                   <li key={id} className="flex items-center gap-2.5">
-                    <Avatar size="sm" name={u?.name ?? '?'} />
+                    <Avatar size="sm" name={u?.name ?? '?'} src={u?.avatar ?? undefined} />
                     <span className="text-body-s text-strong">{u?.name ?? 'Desconhecido'}</span>
-                    {u && <span className="font-mono text-[11px] text-faint">{u.role === 'admin' ? 'Admin' : 'Colaborador'}{u.team ? ` · ${u.team}` : ''}</span>}
+                    {u && <span className="font-mono text-[11px] text-faint">{ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}</span>}
                   </li>
                 )
               })}
@@ -967,10 +967,10 @@ function TaskDrawer({
 
 export function TasksPage() {
   const toast = useToast()
-  const { role, user } = useSession()
+  const { isManager, user } = useSession()
   const { tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist } = useTasks()
   const { members } = useProfiles()
-  const canManage = role === 'admin'
+  const canManage = isManager
 
   const [view, setView] = useState<'board' | 'list' | 'calendar'>('board')
   const [groupBy, setGroupBy] = useState<GroupBy>('status')

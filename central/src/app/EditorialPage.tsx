@@ -4,7 +4,7 @@ import { ANJU_ID } from '@/lib/tenant'
 
 /** Editorial — calendário de criativos e fluxo de produção da Anju Mace. */
 export function EditorialPage() {
-  const { role } = useSession()
+  const { isManager } = useSession()
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6">
@@ -14,7 +14,7 @@ export function EditorialPage() {
           Calendário de criativos: formato, canais, etapa de produção e aprovação.
         </p>
       </div>
-      <EditorialCalendar clientId={ANJU_ID} canManage={role === 'admin'} />
+      <EditorialCalendar clientId={ANJU_ID} canManage={isManager} />
     </div>
   )
 }

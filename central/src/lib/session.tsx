@@ -9,19 +9,34 @@ import { supabase } from './supabase'
    cadastro aberto). O papel de acesso e o nome ficam no user_metadata do
    usuário no Supabase:
 
-     { role: 'admin' | 'colaborador', name: 'Fulano', member_id?: 'USR-1047' }
+     { role: 'admin' | 'lideranca' | 'time', name: 'Fulano', member_id?: 'USR-1047' }
 
-   - role:      define o que a pessoa enxerga (admin = gestão completa).
+   - role:      define o que a pessoa enxerga. Administrador e Liderança são
+                gestores (controle total); Time é membro comum.
    - name:      exibido na interface.
    - member_id: opcional — liga o login a um membro do time (USERS em data.ts),
                 usado para "Minhas tarefas". Sem ele, o id é o uuid do Supabase.
 ---------------------------------------------------------------------------- */
 
-export type Role = 'admin' | 'colaborador'
+export type Role = 'admin' | 'lideranca' | 'time'
+
+/** Rótulo exibido para cada papel. */
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: 'Administrador',
+  lideranca: 'Liderança',
+  time: 'Time',
+}
+
+/** Gestores (acesso administrativo): Administrador e Liderança. */
+export function isManagerRole(role: Role): boolean {
+  return role === 'admin' || role === 'lideranca'
+}
 
 export interface Profile {
   /** Id usado no app — member_id (se houver) ou o uuid do Supabase. */
   id: string
+  /** UUID real do Supabase Auth — sempre casa com a linha em public.profiles. */
+  userId: string
   name: string
   email: string
   roleLabel: string
@@ -30,20 +45,22 @@ export interface Profile {
 /** Estado da sessão para a tela de carregamento / guarda de rota. */
 export type AuthStatus = 'loading' | 'authed' | 'anon'
 
-const EMPTY_PROFILE: Profile = { id: '', name: '', email: '', roleLabel: '' }
+const EMPTY_PROFILE: Profile = { id: '', userId: '', name: '', email: '', roleLabel: '' }
 
 function profileFromSession(session: Session | null): { profile: Profile; role: Role } {
   const u = session?.user
-  if (!u) return { profile: EMPTY_PROFILE, role: 'colaborador' }
-  const meta = (u.user_metadata ?? {}) as { role?: Role; name?: string; member_id?: string }
-  const role: Role = meta.role === 'admin' ? 'admin' : 'colaborador'
+  if (!u) return { profile: EMPTY_PROFILE, role: 'time' }
+  const meta = (u.user_metadata ?? {}) as { role?: string; name?: string; member_id?: string }
+  // Mapeia o valor cru do metadata (tolerando o antigo 'colaborador' → 'time').
+  const role: Role = meta.role === 'admin' ? 'admin' : meta.role === 'lideranca' ? 'lideranca' : 'time'
   const email = u.email ?? ''
   return {
     profile: {
       id: meta.member_id || u.id,
+      userId: u.id,
       name: meta.name || email.split('@')[0] || 'Usuário',
       email,
-      roleLabel: role === 'admin' ? 'Admin' : 'Colaborador',
+      roleLabel: ROLE_LABEL[role],
     },
     role,
   }
@@ -52,6 +69,8 @@ function profileFromSession(session: Session | null): { profile: Profile; role: 
 interface SessionCtx {
   status: AuthStatus
   role: Role
+  /** Atalho: papel é de gestor (Administrador ou Liderança). */
+  isManager: boolean
   user: Profile
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
@@ -92,7 +111,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const { profile, role } = useMemo(() => profileFromSession(session), [session])
 
   const value = useMemo<SessionCtx>(
-    () => ({ status, role, user: profile, signIn, signOut }),
+    () => ({ status, role, isManager: isManagerRole(role), user: profile, signIn, signOut }),
     [status, role, profile, signIn, signOut],
   )
 

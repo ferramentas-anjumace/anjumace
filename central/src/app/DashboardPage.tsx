@@ -21,7 +21,7 @@ import {
   ProgressBar,
   Checkbox,
 } from '@/components/ui'
-import { useSession } from '@/lib/session'
+import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
@@ -114,7 +114,7 @@ function EventRow({ event, onClick }: { event: AgendaEvent; onClick: () => void 
         event.people.length > 0 ? (
           <AvatarGroup max={3}>
             {event.people.map((id) => (
-              <Avatar key={id} size="sm" name={getMember(id)?.name ?? '?'} />
+              <Avatar key={id} size="sm" name={getMember(id)?.name ?? '?'} src={getMember(id)?.avatar ?? undefined} />
             ))}
           </AvatarGroup>
         ) : undefined
@@ -135,8 +135,8 @@ function greetingFor() {
 /* =========================================================================== */
 
 export function DashboardPage() {
-  const { role } = useSession()
-  return role === 'admin' ? <AdminDashboard /> : <CollaboratorDashboard />
+  const { isManager } = useSession()
+  return isManager ? <AdminDashboard /> : <CollaboratorDashboard />
 }
 
 /* =========================================================================== */
@@ -184,7 +184,7 @@ function WelcomeBanner({
           <div className="flex shrink-0 items-center gap-4 rounded-xl border border-line bg-ink-deep/40 px-5 py-4">
             <AvatarGroup max={4}>
               {active.map((u) => (
-                <Avatar key={u.id} size="md" name={u.name} status="online" />
+                <Avatar key={u.id} size="md" name={u.name} src={u.avatar ?? undefined} status="online" />
               ))}
             </AvatarGroup>
             <div className="leading-tight">
@@ -281,11 +281,11 @@ function AdminDashboard() {
                     onClick={() => navigate('/app/usuarios')}
                     className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
                   >
-                    <Avatar size="sm" name={u.name} status={AV_STATUS[u.status]} />
+                    <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} status={AV_STATUS[u.status]} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-body-s font-medium text-strong">{u.name}</div>
                       <div className="truncate font-mono text-[11px] text-faint">
-                        {u.role === 'admin' ? 'Admin' : 'Colaborador'}{u.team ? ` · ${u.team}` : ''}
+                        {ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}
                       </div>
                     </div>
                     <span className="shrink-0 font-mono text-[11px] uppercase text-muted">

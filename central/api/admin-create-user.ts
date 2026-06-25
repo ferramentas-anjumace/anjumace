@@ -54,8 +54,8 @@ export default async function handler(req: any, res: any) {
     })
     return
   }
-  if (profile.role !== 'admin') {
-    res.status(403).json({ error: `Seu papel no banco é "${profile.role}", não "admin".` })
+  if (profile.role !== 'admin' && profile.role !== 'lideranca') {
+    res.status(403).json({ error: `Seu papel no banco é "${profile.role}" — só Administrador ou Liderança criam usuários.` })
     return
   }
 
@@ -64,7 +64,7 @@ export default async function handler(req: any, res: any) {
   const email = String(body.email || '').trim()
   const password = String(body.password || '')
   const name = String(body.name || '').trim()
-  const role = body.role === 'admin' ? 'admin' : 'colaborador'
+  const role = ['admin', 'lideranca', 'time'].includes(body.role) ? body.role : 'time'
   const team = body.team ? String(body.team).trim() : null
 
   if (!email || !password) {

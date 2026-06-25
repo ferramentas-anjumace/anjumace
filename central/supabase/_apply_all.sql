@@ -357,3 +357,106 @@ insert into public.client_credentials (client_id, platform, url, username, passw
 alter table public.tasks
   add column if not exists checklist jsonb not null default '[]'::jsonb;
 
+
+-- >>>>>>>>>>>>>>>>>>>> 0006_profile_avatar.sql >>>>>>>>>>>>>>>>>>>>
+
+-- ============================================================================
+-- Central Anju — foto (avatar) dos usuários do time
+-- ----------------------------------------------------------------------------
+-- 1. Coluna `avatar` (data URL) na tabela profiles.
+-- 2. Cada usuário passa a poder editar O PRÓPRIO perfil (nome + foto) — antes
+--    só admin escrevia. O trigger de guarda impede que um colaborador use
+--    essa permissão para escalar privilégio (mudar role/status/team/email).
+-- Rode inteiro no SQL Editor → Run. Idempotente.
+-- ============================================================================
+
+-- 1) Coluna da foto (mesmo padrão de clients.avatar — data URL em text).
+alter table public.profiles
+  add column if not exists avatar text;
+
+-- 2) Guarda: quando quem atualiza NÃO é admin (e está autenticado), os campos
+--    sensíveis ficam congelados no valor antigo. Sobra editar `name` e `avatar`.
+--    service_role (auth.uid() nulo) e admin passam livres.
+create or replace function public.profiles_guard_self_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.id     := old.id;
+    new.role   := old.role;
+    new.status := old.status;
+    new.team   := old.team;
+    new.email  := old.email;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_self_update on public.profiles;
+create trigger profiles_guard_self_update
+  before update on public.profiles
+  for each row execute function public.profiles_guard_self_update();
+
+-- 3) Policy: cada um atualiza a própria linha (o trigger acima limita as colunas).
+--    A policy de admin (profiles_admin_write) continua valendo para gerir todos.
+drop policy if exists profiles_self_update on public.profiles;
+create policy profiles_self_update on public.profiles for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);
+
+
+-- >>>>>>>>>>>>>>>>>>>> 0007_roles_three.sql >>>>>>>>>>>>>>>>>>>>
+
+-- ============================================================================
+-- Central Anju — papéis: Administrador, Liderança, Time
+-- ----------------------------------------------------------------------------
+-- Antes: 'admin' | 'colaborador'. Agora: 'admin' | 'lideranca' | 'time'.
+--   - admin     → Administrador (gestor, controle total)
+--   - lideranca → Liderança     (gestor, controle total — mesmos poderes do admin)
+--   - time      → Time          (membro comum, acesso restrito)
+-- 'colaborador' antigo vira 'time'. Rode inteiro no SQL Editor → Run. Idempotente.
+-- ============================================================================
+
+-- 1) Troca o CHECK do papel e migra os valores antigos.
+alter table public.profiles drop constraint if exists profiles_role_check;
+update public.profiles set role = 'time' where role not in ('admin','lideranca','time');
+alter table public.profiles alter column role set default 'time';
+alter table public.profiles
+  add constraint profiles_role_check check (role in ('admin','lideranca','time'));
+
+-- 2) Gestores = admin OU liderança (afeta toda a escrita protegida por RLS).
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role in ('admin','lideranca')
+  );
+$$;
+
+-- 3) Profile novo nasce como 'time' (antes 'colaborador').
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, name, email, role)
+  values (
+    new.id,
+    coalesce(nullif(new.raw_user_meta_data->>'name',''), split_part(new.email,'@',1)),
+    new.email,
+    coalesce(nullif(new.raw_user_meta_data->>'role',''), 'time')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+

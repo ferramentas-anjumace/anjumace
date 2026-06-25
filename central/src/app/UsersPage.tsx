@@ -26,12 +26,18 @@ import {
   Select,
   useToast,
 } from '@/components/ui'
-import { useSession } from '@/lib/session'
+import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
 import { STATUS_META } from './data'
+import { AvatarUploader } from './AvatarUploader'
 
-const ROLE_LABEL: Record<MemberRole, string> = { admin: 'Admin', colaborador: 'Colaborador' }
-const ROLE_TONE: Record<MemberRole, 'steel' | 'neutral'> = { admin: 'steel', colaborador: 'neutral' }
+const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral'> = {
+  admin: 'steel',
+  lideranca: 'success',
+  time: 'neutral',
+}
+/** Administrador e Liderança são gestores — recebem o ponto de destaque. */
+const MANAGER_ROLES: MemberRole[] = ['admin', 'lideranca']
 const STATUSES: MemberStatus[] = ['ativo', 'convidado', 'suspenso']
 
 /* ----------------------------------------------------------- modal de edição */
@@ -39,13 +45,17 @@ function EditMemberModal({
   member,
   onClose,
   onSave,
+  onAvatarChange,
+  onAvatarError,
 }: {
   member: Member | null
   onClose: () => void
   onSave: (id: string, patch: { name: string; role: MemberRole; team: string; status: MemberStatus }) => void
+  onAvatarChange: (id: string, avatar: string | null) => void | Promise<void>
+  onAvatarError: (message: string) => void
 }) {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<MemberRole>('colaborador')
+  const [role, setRole] = useState<MemberRole>('time')
   const [team, setTeam] = useState('')
   const [status, setStatus] = useState<MemberStatus>('ativo')
 
@@ -73,11 +83,18 @@ function EditMemberModal({
       }
     >
       <div className="flex flex-col gap-4">
+        <AvatarUploader
+          name={name || member.name}
+          src={member.avatar}
+          onChange={(dataUrl) => onAvatarChange(member.id, dataUrl)}
+          onError={onAvatarError}
+        />
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            <option value="admin">Admin</option>
-            <option value="colaborador">Colaborador</option>
+            <option value="time">Time</option>
+            <option value="lideranca">Liderança</option>
+            <option value="admin">Administrador</option>
           </Select>
           <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value as MemberStatus)}>
             {STATUSES.map((s) => (
@@ -106,11 +123,11 @@ function CreateUserModal({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<MemberRole>('colaborador')
+  const [role, setRole] = useState<MemberRole>('time')
   const [team, setTeam] = useState('')
 
   useMemo(() => {
-    if (open) { setName(''); setEmail(''); setPassword(''); setRole('colaborador'); setTeam('') }
+    if (open) { setName(''); setEmail(''); setPassword(''); setRole('time'); setTeam('') }
   }, [open])
 
   return (
@@ -134,8 +151,9 @@ function CreateUserModal({
         <Input label="Senha provisória" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" helperText="A pessoa pode trocar depois." />
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            <option value="colaborador">Colaborador</option>
-            <option value="admin">Admin</option>
+            <option value="time">Time</option>
+            <option value="lideranca">Liderança</option>
+            <option value="admin">Administrador</option>
           </Select>
           <Input label="Time" optional value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Ex.: Suporte" />
         </div>
@@ -148,7 +166,7 @@ function CreateUserModal({
 export function UsersPage() {
   const toast = useToast()
   const { role: myRole } = useSession()
-  const { members, loading, updateMember, createUser } = useProfiles()
+  const { members, loading, updateMember, setMemberAvatar, createUser } = useProfiles()
   const isAdmin = myRole === 'admin'
 
   const [query, setQuery] = useState('')
@@ -178,6 +196,12 @@ export function UsersPage() {
     if (error) toast.error('Falha ao salvar', error)
     else toast.success('Usuário atualizado', patch.name)
     setEditing(null)
+  }
+
+  const changeAvatar = async (id: string, avatar: string | null) => {
+    const { error } = await setMemberAvatar(id, avatar)
+    if (error) toast.error('Falha ao salvar foto', error)
+    else toast.success(avatar ? 'Foto atualizada' : 'Foto removida')
   }
 
   const create = async (input: { email: string; password: string; name: string; role: MemberRole; team: string }) => {
@@ -268,7 +292,7 @@ export function UsersPage() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar size="sm" name={u.name} />
+                        <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
                         <div className="min-w-0">
                           <div className="font-medium text-strong">{u.name || '—'}</div>
                           <div className="font-mono text-[11px] text-faint">{u.email}</div>
@@ -276,7 +300,7 @@ export function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge tone={ROLE_TONE[u.role]} dot={u.role === 'admin'}>{ROLE_LABEL[u.role]}</Badge>
+                      <Badge tone={ROLE_TONE[u.role]} dot={MANAGER_ROLES.includes(u.role)}>{ROLE_LABEL[u.role]}</Badge>
                     </TableCell>
                     <TableCell>{u.team || <span className="text-faint">—</span>}</TableCell>
                     <TableCell>
@@ -323,7 +347,13 @@ export function UsersPage() {
         </Table>
       )}
 
-      <EditMemberModal member={editing} onClose={() => setEditing(null)} onSave={save} />
+      <EditMemberModal
+        member={editing ? members.find((m) => m.id === editing.id) ?? editing : null}
+        onClose={() => setEditing(null)}
+        onSave={save}
+        onAvatarChange={changeAvatar}
+        onAvatarError={(msg) => toast.error('Imagem inválida', msg)}
+      />
       <CreateUserModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={create} creating={creating} />
     </div>
   )

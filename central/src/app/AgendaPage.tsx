@@ -173,7 +173,7 @@ function EventModal({
                   const m = getMember(id)
                   return (
                     <li key={id} className="flex items-center gap-2.5">
-                      <Avatar size="sm" name={m?.name ?? '?'} />
+                      <Avatar size="sm" name={m?.name ?? '?'} src={m?.avatar ?? undefined} />
                       <span className="text-body-s text-strong">{m?.name ?? 'Desconhecido'}</span>
                     </li>
                   )
@@ -275,7 +275,7 @@ function AgendaFormModal({
               {members.map((m) => (
                 <label key={m.id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-slate-800">
                   <Checkbox checked={draft.people.includes(m.id)} onChange={() => togglePerson(m.id)} />
-                  <Avatar size="xs" name={m.name} />
+                  <Avatar size="xs" name={m.name} src={m.avatar ?? undefined} />
                   <span className="min-w-0 flex-1 truncate text-body-s text-strong">{m.name}</span>
                 </label>
               ))}
@@ -290,10 +290,10 @@ function AgendaFormModal({
 /* ============================================================== página ===== */
 export function AgendaPage() {
   const toast = useToast()
-  const { role } = useSession()
+  const { isManager } = useSession()
   const { events, loading, addEvent, updateEvent, removeEvent } = useAgenda()
   const { getMember } = useProfiles()
-  const canManage = role === 'admin'
+  const canManage = isManager
 
   const [scope, setScope] = useState('todos')
   const [openEvent, setOpenEvent] = useState<AgendaEvent | null>(null)
@@ -393,7 +393,7 @@ export function AgendaPage() {
                       trailing={
                         ev.people.length > 0 ? (
                           <AvatarGroup max={4}>
-                            {ev.people.map((id) => <Avatar key={id} size="sm" name={getMember(id)?.name ?? '?'} />)}
+                            {ev.people.map((id) => <Avatar key={id} size="sm" name={getMember(id)?.name ?? '?'} src={getMember(id)?.avatar ?? undefined} />)}
                           </AvatarGroup>
                         ) : undefined
                       }

@@ -9,7 +9,7 @@ import { useSession } from '@/lib/session'
    e a futura tela de Usuários. Atualiza quando a sessão fica autenticada.
 ---------------------------------------------------------------------------- */
 
-export type MemberRole = 'admin' | 'colaborador'
+export type MemberRole = 'admin' | 'lideranca' | 'time'
 export type MemberStatus = 'ativo' | 'convidado' | 'suspenso'
 
 export interface Member {
@@ -19,6 +19,8 @@ export interface Member {
   role: MemberRole
   team: string | null
   status: MemberStatus
+  /** Foto do usuário (data URL). Enviada pelo admin ou pelo próprio usuário. */
+  avatar: string | null
 }
 
 /** Dados para criar um novo usuário (via função serverless). */
@@ -31,7 +33,7 @@ export interface NewUserInput {
 }
 
 /** Campos editáveis de um membro. */
-export type MemberPatch = Partial<Pick<Member, 'name' | 'role' | 'team' | 'status'>>
+export type MemberPatch = Partial<Pick<Member, 'name' | 'role' | 'team' | 'status' | 'avatar'>>
 
 interface ProfilesCtx {
   members: Member[]
@@ -39,6 +41,8 @@ interface ProfilesCtx {
   getMember: (id: string) => Member | undefined
   refresh: () => Promise<void>
   updateMember: (id: string, patch: MemberPatch) => Promise<{ error: string | null }>
+  /** Salva a foto (data URL, ou null para remover) de um membro. */
+  setMemberAvatar: (id: string, avatar: string | null) => Promise<{ error: string | null }>
   createUser: (input: NewUserInput) => Promise<{ error: string | null }>
 }
 
@@ -52,7 +56,7 @@ export function ProfilesProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, email, role, team, status')
+      .select('id, name, email, role, team, status, avatar')
       .order('name')
     if (error) {
       console.error('[profiles] erro ao carregar membros:', error.message, error)
@@ -85,6 +89,18 @@ export function ProfilesProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   )
 
+  /** Atualiza só a foto. Funciona tanto para o admin (qualquer membro) quanto
+      para o próprio usuário (a policy `profiles_self_update` cobre a si mesmo). */
+  const setMemberAvatar = useCallback(
+    async (id: string, avatar: string | null) => {
+      const { error } = await supabase.from('profiles').update({ avatar }).eq('id', id)
+      if (error) return { error: error.message }
+      await refresh()
+      return { error: null }
+    },
+    [refresh],
+  )
+
   /** Cria um usuário via função serverless (precisa da service_role no servidor). */
   const createUser = useCallback(
     async (input: NewUserInput) => {
@@ -108,8 +124,8 @@ export function ProfilesProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value = useMemo<ProfilesCtx>(
-    () => ({ members, loading, getMember, refresh, updateMember, createUser }),
-    [members, loading, getMember, refresh, updateMember, createUser],
+    () => ({ members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser }),
+    [members, loading, getMember, refresh, updateMember, setMemberAvatar, createUser],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

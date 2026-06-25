@@ -4,7 +4,7 @@ import { ANJU_ID } from '@/lib/tenant'
 
 /** Acessos — credenciais e bancos de mídia das plataformas da Anju Mace. */
 export function AccessPage() {
-  const { role } = useSession()
+  const { isManager } = useSession()
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6">
@@ -14,7 +14,7 @@ export function AccessPage() {
           Credenciais das plataformas e bancos de mídia. Abra, copie e gerencie em um só lugar.
         </p>
       </div>
-      <ClientAccess clientId={ANJU_ID} canManage={role === 'admin'} />
+      <ClientAccess clientId={ANJU_ID} canManage={isManager} />
     </div>
   )
 }

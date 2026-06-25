@@ -30,8 +30,13 @@ import {
   MenuItem,
   MenuLabel,
   MenuSeparator,
+  Modal,
+  Button,
+  useToast,
 } from '@/components/ui'
 import { useSession } from '@/lib/session'
+import { useProfiles } from './profiles'
+import { AvatarUploader } from './AvatarUploader'
 
 interface NavLink {
   to: string
@@ -67,9 +72,21 @@ const NAV: { group: string; items: NavLink[]; adminOnly?: boolean }[] = [
 export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { role, user, signOut } = useSession()
+  const { isManager, user, signOut } = useSession()
+  const { members, setMemberAvatar } = useProfiles()
+  const toast = useToast()
   const [search, setSearch] = useState('')
-  const isAdmin = role === 'admin'
+  const [accountOpen, setAccountOpen] = useState(false)
+  const isAdmin = isManager
+
+  // Foto do próprio usuário vem da linha em profiles (casada pelo uuid do Auth).
+  const myAvatar = members.find((m) => m.id === user.userId)?.avatar ?? undefined
+
+  const changeMyAvatar = async (dataUrl: string | null) => {
+    const { error } = await setMemberAvatar(user.userId, dataUrl)
+    if (error) toast.error('Falha ao salvar foto', error)
+    else toast.success(dataUrl ? 'Foto atualizada' : 'Foto removida')
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -126,7 +143,7 @@ export function AppShell() {
               align="end"
               trigger={
                 <button className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus">
-                  <Avatar size="sm" name={user.name} status="online" />
+                  <Avatar size="sm" name={user.name} src={myAvatar} status="online" />
                   <ChevronDown size={16} strokeWidth={1.5} className="text-muted" aria-hidden />
                 </button>
               }
@@ -137,7 +154,9 @@ export function AppShell() {
                   <span className="font-mono text-[11px] text-faint">{user.email} · {user.roleLabel}</span>
                 </span>
               </MenuLabel>
-              <MenuItem icon={<UserCog size={16} strokeWidth={1.5} />}>Conta</MenuItem>
+              <MenuItem icon={<UserCog size={16} strokeWidth={1.5} />} onClick={() => setAccountOpen(true)}>
+                Conta
+              </MenuItem>
               <MenuItem icon={<Settings2 size={16} strokeWidth={1.5} />}>Preferências</MenuItem>
               <MenuSeparator />
               <MenuItem icon={<LogOut size={16} strokeWidth={1.5} />} destructive onClick={handleSignOut}>
@@ -180,6 +199,27 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <Modal
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        title="Sua conta"
+        description="Atualize sua foto de perfil."
+        footer={<Button onClick={() => setAccountOpen(false)}>Fechar</Button>}
+      >
+        <div className="flex flex-col gap-5">
+          <AvatarUploader
+            name={user.name}
+            src={myAvatar ?? null}
+            onChange={changeMyAvatar}
+            onError={(msg) => toast.error('Imagem inválida', msg)}
+          />
+          <div className="flex flex-col gap-1 border-t border-line pt-4">
+            <span className="text-strong">{user.name}</span>
+            <span className="font-mono text-[11px] text-faint">{user.email} · {user.roleLabel}</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
