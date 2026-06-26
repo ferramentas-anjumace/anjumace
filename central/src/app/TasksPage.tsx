@@ -51,6 +51,7 @@ import {
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   TASK_TAG_TONE,
+  taskExecutors,
   type ChecklistItem,
   type Task,
   type TaskStatus,
@@ -564,10 +565,11 @@ function AdminSummary({ tasks }: { tasks: Task[] }) {
   const t = todayIso()
   const overdue = tasks.filter((x) => x.due && x.due < t && x.status !== 'concluida').length
 
-  // Progresso por pessoa (apenas quem tem tarefa atribuída).
+  // Progresso por pessoa (apenas quem tem tarefa atribuída). Em revisão, a
+  // tarefa conta para quem executou — não para o administrador que revisa.
   const perPerson = members
     .map((u) => {
-      const mine = tasks.filter((task) => task.assignees.includes(u.id))
+      const mine = tasks.filter((task) => taskExecutors(task).includes(u.id))
       const concl = mine.filter((task) => task.status === 'concluida').length
       return { user: u, total: mine.length, done: concl }
     })

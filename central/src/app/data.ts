@@ -515,6 +515,17 @@ export interface Task {
   history: TaskEvent[]
 }
 
+/**
+ * Responsáveis para fins de avanço/carga por pessoa. Durante a revisão a
+ * tarefa fica com o administrador (que só revisa), então o avanço conta para
+ * quem executou (review_from), não para o revisor.
+ */
+export function taskExecutors(task: Task): string[] {
+  return task.status === 'em-revisao' && task.reviewFrom && task.reviewFrom.length
+    ? task.reviewFrom
+    : task.assignees
+}
+
 /** Seed inicial — hidrata o store na primeira carga. */
 const TASKS_SEED: Task[] = [
   {

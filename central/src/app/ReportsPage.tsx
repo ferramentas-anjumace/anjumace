@@ -30,6 +30,7 @@ import {
   TASK_PRIORITY_META,
   STAGE_META,
   APPROVAL_META,
+  taskExecutors,
   type TaskTag,
   type TaskStatus,
   type EditorialStage,
@@ -177,10 +178,10 @@ export function ReportsPage() {
     }))
     const awaitingAnju = posts.filter((p) => p.approval === 'em-revisao').length
 
-    // Carga por membro (tarefas atribuídas).
+    // Carga por membro (tarefas atribuídas). Em revisão conta para o executor.
     const workload = members
       .map((m) => {
-        const mine = tasks.filter((t) => t.assignees.includes(m.id))
+        const mine = tasks.filter((t) => taskExecutors(t).includes(m.id))
         return {
           member: m,
           open: mine.filter((t) => t.status !== 'concluida').length,
