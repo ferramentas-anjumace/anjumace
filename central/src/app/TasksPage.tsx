@@ -150,21 +150,27 @@ function TaskCard({
     <div
       draggable={canDrag}
       onDragStart={onDragStart}
-      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canDrag ? 'cursor-grab select-none active:cursor-grabbing' : ''}`}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong focus-visible:outline-none focus-visible:shadow-focus ${canDrag ? 'cursor-grab select-none active:cursor-grabbing' : 'cursor-pointer'}`}
     >
       <div className="flex items-start gap-3">
-        <span className="pt-0.5">
+        {/* O clique no checkbox conclui/reabre — não deve abrir a tarefa. */}
+        <span className="pt-0.5" onClick={(e) => e.stopPropagation()}>
           <Checkbox checked={done} onChange={onToggle} aria-label={done ? 'Reabrir tarefa' : 'Concluir tarefa'} />
         </span>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus rounded-xs"
-        >
+        <span className="min-w-0 flex-1">
           <span className={`text-body-s font-medium leading-snug ${done ? 'text-faint line-through' : 'text-strong'}`}>
             {task.title}
           </span>
-        </button>
+        </span>
         {task.tag && (
           <Badge size="sm" tone={TASK_TAG_TONE[task.tag]} className="shrink-0">
             {task.tag}
