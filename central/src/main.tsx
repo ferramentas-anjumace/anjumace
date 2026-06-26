@@ -27,6 +27,7 @@ import { ClientsProvider } from './app/clients'
 import { EditorialProvider } from './app/editorial'
 import { ContentProvider } from './app/content'
 import { TasksProvider } from './app/tasks'
+import { CommentsProvider } from './app/comments'
 import { ProfilesProvider } from './app/profiles'
 import { AgendaProvider } from './app/agenda'
 import { StyleguidePage } from './pages/Styleguide'
@@ -80,11 +81,13 @@ createRoot(document.getElementById('root')!).render(
             <ContentProvider>
               <ProfilesProvider>
                 <TasksProvider>
+                  <CommentsProvider>
                   <AgendaProvider>
                     <ToastProvider>
                       <RouterProvider router={router} />
                     </ToastProvider>
                   </AgendaProvider>
+                  </CommentsProvider>
                 </TasksProvider>
               </ProfilesProvider>
             </ContentProvider>

@@ -1,6 +1,7 @@
 -- ============================================================================
--- Central Anju — TODAS as migrations (0001→0005) concatenadas para o SQL Editor
--- Gerado automaticamente. Rode INTEIRO no Supabase → SQL Editor → New query → Run.
+-- Central Anju — TODAS as migrations (0001→0012) concatenadas para o SQL Editor
+-- Gerado automaticamente por _build_apply_all.sh. NÃO edite à mão.
+-- Rode INTEIRO no Supabase → SQL Editor → New query → Run. Idempotente.
 -- ============================================================================
 
 
@@ -235,7 +236,6 @@ on conflict do nothing;
 
 -- Fim. Próximas fases: o app passa a ler/gravar nestas tabelas.
 
-
 -- >>>>>>>>>>>>>>>>>>>> 0002_grants.sql >>>>>>>>>>>>>>>>>>>>
 
 -- ============================================================================
@@ -267,7 +267,6 @@ alter default privileges in schema public
 alter default privileges in schema public
   grant usage, select on sequences to authenticated;
 
-
 -- >>>>>>>>>>>>>>>>>>>> 0003_grants_service_role.sql >>>>>>>>>>>>>>>>>>>>
 
 -- ============================================================================
@@ -287,7 +286,6 @@ alter default privileges in schema public
   grant select, insert, update, delete on tables to service_role;
 alter default privileges in schema public
   grant usage, select on sequences to service_role;
-
 
 -- >>>>>>>>>>>>>>>>>>>> 0004_seed_anju_credentials.sql >>>>>>>>>>>>>>>>>>>>
 
@@ -343,7 +341,6 @@ insert into public.client_credentials (client_id, platform, url, username, passw
   ('a0000000-0000-4000-8000-000000000c06','Vimeo','https://vimeo.com','contact@upskala.com','••••••••','Conta UpSkl · vídeo',38),
   ('a0000000-0000-4000-8000-000000000c06','ActiveCampaign','https://anjumaceapp.activehosted.com','anjumaceapp','••••••••','E-mail marketing',39);
 
-
 -- >>>>>>>>>>>>>>>>>>>> 0005_task_checklist.sql >>>>>>>>>>>>>>>>>>>>
 
 -- ============================================================================
@@ -356,7 +353,6 @@ insert into public.client_credentials (client_id, platform, url, username, passw
 
 alter table public.tasks
   add column if not exists checklist jsonb not null default '[]'::jsonb;
-
 
 -- >>>>>>>>>>>>>>>>>>>> 0006_profile_avatar.sql >>>>>>>>>>>>>>>>>>>>
 
@@ -405,7 +401,6 @@ create trigger profiles_guard_self_update
 drop policy if exists profiles_self_update on public.profiles;
 create policy profiles_self_update on public.profiles for update to authenticated
   using (auth.uid() = id) with check (auth.uid() = id);
-
 
 -- >>>>>>>>>>>>>>>>>>>> 0007_roles_three.sql >>>>>>>>>>>>>>>>>>>>
 
@@ -459,7 +454,6 @@ begin
   return new;
 end;
 $$;
-
 
 -- >>>>>>>>>>>>>>>>>>>> 0008_notifications.sql >>>>>>>>>>>>>>>>>>>>
 
@@ -525,7 +519,6 @@ begin
   end if;
 end $$;
 
-
 -- >>>>>>>>>>>>>>>>>>>> 0009_task_categories.sql >>>>>>>>>>>>>>>>>>>>
 
 -- ============================================================================
@@ -547,8 +540,6 @@ update public.tasks
 alter table public.tasks
   add constraint tasks_tag_check
   check (tag in ('Conteúdo','Design','Edição','Tráfego','Lançamento','Suporte'));
-
-
 
 -- >>>>>>>>>>>>>>>>>>>> 0010_role_permissions.sql >>>>>>>>>>>>>>>>>>>>
 
@@ -678,7 +669,6 @@ begin
   end if;
 end $$;
 
-
 -- >>>>>>>>>>>>>>>>>>>> 0011_editorial.sql >>>>>>>>>>>>>>>>>>>>
 
 -- ============================================================================
@@ -774,5 +764,94 @@ begin
       (anju,'2026-06-25','Reels | Falha Muscular | Corte 3','reels',array['instagram'],'para-edicao','em-producao',null,null,'{edicao}','{roteiro}','[]'::jsonb),
       (anju,'2026-06-26','Imagem | Motivação','imagem',array['instagram'],'para-designer','em-producao',null,null,'{imagens}','{copy}','[]'::jsonb),
       (anju,'2026-06-27','Reels | Falha Muscular | Corte 4','reels',array['instagram'],'para-edicao','em-producao',null,null,'{edicao}','{roteiro}','[]'::jsonb);
+  end if;
+end $$;
+
+-- >>>>>>>>>>>>>>>>>>>> 0012_comments.sql >>>>>>>>>>>>>>>>>>>>
+
+-- ============================================================================
+-- Central Anju — comentários / discussão (polimórfico)
+-- ----------------------------------------------------------------------------
+-- Uma só tabela serve tarefas e editorial (e o que vier): a referência é
+-- (entity_type, entity_id). Todos leem e comentam; cada um edita/apaga o
+-- próprio comentário; gestores (can manage_users) moderam qualquer um.
+-- Gatilhos limpam os comentários quando a tarefa/post é excluída.
+-- Rode inteiro no SQL Editor → Run. Idempotente.
+-- ============================================================================
+
+create table if not exists public.comments (
+  id          uuid primary key default gen_random_uuid(),
+  entity_type text not null check (entity_type in ('task','editorial')),
+  entity_id   uuid not null,
+  author_id   uuid not null references auth.users(id) on delete cascade,
+  author_name text not null,
+  body        text not null,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists comments_entity_idx
+  on public.comments (entity_type, entity_id, created_at);
+
+alter table public.comments enable row level security;
+
+-- Todos os autenticados leem.
+drop policy if exists comments_select on public.comments;
+create policy comments_select on public.comments for select to authenticated
+  using (true);
+
+-- Só cria como si mesmo (author_id = quem está logado).
+drop policy if exists comments_insert on public.comments;
+create policy comments_insert on public.comments for insert to authenticated
+  with check (author_id = auth.uid());
+
+-- Edita o próprio comentário.
+drop policy if exists comments_update_own on public.comments;
+create policy comments_update_own on public.comments for update to authenticated
+  using (author_id = auth.uid()) with check (author_id = auth.uid());
+
+-- Apaga o próprio; gestores (manage_users) moderam qualquer um.
+drop policy if exists comments_delete on public.comments;
+create policy comments_delete on public.comments for delete to authenticated
+  using (author_id = auth.uid() or public.can('manage_users'));
+
+grant select, insert, update, delete on public.comments to authenticated;
+grant select, insert, update, delete on public.comments to service_role;
+
+-- ----------------------------------------------------------------------------
+-- Limpeza: ao excluir a entidade, remove os comentários órfãos. (Referência
+-- polimórfica não tem FK, então cuidamos por gatilho.)
+-- ----------------------------------------------------------------------------
+create or replace function public.cleanup_comments()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.comments
+   where entity_type = tg_argv[0] and entity_id = old.id;
+  return old;
+end $$;
+
+drop trigger if exists cleanup_task_comments on public.tasks;
+create trigger cleanup_task_comments
+  after delete on public.tasks
+  for each row execute function public.cleanup_comments('task');
+
+drop trigger if exists cleanup_editorial_comments on public.editorial_posts;
+create trigger cleanup_editorial_comments
+  after delete on public.editorial_posts
+  for each row execute function public.cleanup_comments('editorial');
+
+-- Entrega ao vivo (idempotente).
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'comments'
+  ) then
+    alter publication supabase_realtime add table public.comments;
   end if;
 end $$;

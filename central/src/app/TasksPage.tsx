@@ -43,6 +43,7 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
+import { CommentThread } from './CommentThread'
 import {
   TASK_STATUS_ORDER,
   TASK_STATUS_META,
@@ -938,6 +939,17 @@ function TaskDrawer({
 
         {/* Subtarefas / checklist */}
         <ChecklistSection task={task} onChange={onChecklistChange} />
+
+        <Divider />
+
+        {/* Discussão */}
+        <CommentThread
+          entityType="task"
+          entityId={task.id}
+          notifyUserIds={task.assignees}
+          notifyLabel={task.title}
+          taskId={task.id}
+        />
 
         <Divider />
 
