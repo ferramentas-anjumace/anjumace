@@ -8,6 +8,7 @@ import {
   FolderOpen,
   KeyRound,
   ListChecks,
+  BarChart3,
   Plug,
   Settings2,
   LogOut,
@@ -45,6 +46,8 @@ interface NavLink {
   icon: React.ReactNode
   /** Capacidade exigida para ver o item (sem `need` = todos veem). */
   need?: Capability
+  /** Restringe o item a gestores (Administrador/Liderança). */
+  managerOnly?: boolean
 }
 
 const NAV: { group: string; items: NavLink[] }[] = [
@@ -55,6 +58,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
       { to: '/app/editorial', label: 'Editorial', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
       { to: '/app/tarefas', label: 'Tarefas', icon: <ListChecks size={18} strokeWidth={1.5} /> },
       { to: '/app/agenda', label: 'Agenda', icon: <CalendarDays size={18} strokeWidth={1.5} /> },
+      { to: '/app/relatorios', label: 'Relatórios', icon: <BarChart3 size={18} strokeWidth={1.5} />, managerOnly: true },
       { to: '/app/conteudo', label: 'Conteúdo', icon: <FolderOpen size={18} strokeWidth={1.5} /> },
       { to: '/app/acessos', label: 'Acessos', icon: <KeyRound size={18} strokeWidth={1.5} /> },
     ],
@@ -72,7 +76,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
 export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { user, signOut } = useSession()
+  const { user, signOut, isManager } = useSession()
   const { can } = usePermissions()
   const { members, setMemberAvatar } = useProfiles()
   const toast = useToast()
@@ -96,7 +100,7 @@ export function AppShell() {
 
   const nav = NAV.map((g) => ({
     ...g,
-    items: g.items.filter((i) => !i.need || can(i.need)),
+    items: g.items.filter((i) => (!i.need || can(i.need)) && (!i.managerOnly || isManager)),
   })).filter((g) => g.items.length > 0)
 
   const go = (to: string) => (e: React.MouseEvent) => {

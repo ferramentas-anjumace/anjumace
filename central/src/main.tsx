@@ -36,6 +36,7 @@ import { UsersPage } from './app/UsersPage'
 import { PermissionsPage } from './app/PermissionsPage'
 import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
+import { ReportsPage } from './app/ReportsPage'
 import { AccessPage } from './app/AccessPage'
 import { ContentPage } from './app/ContentPage'
 import { EditorialPage } from './app/EditorialPage'
@@ -57,6 +58,7 @@ const router = createBrowserRouter([
       { path: 'editorial', element: <EditorialPage /> },
       { path: 'tarefas', element: <TasksPage /> },
       { path: 'agenda', element: <AgendaPage /> },
+      { path: 'relatorios', element: <ReportsPage /> },
       { path: 'conteudo', element: <ContentPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
