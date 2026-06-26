@@ -415,16 +415,16 @@ export interface DailyTask {
   id: string
   label: string
   done: boolean
-  tag?: 'Cliente' | 'Suporte' | 'Conteúdo' | 'Interno'
+  tag?: TaskTag
   clientId?: string
 }
 
 /** Tarefas do dia do colaborador logado (mock). */
 export const MY_TASKS: DailyTask[] = [
-  { id: 't1', label: 'Revisar plano da Anju Mace', done: false, tag: 'Cliente', clientId: 'CLI-06' },
+  { id: 't1', label: 'Revisar plano da Anju Mace', done: false, tag: 'Conteúdo', clientId: 'CLI-06' },
   { id: 't2', label: 'Responder tickets pendentes do Suporte', done: false, tag: 'Suporte' },
-  { id: 't3', label: 'Validar novos acessos da plataforma', done: false, tag: 'Interno' },
-  { id: 't4', label: 'Preparar pauta do stand-up', done: true, tag: 'Interno' },
+  { id: 't3', label: 'Validar novos acessos da plataforma', done: false, tag: 'Suporte' },
+  { id: 't4', label: 'Preparar pauta do stand-up', done: true, tag: 'Suporte' },
   { id: 't5', label: 'Atualizar materiais da base de conhecimento', done: true, tag: 'Conteúdo' },
 ]
 
@@ -434,8 +434,8 @@ export const MY_TASKS: DailyTask[] = [
 export type TaskStatus = 'a-fazer' | 'em-andamento' | 'em-revisao' | 'concluida'
 /** Prioridade da tarefa. */
 export type TaskPriority = 'baixa' | 'media' | 'alta' | 'urgente'
-/** Categoria — mesma taxonomia das tarefas do dashboard. */
-export type TaskTag = 'Cliente' | 'Suporte' | 'Conteúdo' | 'Interno'
+/** Categoria — classifica a tarefa por área/tipo de trabalho. */
+export type TaskTag = 'Conteúdo' | 'Design' | 'Edição' | 'Tráfego' | 'Lançamento' | 'Suporte'
 
 export const TASK_STATUS_ORDER: TaskStatus[] = ['a-fazer', 'em-andamento', 'em-revisao', 'concluida']
 
@@ -461,11 +461,13 @@ export const TASK_PRIORITY_META: Record<
   baixa: { label: 'Baixa', tone: 'neutral' },
 }
 
-export const TASK_TAG_TONE: Record<TaskTag, 'steel' | 'warning' | 'success' | 'neutral'> = {
-  Cliente: 'steel',
-  Suporte: 'warning',
+export const TASK_TAG_TONE: Record<TaskTag, 'steel' | 'sand' | 'warning' | 'danger' | 'success' | 'neutral'> = {
   Conteúdo: 'success',
-  Interno: 'neutral',
+  Design: 'steel',
+  Edição: 'sand',
+  Tráfego: 'danger',
+  Lançamento: 'warning',
+  Suporte: 'neutral',
 }
 
 /** Entrada do histórico/log de uma tarefa. */
@@ -511,7 +513,7 @@ export interface Task {
 const TASKS_SEED: Task[] = [
   {
     id: 'tk-001', title: 'Revisar plano da Anju Mace', status: 'em-andamento', priority: 'alta',
-    assignees: ['USR-1047'], due: '2026-06-24', tag: 'Cliente', clientId: 'CLI-06',
+    assignees: ['USR-1047'], due: '2026-06-24', tag: 'Conteúdo', clientId: 'CLI-06',
     description: 'Revisar o planejamento de soft opening e ajustar entregáveis da semana.',
     createdAt: '2026-06-20T13:00:00.000Z',
     history: [
@@ -528,14 +530,14 @@ const TASKS_SEED: Task[] = [
   },
   {
     id: 'tk-003', title: 'Validar novos acessos da plataforma', status: 'a-fazer', priority: 'media',
-    assignees: ['USR-1047'], due: '2026-06-25', tag: 'Interno',
+    assignees: ['USR-1047'], due: '2026-06-25', tag: 'Suporte',
     description: 'Conferir credenciais cadastradas no cofre da Anju Mace e marcar os que exigem MFA.',
     createdAt: '2026-06-22T15:20:00.000Z',
     history: [{ id: 'h1', at: '2026-06-22T15:20:00.000Z', who: 'Eva Nunes', text: 'criou a tarefa' }],
   },
   {
     id: 'tk-004', title: 'Preparar pauta do stand-up', status: 'concluida', priority: 'baixa',
-    assignees: ['USR-1047'], due: '2026-06-23', tag: 'Interno',
+    assignees: ['USR-1047'], due: '2026-06-23', tag: 'Suporte',
     createdAt: '2026-06-22T18:00:00.000Z', completedAt: '2026-06-23T08:45:00.000Z',
     history: [
       { id: 'h1', at: '2026-06-22T18:00:00.000Z', who: 'Felipe Rocha', text: 'criou a tarefa' },
@@ -553,7 +555,7 @@ const TASKS_SEED: Task[] = [
   },
   {
     id: 'tk-006', title: 'Configurar automação de boas-vindas (n8n)', status: 'em-revisao', priority: 'alta',
-    assignees: ['USR-1042'], due: '2026-06-24', tag: 'Cliente', clientId: 'CLI-06',
+    assignees: ['USR-1042'], due: '2026-06-24', tag: 'Conteúdo', clientId: 'CLI-06',
     description: 'Fluxo de onboarding automático no n8n disparando e-mail + mensagem no WhatsApp.',
     createdAt: '2026-06-19T11:00:00.000Z',
     history: [
@@ -572,7 +574,7 @@ const TASKS_SEED: Task[] = [
   },
   {
     id: 'tk-008', title: 'Revisar permissões do time · Suporte', status: 'a-fazer', priority: 'baixa',
-    assignees: ['USR-1043'], due: '2026-06-30', tag: 'Interno',
+    assignees: ['USR-1043'], due: '2026-06-30', tag: 'Suporte',
     createdAt: '2026-06-22T16:00:00.000Z',
     history: [{ id: 'h1', at: '2026-06-22T16:00:00.000Z', who: 'Ana Lima', text: 'criou a tarefa' }],
   },

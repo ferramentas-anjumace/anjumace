@@ -57,7 +57,7 @@ import {
 
 /* ----------------------------------------------------------------- helpers */
 
-const TAGS: TaskTag[] = ['Cliente', 'Suporte', 'Conteúdo', 'Interno']
+const TAGS: TaskTag[] = ['Conteúdo', 'Design', 'Edição', 'Tráfego', 'Lançamento', 'Suporte']
 
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
 const fullDateTime = new Intl.DateTimeFormat('pt-BR', {
