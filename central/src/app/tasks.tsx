@@ -59,7 +59,8 @@ function mapRow(r: TaskRow): Task {
 interface TasksCtx {
   tasks: Task[]
   loading: boolean
-  addTask: (input: TaskInput) => Promise<void>
+  /** Cria a tarefa e devolve o id gerado (ou null em erro). */
+  addTask: (input: TaskInput) => Promise<string | null>
   editTask: (id: string, patch: TaskPatch) => Promise<void>
   moveTask: (id: string, status: TaskStatus) => Promise<void>
   removeTask: (id: string) => Promise<void>
@@ -119,9 +120,10 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
         })
         .select('id')
         .single()
-      if (error || !data) return
+      if (error || !data) return null
       await logEvent(data.id, 'criou a tarefa')
       await fetchTasks()
+      return data.id as string
     },
     [logEvent, fetchTasks],
   )

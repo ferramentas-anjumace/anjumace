@@ -311,6 +311,10 @@ export interface EditorialPost {
   ready: EditorialAsset[]
   /** Conteúdo card-a-card do criativo. */
   cards: EditorialCard[]
+  /** Responsável (id do membro) — gera/atualiza a tarefa vinculada. */
+  assignee?: string
+  /** Id da tarefa criada a partir do post (vínculo Editorial → Tarefas). */
+  taskId?: string
 }
 
 const c = (text: string): EditorialCard => ({ id: `c-${Math.random().toString(36).slice(2, 8)}`, text })

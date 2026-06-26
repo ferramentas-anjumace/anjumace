@@ -51,13 +51,13 @@ export function Modal({ open, onClose, title, description, footer, size = 'md', 
           aria-labelledby={title ? titleId : undefined}
           aria-describedby={description ? descId : undefined}
           className={cn(
-            'relative w-full overflow-hidden rounded-xl border border-strong bg-slate-900 shadow-e3 animate-slide-up',
+            'relative flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-strong bg-slate-900 shadow-e3 animate-slide-up',
             sizes[size],
             className,
           )}
         >
           {(title || description) && (
-            <div className="flex items-start justify-between gap-4 border-b border-line p-5">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line p-5">
               <div className="min-w-0">
                 {title && (
                   <h2 id={titleId} className="font-display text-h2 font-semibold text-strong">
@@ -76,10 +76,10 @@ export function Modal({ open, onClose, title, description, footer, size = 'md', 
             </div>
           )}
 
-          {children && <div className="p-5">{children}</div>}
+          {children && <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>}
 
           {footer && (
-            <div className="flex items-center justify-end gap-2 border-t border-line bg-ink/40 p-4">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-ink/40 p-4">
               {footer}
             </div>
           )}

@@ -19,6 +19,8 @@ import {
   Film,
   Scissors,
   Image as ImageIcon,
+  X,
+  UserCircle,
 } from 'lucide-react'
 import {
   Card,
@@ -29,7 +31,7 @@ import {
   Tabs,
   TabList,
   Tab,
-  Drawer,
+  Modal,
   Input,
   Textarea,
   Select,
@@ -52,6 +54,10 @@ import {
   type EditorialStage,
 } from './data'
 import { useEditorial } from './editorial'
+import { useTasks } from './tasks'
+import { useProfiles } from './profiles'
+import { useSession } from '@/lib/session'
+import { supabase } from '@/lib/supabase'
 
 /* ---- Datas (ISO local, sem dependências) ------------------------------- */
 
@@ -298,6 +304,35 @@ function ChipToggle<T extends string>({
   )
 }
 
+/** Chips de seleção única (radio) — usado em Enviar e Formato. */
+function ChipSelect<T extends string>({
+  options,
+  value,
+  onChange,
+  canManage,
+  readTone,
+}: {
+  options: { value: T; label: string }[]
+  value: T
+  onChange: (value: T) => void
+  canManage: boolean
+  readTone: React.ComponentProps<typeof Badge>['tone']
+}) {
+  if (!canManage) {
+    const opt = options.find((o) => o.value === value)
+    return <Badge tone={readTone} size="sm">{opt?.label ?? value}</Badge>
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <Tag key={o.value} selectable selected={value === o.value} onSelect={() => onChange(o.value)}>
+          {o.label}
+        </Tag>
+      ))}
+    </div>
+  )
+}
+
 /* ---- Drawer de detalhe / edição ---------------------------------------- */
 
 const FORMAT_OPTS = Object.entries(FORMAT_META).map(([value, m]) => ({ value: value as EditorialFormat, label: m.label }))
@@ -318,9 +353,49 @@ function PostDrawer({
   onClose: () => void
 }) {
   const { updatePost, removePost } = useEditorial()
+  const { addTask, editTask } = useTasks()
+  const { members } = useProfiles()
+  const { user } = useSession()
   const toast = useToast()
 
   const set = (patch: Partial<Omit<EditorialPost, 'id'>>) => updatePost(clientId, post.id, patch)
+
+  /* Junção Editorial → Tarefas: ao definir/trocar o responsável, cria a tarefa
+     vinculada (ou reatribui a existente) e notifica o novo responsável. */
+  const assignResponsible = async (memberId: string) => {
+    set({ assignee: memberId || undefined })
+    if (!memberId) return
+    const title = post.title || 'Sem título'
+    let taskId = post.taskId
+    if (taskId) {
+      await editTask(taskId, { title, assignees: [memberId], due: post.date || undefined })
+    } else {
+      const id = await addTask({
+        title,
+        assignees: [memberId],
+        due: post.date || undefined,
+        tag: 'Conteúdo',
+        clientId,
+        status: 'a-fazer',
+      })
+      if (!id) {
+        toast.error('Não foi possível criar a tarefa')
+        return
+      }
+      taskId = id
+      set({ taskId: id })
+    }
+    if (memberId !== user.userId) {
+      await supabase.from('notifications').insert({
+        user_id: memberId,
+        title: 'Nova tarefa do editorial',
+        body: `"${title}" foi atribuída a você.`,
+        task_id: taskId ?? null,
+      })
+    }
+    const who = members.find((m) => m.id === memberId)?.name
+    toast.success('Responsável definido', who ? `Tarefa enviada para ${who}` : undefined)
+  }
 
   const toggleIn = (key: 'channels' | 'pending' | 'ready', value: string) => {
     const list = post[key] as string[]
@@ -339,11 +414,16 @@ function PostDrawer({
   const approval = APPROVAL_META[post.approval]
 
   return (
-    <Drawer open onClose={onClose} width={560} title={undefined}>
-      {/* Cabeçalho: formato + título */}
-      <div className="mb-4 flex items-center gap-2">
-        <Badge tone={fmt.tone}>{fmt.label}</Badge>
-        <Badge tone={stage.tone}>{stage.label}</Badge>
+    <Modal open onClose={onClose} size="lg" className="max-w-3xl">
+      {/* Cabeçalho fixo: formato + fechar */}
+      <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-4 flex items-center justify-between gap-2 border-b border-line bg-slate-900 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <Badge tone={fmt.tone}>{fmt.label}</Badge>
+          <Badge tone={stage.tone}>{stage.label}</Badge>
+        </div>
+        <IconButton aria-label="Fechar" size="sm" onClick={onClose}>
+          <X size={18} strokeWidth={1.5} aria-hidden />
+        </IconButton>
       </div>
       {canManage ? (
         <input
@@ -358,6 +438,19 @@ function PostDrawer({
       )}
 
       <div className="divide-y divide-line">
+        <PropertyRow icon={<UserCircle size={16} strokeWidth={1.5} />} label="Responsável">
+          {canManage ? (
+            <Select value={post.assignee ?? ''} onChange={(e) => assignResponsible(e.target.value)}>
+              <option value="">— Selecionar —</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}{m.team ? ` · ${m.team}` : ''}</option>
+              ))}
+            </Select>
+          ) : (
+            <Badge tone="steel">{members.find((m) => m.id === post.assignee)?.name ?? '—'}</Badge>
+          )}
+        </PropertyRow>
+
         <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Aprovação Anju">
           {canManage ? (
             <Select value={post.approval} onChange={(e) => set({ approval: e.target.value as EditorialApproval })}>
@@ -392,27 +485,23 @@ function PostDrawer({
         </PropertyRow>
 
         <PropertyRow icon={<Send size={16} strokeWidth={1.5} />} label="Enviar">
-          {canManage ? (
-            <Select value={post.stage} onChange={(e) => set({ stage: e.target.value as EditorialStage })}>
-              {STAGE_OPTS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </Select>
-          ) : (
-            <Badge tone={stage.tone}>{stage.label}</Badge>
-          )}
+          <ChipSelect
+            options={STAGE_OPTS}
+            value={post.stage}
+            onChange={(v) => set({ stage: v })}
+            canManage={canManage}
+            readTone={stage.tone}
+          />
         </PropertyRow>
 
         <PropertyRow icon={<LayoutTemplate size={16} strokeWidth={1.5} />} label="Formato">
-          {canManage ? (
-            <Select value={post.format} onChange={(e) => set({ format: e.target.value as EditorialFormat })}>
-              {FORMAT_OPTS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </Select>
-          ) : (
-            <Badge tone={fmt.tone}>{fmt.label}</Badge>
-          )}
+          <ChipSelect
+            options={FORMAT_OPTS}
+            value={post.format}
+            onChange={(v) => set({ format: v })}
+            canManage={canManage}
+            readTone={fmt.tone}
+          />
         </PropertyRow>
 
         <PropertyRow icon={<Share2 size={16} strokeWidth={1.5} />} label="Mídia social">
@@ -533,7 +622,7 @@ function PostDrawer({
           </Button>
         </div>
       )}
-    </Drawer>
+    </Modal>
   )
 }
 
