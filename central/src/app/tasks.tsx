@@ -148,21 +148,55 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     async (id: string, status: TaskStatus) => {
       const current = tasks.find((t) => t.id === id)
       if (!current || current.status === status) return
-      const text =
-        status === 'concluida'
+
+      // Automação de revisão: ao enviar para "Em revisão", a responsabilidade
+      // passa para os revisores (admin/liderança) e cada um é notificado.
+      const toReview = status === 'em-revisao'
+      let reviewerIds: string[] = []
+      if (toReview) {
+        const { data: mgrs } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('role', ['admin', 'lideranca'])
+        reviewerIds = (mgrs ?? []).map((m) => m.id as string)
+      }
+
+      const update: Record<string, unknown> = {
+        status,
+        completed_at: status === 'concluida' ? new Date().toISOString() : null,
+      }
+      if (toReview) update.assignees = reviewerIds
+
+      const { error } = await supabase.from('tasks').update(update).eq('id', id)
+      if (error) return
+
+      const text = toReview
+        ? 'enviou para revisão'
+        : status === 'concluida'
           ? 'concluiu a tarefa'
           : current.status === 'concluida'
             ? `reabriu em ${TASK_STATUS_META[status].label}`
             : `moveu para ${TASK_STATUS_META[status].label}`
-      const { error } = await supabase
-        .from('tasks')
-        .update({ status, completed_at: status === 'concluida' ? new Date().toISOString() : null })
-        .eq('id', id)
-      if (error) return
       await logEvent(id, text)
+
+      // Notifica os revisores (menos quem mesmo moveu, se for gestor).
+      if (toReview) {
+        const targets = reviewerIds.filter((rid) => rid !== user.userId)
+        if (targets.length) {
+          await supabase.from('notifications').insert(
+            targets.map((rid) => ({
+              user_id: rid,
+              title: 'Tarefa em revisão',
+              body: `"${current.title}" foi enviada para revisão por ${user.name}.`,
+              task_id: id,
+            })),
+          )
+        }
+      }
+
       await fetchTasks()
     },
-    [tasks, logEvent, fetchTasks],
+    [tasks, logEvent, fetchTasks, user.userId, user.name],
   )
 
   const removeTask = useCallback(

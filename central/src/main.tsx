@@ -19,6 +19,7 @@ import { ToastProvider } from './components/ui'
 import { ThemeProvider } from './lib/theme'
 import { SessionProvider } from './lib/session'
 import { PresenceProvider } from './lib/presence'
+import { NotificationsProvider } from './lib/notifications'
 import { RequireAuth } from './lib/RequireAuth'
 import { LoginPage } from './pages/Login'
 import { ClientsProvider } from './app/clients'
@@ -68,6 +69,7 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <SessionProvider>
         <PresenceProvider>
+        <NotificationsProvider>
         <ClientsProvider>
           <EditorialProvider>
             <ContentProvider>
@@ -83,6 +85,7 @@ createRoot(document.getElementById('root')!).render(
             </ContentProvider>
           </EditorialProvider>
         </ClientsProvider>
+        </NotificationsProvider>
         </PresenceProvider>
       </SessionProvider>
     </ThemeProvider>

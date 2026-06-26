@@ -10,7 +10,6 @@ import {
   ListChecks,
   Plug,
   Settings2,
-  Bell,
   LogOut,
   UserCog,
   ChevronDown,
@@ -23,7 +22,6 @@ import {
   SearchField,
   ThemeToggle,
   BrandSwitcher,
-  IconButton,
   Avatar,
   Badge,
   DropdownMenu,
@@ -37,6 +35,7 @@ import {
 import { useSession } from '@/lib/session'
 import { useProfiles } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
+import { NotificationsBell } from './NotificationsBell'
 
 interface NavLink {
   to: string
@@ -135,10 +134,7 @@ export function AppShell() {
           <>
             <BrandSwitcher />
             <ThemeToggle />
-            <IconButton aria-label="Notificações" className="relative">
-              <Bell size={18} strokeWidth={1.5} />
-              <span className="absolute right-2 top-2 size-1.5 rounded-full bg-steel-400" aria-hidden />
-            </IconButton>
+            <NotificationsBell />
             <DropdownMenu
               align="end"
               trigger={

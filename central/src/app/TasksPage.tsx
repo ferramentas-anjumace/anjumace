@@ -132,13 +132,13 @@ function Assignees({ ids, size = 'sm' }: { ids: string[]; size?: 'sm' | 'xs' }) 
 
 function TaskCard({
   task,
-  canManage,
+  canDrag,
   onOpen,
   onToggle,
   onDragStart,
 }: {
   task: Task
-  canManage: boolean
+  canDrag: boolean
   onOpen: () => void
   onToggle: () => void
   onDragStart?: (e: React.DragEvent) => void
@@ -146,9 +146,9 @@ function TaskCard({
   const done = task.status === 'concluida'
   return (
     <div
-      draggable={canManage}
+      draggable={canDrag}
       onDragStart={onDragStart}
-      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canManage ? 'cursor-grab select-none active:cursor-grabbing' : ''}`}
+      className={`group flex flex-col gap-3.5 rounded-lg border border-line bg-slate-900 p-4 transition-colors hover:border-strong ${canDrag ? 'cursor-grab select-none active:cursor-grabbing' : ''}`}
     >
       <div className="flex items-start gap-3">
         <span className="pt-0.5">
@@ -284,6 +284,7 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
 function BoardView({
   groups,
   canManage,
+  canMove,
   onOpen,
   onToggle,
   onDropTask,
@@ -291,6 +292,7 @@ function BoardView({
 }: {
   groups: TaskGroup[]
   canManage: boolean
+  canMove: boolean
   onOpen: (t: Task) => void
   onToggle: (t: Task) => void
   onDropTask: (id: string, key: string) => void
@@ -302,10 +304,10 @@ function BoardView({
       {groups.map((g) => (
         <div
           key={g.key}
-          onDragOver={canManage ? (e) => { e.preventDefault(); setOver(g.key) } : undefined}
-          onDragLeave={canManage ? () => setOver((s) => (s === g.key ? null : s)) : undefined}
+          onDragOver={canMove ? (e) => { e.preventDefault(); setOver(g.key) } : undefined}
+          onDragLeave={canMove ? () => setOver((s) => (s === g.key ? null : s)) : undefined}
           onDrop={
-            canManage
+            canMove
               ? (e) => {
                   e.preventDefault()
                   const id = e.dataTransfer.getData('text/plain')
@@ -326,7 +328,7 @@ function BoardView({
             <TaskCard
               key={task.id}
               task={task}
-              canManage={canManage}
+              canDrag={canMove}
               onOpen={() => onOpen(task)}
               onToggle={() => onToggle(task)}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
@@ -971,6 +973,9 @@ export function TasksPage() {
   const { tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist } = useTasks()
   const { members } = useProfiles()
   const canManage = isManager
+  // Todos os membros podem MOVER tarefas pelo quadro (ex.: enviar para revisão).
+  // Criar/editar/excluir segue restrito aos gestores (canManage).
+  const canMove = true
 
   const [view, setView] = useState<'board' | 'list' | 'calendar'>('board')
   const [groupBy, setGroupBy] = useState<GroupBy>('status')
@@ -1004,8 +1009,13 @@ export function TasksPage() {
 
   /** Drag-and-drop no quadro: aplica o campo do grupo (status/prioridade/responsável). */
   const handleDropTask = (id: string, key: string) => {
-    if (groupBy === 'status') moveTask(id, key as TaskStatus)
-    else if (groupBy === 'priority') editTask(id, { priority: key as TaskPriority })
+    if (groupBy === 'status') {
+      moveTask(id, key as TaskStatus)
+      return
+    }
+    // Reagrupar por prioridade/responsável arrastando muda esses campos — só gestor.
+    if (!canManage) return
+    if (groupBy === 'priority') editTask(id, { priority: key as TaskPriority })
     else editTask(id, { assignees: key === NONE_KEY ? [] : [key] })
   }
 
@@ -1164,6 +1174,7 @@ export function TasksPage() {
         <BoardView
           groups={groups}
           canManage={canManage}
+          canMove={canMove}
           onOpen={(t) => setOpenTaskId(t.id)}
           onToggle={toggle}
           onDropTask={handleDropTask}
