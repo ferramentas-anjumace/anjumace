@@ -45,9 +45,9 @@ function rowToComment(r: CommentRow): Comment {
   }
 }
 
-/** Aviso opcional disparado ao comentar (ex.: notificar os responsáveis). */
-export interface CommentNotify {
-  /** Quem notificar (uuids). O próprio autor é sempre removido da lista. */
+/** Um grupo de destinatários com a mesma mensagem (ex.: mencionados, responsáveis). */
+export interface NotifyGroup {
+  /** Quem notificar (uuids). O autor é sempre removido. */
   userIds: string[]
   title: string
   body: string
@@ -65,7 +65,9 @@ interface CommentsCtx {
     entityType: CommentEntity,
     entityId: string,
     body: string,
-    notify?: CommentNotify,
+    /** Grupos de notificação em ordem de prioridade — quem aparece num grupo
+     *  anterior não é re-notificado por um posterior (ex.: menção > responsável). */
+    notify?: NotifyGroup[],
   ) => Promise<void>
   removeComment: (id: string) => Promise<void>
 }
@@ -120,7 +122,7 @@ export function CommentsProvider({ children }: { children: React.ReactNode }) {
   )
 
   const addComment = useCallback(
-    async (entityType: CommentEntity, entityId: string, body: string, notify?: CommentNotify) => {
+    async (entityType: CommentEntity, entityId: string, body: string, notify?: NotifyGroup[]) => {
       const text = body.trim()
       if (!text) return
       const { data, error } = await supabase
@@ -142,18 +144,19 @@ export function CommentsProvider({ children }: { children: React.ReactNode }) {
           : [...prev, rowToComment(data as CommentRow)],
       )
 
-      if (notify) {
-        const targets = [...new Set(notify.userIds)].filter((id) => id !== user.userId)
-        if (targets.length) {
-          await supabase.from('notifications').insert(
-            targets.map((uid) => ({
-              user_id: uid,
-              title: notify.title,
-              body: notify.body,
-              task_id: notify.taskId ?? null,
-            })),
-          )
+      if (notify?.length) {
+        // Um destinatário por pessoa: o primeiro grupo em que aparece vence
+        // (menção tem prioridade sobre "novo comentário"). Nunca notifica o autor.
+        const seen = new Set<string>([user.userId])
+        const rows: { user_id: string; title: string; body: string; task_id: string | null }[] = []
+        for (const g of notify) {
+          for (const uid of g.userIds) {
+            if (seen.has(uid)) continue
+            seen.add(uid)
+            rows.push({ user_id: uid, title: g.title, body: g.body, task_id: g.taskId ?? null })
+          }
         }
+        if (rows.length) await supabase.from('notifications').insert(rows)
       }
     },
     [user.userId, user.name],
