@@ -651,8 +651,8 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
 
   const openPost = openId ? posts.find((p) => p.id === openId) ?? null : null
 
-  const createOn = (iso: string) => {
-    const id = addPost(clientId, {
+  const createOn = async (iso: string) => {
+    const id = await addPost(clientId, {
       date: iso,
       title: '',
       format: 'carrossel',
@@ -663,7 +663,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
       ready: [],
       cards: [],
     })
-    setOpenId(id)
+    if (id) setOpenId(id)
   }
 
   return (
