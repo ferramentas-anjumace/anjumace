@@ -1,5 +1,5 @@
 -- ============================================================================
--- Central Anju — TODAS as migrations (0001→0013) concatenadas para o SQL Editor
+-- Central Anju — TODAS as migrations (0001→0014) concatenadas para o SQL Editor
 -- Gerado automaticamente por _build_apply_all.sh. NÃO edite à mão.
 -- Rode INTEIRO no Supabase → SQL Editor → New query → Run. Idempotente.
 -- ============================================================================
@@ -967,3 +967,18 @@ begin
     alter publication supabase_realtime add table public.attachments;
   end if;
 end $$;
+
+-- >>>>>>>>>>>>>>>>>>>> 0014_task_review_from.sql >>>>>>>>>>>>>>>>>>>>
+
+-- ============================================================================
+-- Central Anju — guarda o responsável original durante a revisão
+-- ----------------------------------------------------------------------------
+-- Ao enviar uma tarefa para "Em revisão", os responsáveis passam a ser os
+-- administradores (quem revisa). Para devolver a tarefa a quem executou ao
+-- sair da revisão (voltar para A fazer/Em andamento ou concluir), guardamos
+-- aqui os responsáveis de antes. Vazio fora da revisão.
+-- Rode inteiro no SQL Editor → Run. Idempotente.
+-- ============================================================================
+
+alter table public.tasks
+  add column if not exists review_from uuid[] not null default '{}';

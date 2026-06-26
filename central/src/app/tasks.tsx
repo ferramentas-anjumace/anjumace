@@ -31,6 +31,7 @@ interface TaskRow {
   tag: Task['tag'] | null
   client_id: string | null
   checklist: ChecklistItem[] | null
+  review_from: string[] | null
   created_at: string
   completed_at: string | null
   task_events: { id: string; at: string; who: string; text: string }[] | null
@@ -48,6 +49,7 @@ function mapRow(r: TaskRow): Task {
     tag: r.tag ?? undefined,
     clientId: r.client_id ?? undefined,
     checklist: r.checklist ?? [],
+    reviewFrom: r.review_from ?? [],
     createdAt: r.created_at,
     completedAt: r.completed_at ?? undefined,
     history: (r.task_events ?? [])
@@ -151,11 +153,14 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
       const current = tasks.find((t) => t.id === id)
       if (!current || current.status === status) return
 
-      // Automação de revisão: ao enviar para "Em revisão", o ADMINISTRADOR
-      // (quem revisa) é notificado — mas a responsabilidade (assignees)
-      // permanece com quem executou. Assim a tarefa volta/conclui no nome
-      // certo e o avanço por pessoa conta para o executor, não para o revisor.
+      // Automação de revisão: ao enviar para "Em revisão", a tarefa passa para
+      // os ADMINISTRADORES (quem revisa), guardando em review_from quem era o
+      // responsável. Ao SAIR da revisão (voltar ou concluir), devolvemos a
+      // tarefa a quem executou — assim ela volta no nome certo e o avanço por
+      // pessoa conta para o executor, não para o revisor.
       const toReview = status === 'em-revisao'
+      const leavingReview = current.status === 'em-revisao' && status !== 'em-revisao'
+
       let reviewerIds: string[] = []
       if (toReview) {
         const { data: admins } = await supabase
@@ -165,13 +170,20 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
         reviewerIds = (admins ?? []).map((m) => m.id as string)
       }
 
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          status,
-          completed_at: status === 'concluida' ? new Date().toISOString() : null,
-        })
-        .eq('id', id)
+      const update: Record<string, unknown> = {
+        status,
+        completed_at: status === 'concluida' ? new Date().toISOString() : null,
+      }
+      if (toReview) {
+        update.assignees = reviewerIds
+        update.review_from = current.assignees // lembra quem executava
+      } else if (leavingReview) {
+        // Restaura o responsável original (se houver) e limpa o registro.
+        if (current.reviewFrom && current.reviewFrom.length) update.assignees = current.reviewFrom
+        update.review_from = []
+      }
+
+      const { error } = await supabase.from('tasks').update(update).eq('id', id)
       if (error) return
 
       const text = toReview

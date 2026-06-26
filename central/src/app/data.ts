@@ -510,6 +510,8 @@ export interface Task {
   createdAt: string
   /** ISO timestamp de conclusão. */
   completedAt?: string
+  /** Responsáveis guardados ao entrar em revisão — restaurados ao sair dela. */
+  reviewFrom?: string[]
   history: TaskEvent[]
 }
 
