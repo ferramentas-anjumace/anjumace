@@ -54,8 +54,17 @@ export default async function handler(req: any, res: any) {
     })
     return
   }
-  if (profile.role !== 'admin' && profile.role !== 'lideranca') {
-    res.status(403).json({ error: `Seu papel no banco é "${profile.role}" — só Administrador ou Liderança criam usuários.` })
+  let allowed = profile.role === 'admin'
+  if (!allowed) {
+    const { data: perm } = await admin
+      .from('role_permissions')
+      .select('manage_users')
+      .eq('role', profile.role)
+      .single()
+    allowed = perm?.manage_users === true
+  }
+  if (!allowed) {
+    res.status(403).json({ error: `Seu papel ("${profile.role}") não tem permissão para gerir usuários.` })
     return
   }
 

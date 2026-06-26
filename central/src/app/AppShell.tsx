@@ -19,7 +19,6 @@ import {
   SidebarGroup,
   SidebarItem,
   Topbar,
-  SearchField,
   ThemeToggle,
   BrandSwitcher,
   Avatar,
@@ -33,19 +32,22 @@ import {
   useToast,
 } from '@/components/ui'
 import { useSession } from '@/lib/session'
+import { usePermissions, type Capability } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
 import { NotificationsBell } from './NotificationsBell'
+import { GlobalSearch } from './GlobalSearch'
+import { Logo } from '@/components/Logo'
 
 interface NavLink {
   to: string
   label: string
   icon: React.ReactNode
-  /** Item visível apenas para administradores. */
-  adminOnly?: boolean
+  /** Capacidade exigida para ver o item (sem `need` = todos veem). */
+  need?: Capability
 }
 
-const NAV: { group: string; items: NavLink[]; adminOnly?: boolean }[] = [
+const NAV: { group: string; items: NavLink[] }[] = [
   {
     group: 'Operação',
     items: [
@@ -59,11 +61,10 @@ const NAV: { group: string; items: NavLink[]; adminOnly?: boolean }[] = [
   },
   {
     group: 'Sistema',
-    adminOnly: true,
     items: [
-      { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} /> },
-      { to: '/app/integracoes', label: 'Integrações', icon: <Plug size={18} strokeWidth={1.5} /> },
-      { to: '/app/config', label: 'Configurações', icon: <Settings2 size={18} strokeWidth={1.5} /> },
+      { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} />, need: 'manage_users' },
+      { to: '/app/integracoes', label: 'Integrações', icon: <Plug size={18} strokeWidth={1.5} />, need: 'manage_resources' },
+      { to: '/app/config', label: 'Permissões', icon: <Settings2 size={18} strokeWidth={1.5} />, need: 'manage_users' },
     ],
   },
 ]
@@ -71,12 +72,11 @@ const NAV: { group: string; items: NavLink[]; adminOnly?: boolean }[] = [
 export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { isManager, user, signOut } = useSession()
+  const { user, signOut } = useSession()
+  const { can } = usePermissions()
   const { members, setMemberAvatar } = useProfiles()
   const toast = useToast()
-  const [search, setSearch] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
-  const isAdmin = isManager
 
   // Foto do próprio usuário vem da linha em profiles (casada pelo uuid do Auth).
   const myAvatar = members.find((m) => m.id === user.userId)?.avatar ?? undefined
@@ -94,10 +94,10 @@ export function AppShell() {
 
   const isActive = (to: string) => (to === '/app' ? pathname === '/app' : pathname.startsWith(to))
 
-  const nav = NAV.filter((g) => !g.adminOnly || isAdmin).map((g) => ({
+  const nav = NAV.map((g) => ({
     ...g,
-    items: g.items.filter((i) => !i.adminOnly || isAdmin),
-  }))
+    items: g.items.filter((i) => !i.need || can(i.need)),
+  })).filter((g) => g.items.length > 0)
 
   const go = (to: string) => (e: React.MouseEvent) => {
     e.preventDefault()
@@ -111,25 +111,13 @@ export function AppShell() {
         leading={
           <button
             onClick={go('/app')}
-            className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:shadow-focus"
+            className="flex items-center rounded-md focus-visible:outline-none focus-visible:shadow-focus"
+            aria-label="Anju Mace — início"
           >
-            <span className="grid size-7 place-items-center rounded-md bg-steel-500 font-display text-body-s font-bold text-accent-fg">
-              A
-            </span>
-            <span className="font-display text-h3 font-semibold tracking-tight text-strong">Anju Mace</span>
+            <Logo className="h-4 w-auto text-strong" />
           </button>
         }
-        center={
-          <div className="mx-auto w-full max-w-md">
-            <SearchField
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onClear={() => setSearch('')}
-              placeholder="Buscar usuários, registros, ações…"
-              aria-label="Buscar"
-            />
-          </div>
-        }
+        center={<GlobalSearch />}
         trailing={
           <>
             <BrandSwitcher />

@@ -20,7 +20,7 @@ import {
   EmptyState,
   useToast,
 } from '@/components/ui'
-import { useSession } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { useAgenda, type AgendaEvent, type AgendaCategory, type AgendaInput } from './agenda'
 import { useProfiles } from './profiles'
 
@@ -290,10 +290,10 @@ function AgendaFormModal({
 /* ============================================================== página ===== */
 export function AgendaPage() {
   const toast = useToast()
-  const { isManager } = useSession()
+  const { can } = usePermissions()
   const { events, loading, addEvent, updateEvent, removeEvent } = useAgenda()
   const { getMember } = useProfiles()
-  const canManage = isManager
+  const canManage = can('manage_resources')
 
   const [scope, setScope] = useState('todos')
   const [openEvent, setOpenEvent] = useState<AgendaEvent | null>(null)

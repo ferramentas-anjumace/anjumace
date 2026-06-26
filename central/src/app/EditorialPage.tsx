@@ -1,10 +1,11 @@
 import { EditorialCalendar } from './EditorialCalendar'
-import { useSession } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { ANJU_ID } from '@/lib/tenant'
 
 /** Editorial — calendário de criativos e fluxo de produção da Anju Mace. */
 export function EditorialPage() {
-  const { isManager } = useSession()
+  const { can } = usePermissions()
+  const isManager = can('manage_resources')
   return (
     <div className="mx-auto max-w-screen-2xl px-6 py-8">
       <div className="mb-6">

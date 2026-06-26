@@ -40,6 +40,7 @@ import {
   useToast,
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
 import {
@@ -969,13 +970,13 @@ function TaskDrawer({
 
 export function TasksPage() {
   const toast = useToast()
-  const { isManager, user } = useSession()
+  const { user } = useSession()
+  const { can } = usePermissions()
   const { tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist } = useTasks()
   const { members } = useProfiles()
-  const canManage = isManager
-  // Todos os membros podem MOVER tarefas pelo quadro (ex.: enviar para revisão).
-  // Criar/editar/excluir segue restrito aos gestores (canManage).
-  const canMove = true
+  // Permissões configuráveis (matriz por papel). canManage = criar/editar/excluir.
+  const canManage = can('create_task')
+  const canMove = can('move_task')
 
   const [view, setView] = useState<'board' | 'list' | 'calendar'>('board')
   const [groupBy, setGroupBy] = useState<GroupBy>('status')

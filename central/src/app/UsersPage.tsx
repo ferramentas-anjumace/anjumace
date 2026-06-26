@@ -27,6 +27,7 @@ import {
   useToast,
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
 
@@ -154,9 +155,10 @@ function CreateUserModal({
 /* ============================================================== página ===== */
 export function UsersPage() {
   const toast = useToast()
-  const { isManager, user } = useSession()
+  const { user } = useSession()
+  const { can } = usePermissions()
   const { members, loading, updateMember, setMemberAvatar, createUser, removeUser } = useProfiles()
-  const isAdmin = isManager
+  const isAdmin = can('manage_users')
 
   const [query, setQuery] = useState('')
   const [roleTab, setRoleTab] = useState<'todos' | MemberRole>('todos')

@@ -20,6 +20,7 @@ import { ThemeProvider } from './lib/theme'
 import { SessionProvider } from './lib/session'
 import { PresenceProvider } from './lib/presence'
 import { NotificationsProvider } from './lib/notifications'
+import { PermissionsProvider } from './lib/permissions'
 import { RequireAuth } from './lib/RequireAuth'
 import { LoginPage } from './pages/Login'
 import { ClientsProvider } from './app/clients'
@@ -32,6 +33,7 @@ import { StyleguidePage } from './pages/Styleguide'
 import { AppShell } from './app/AppShell'
 import { DashboardPage } from './app/DashboardPage'
 import { UsersPage } from './app/UsersPage'
+import { PermissionsPage } from './app/PermissionsPage'
 import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
 import { AccessPage } from './app/AccessPage'
@@ -59,7 +61,7 @@ const router = createBrowserRouter([
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
       { path: 'integracoes', element: <PlaceholderPage eyebrow="Sistema" title="Integrações" /> },
-      { path: 'config', element: <PlaceholderPage eyebrow="Sistema" title="Configurações" /> },
+      { path: 'config', element: <PermissionsPage /> },
     ],
   },
 ])
@@ -68,6 +70,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <SessionProvider>
+        <PermissionsProvider>
         <PresenceProvider>
         <NotificationsProvider>
         <ClientsProvider>
@@ -87,6 +90,7 @@ createRoot(document.getElementById('root')!).render(
         </ClientsProvider>
         </NotificationsProvider>
         </PresenceProvider>
+        </PermissionsProvider>
       </SessionProvider>
     </ThemeProvider>
   </StrictMode>,

@@ -81,6 +81,10 @@ const Context = createContext<SessionCtx | null>(null)
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
+  // Papel autoritativo lido da tabela profiles (fonte da verdade). O metadata
+  // serve só de fallback enquanto carrega — assim mudar o papel pela tela passa
+  // a valer sem depender de re-login.
+  const [dbRole, setDbRole] = useState<Role | null>(null)
 
   useEffect(() => {
     let active = true
@@ -99,6 +103,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const uid = session?.user?.id
+  useEffect(() => {
+    if (!uid) {
+      setDbRole(null)
+      return
+    }
+    let active = true
+    const load = () =>
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', uid)
+        .single()
+        .then(({ data }) => {
+          if (!active) return
+          const r = data?.role
+          setDbRole(r === 'admin' ? 'admin' : r === 'lideranca' ? 'lideranca' : r === 'time' ? 'time' : null)
+        })
+    load()
+    // Reavalia ao voltar o foco — pega mudanças de papel feitas por um gestor.
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      active = false
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [uid])
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error ? error.message : null }
@@ -108,11 +140,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }, [])
 
-  const { profile, role } = useMemo(() => profileFromSession(session), [session])
+  const { profile, role: metaRole } = useMemo(() => profileFromSession(session), [session])
+  const role: Role = dbRole ?? metaRole
+  const user = useMemo<Profile>(() => ({ ...profile, roleLabel: ROLE_LABEL[role] }), [profile, role])
 
   const value = useMemo<SessionCtx>(
-    () => ({ status, role, isManager: isManagerRole(role), user: profile, signIn, signOut }),
-    [status, role, profile, signIn, signOut],
+    () => ({ status, role, isManager: isManagerRole(role), user, signIn, signOut }),
+    [status, role, user, signIn, signOut],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>
