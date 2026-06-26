@@ -97,7 +97,7 @@ export const AvatarGroup = forwardRef<HTMLDivElement, AvatarGroupProps>(
       <div ref={ref} className={cn('flex items-center', className)} {...props}>
         <div className="flex -space-x-1.5">
           {visible.map((child, i) => (
-            <div key={i} className="rounded-full ring-2 ring-[var(--ink)]">
+            <div key={i} className="inline-flex rounded-full ring-2 ring-[var(--ink)]">
               {child}
             </div>
           ))}
