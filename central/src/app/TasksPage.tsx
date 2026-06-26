@@ -44,6 +44,7 @@ import { usePermissions } from '@/lib/permissions'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
 import { CommentThread } from './CommentThread'
+import { AttachmentList } from './AttachmentList'
 import {
   TASK_STATUS_ORDER,
   TASK_STATUS_META,
@@ -945,6 +946,11 @@ function TaskDrawer({
 
         {/* Subtarefas / checklist */}
         <ChecklistSection task={task} onChange={onChecklistChange} />
+
+        <Divider />
+
+        {/* Anexos */}
+        <AttachmentList entityType="task" entityId={task.id} />
 
         <Divider />
 
