@@ -49,7 +49,7 @@ function renderBody(body: string, names: string[]): React.ReactNode {
   while ((m = re.exec(body)) !== null) {
     if (m.index > last) out.push(body.slice(last, m.index))
     out.push(
-      <span key={`m-${i++}`} className="rounded bg-steel-tint px-0.5 font-medium text-steel-300">
+      <span key={`m-${i++}`} className="rounded bg-steel-500 px-1 font-medium text-accent-fg">
         {m[0]}
       </span>,
     )
