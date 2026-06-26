@@ -151,25 +151,27 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
       const current = tasks.find((t) => t.id === id)
       if (!current || current.status === status) return
 
-      // Automação de revisão: ao enviar para "Em revisão", a responsabilidade
-      // passa para os revisores (admin/liderança) e cada um é notificado.
+      // Automação de revisão: ao enviar para "Em revisão", o ADMINISTRADOR
+      // (quem revisa) é notificado — mas a responsabilidade (assignees)
+      // permanece com quem executou. Assim a tarefa volta/conclui no nome
+      // certo e o avanço por pessoa conta para o executor, não para o revisor.
       const toReview = status === 'em-revisao'
       let reviewerIds: string[] = []
       if (toReview) {
-        const { data: mgrs } = await supabase
+        const { data: admins } = await supabase
           .from('profiles')
           .select('id')
-          .in('role', ['admin', 'lideranca'])
-        reviewerIds = (mgrs ?? []).map((m) => m.id as string)
+          .eq('role', 'admin')
+        reviewerIds = (admins ?? []).map((m) => m.id as string)
       }
 
-      const update: Record<string, unknown> = {
-        status,
-        completed_at: status === 'concluida' ? new Date().toISOString() : null,
-      }
-      if (toReview) update.assignees = reviewerIds
-
-      const { error } = await supabase.from('tasks').update(update).eq('id', id)
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status,
+          completed_at: status === 'concluida' ? new Date().toISOString() : null,
+        })
+        .eq('id', id)
       if (error) return
 
       const text = toReview
@@ -181,7 +183,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
             : `moveu para ${TASK_STATUS_META[status].label}`
       await logEvent(id, text)
 
-      // Notifica os revisores (menos quem mesmo moveu, se for gestor).
+      // Notifica os administradores (menos quem mesmo moveu, se for admin).
       if (toReview) {
         const targets = reviewerIds.filter((rid) => rid !== user.userId)
         if (targets.length) {
