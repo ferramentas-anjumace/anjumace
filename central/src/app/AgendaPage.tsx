@@ -12,7 +12,6 @@ import {
   Tab,
   Input,
   Textarea,
-  Select,
   DatePicker,
   Checkbox,
   Divider,
@@ -46,13 +45,6 @@ const weekdayLabel = (iso: string) => {
   return w.charAt(0).toUpperCase() + w.slice(1)
 }
 
-const CATEGORY_LABEL: Record<AgendaCategory, string> = {
-  steel: 'Reunião',
-  sand: 'Cliente',
-  success: 'Time',
-  danger: 'Importante',
-}
-const CATEGORIES: AgendaCategory[] = ['steel', 'sand', 'success', 'danger']
 
 interface DayGroup {
   date: string
@@ -201,6 +193,57 @@ type Draft = {
 }
 const EMPTY: Draft = { date: '', time: '', title: '', category: 'steel', meta: '', location: '', meetingUrl: '', description: '', people: [] }
 
+/** Quebra "09:00 – 09:30" em [início, fim] no formato HH:MM (aceita - ou –). */
+function parseRange(v: string): [string, string] {
+  if (!v) return ['', '']
+  const norm = (t: string) => (/^\d{1,2}:\d{2}$/.test(t.trim()) ? t.trim().padStart(5, '0') : '')
+  const parts = v.split(/[–-]/)
+  return [norm(parts[0] ?? ''), norm(parts[1] ?? '')]
+}
+
+/** Campo de horário com seletor de relógio (dois <input type="time">). */
+function TimeRangeField({
+  value,
+  onChange,
+  label,
+  optional,
+}: {
+  value: string
+  onChange: (v: string) => void
+  label: string
+  optional?: boolean
+}) {
+  const [start, end] = parseRange(value)
+  const set = (s: string, e: string) => onChange(s && e ? `${s} – ${e}` : s || '')
+  const inputCls =
+    'h-10 w-full rounded-xs border border-strong bg-slate-900 px-2 text-body text-strong transition-[border-color,box-shadow] duration-fast ease-out hover:border-line focus-visible:outline-none focus-visible:shadow-focus'
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="flex items-center gap-1.5 text-body-s font-medium text-strong">
+        {label}
+        {optional && <span className="font-mono text-mono-label uppercase text-faint">opcional</span>}
+      </span>
+      <div className="flex items-center gap-2">
+        <input
+          type="time"
+          value={start}
+          onChange={(e) => set(e.target.value, end)}
+          className={inputCls}
+          aria-label="Horário de início"
+        />
+        <span className="shrink-0 text-faint">–</span>
+        <input
+          type="time"
+          value={end}
+          onChange={(e) => set(start, e.target.value)}
+          className={inputCls}
+          aria-label="Horário de término"
+        />
+      </div>
+    </div>
+  )
+}
+
 function AgendaFormModal({
   open,
   editing,
@@ -253,12 +296,9 @@ function AgendaFormModal({
     >
       <div className="flex flex-col gap-4">
         <Input label="Título" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Ex.: Stand-up do time" autoFocus />
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <DatePicker label="Data" value={draft.date ? isoToDate(draft.date) : null} onChange={(dt) => setDraft((d) => ({ ...d, date: dateToIso(dt) }))} />
-          <Input label="Horário" optional value={draft.time} onChange={(e) => setDraft((d) => ({ ...d, time: e.target.value }))} placeholder="09:00 – 09:15" />
-          <Select label="Tipo" value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value as AgendaCategory }))}>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
-          </Select>
+          <TimeRangeField label="Horário" optional value={draft.time} onChange={(time) => setDraft((d) => ({ ...d, time }))} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Local" optional value={draft.location} onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))} placeholder="Google Meet / Sala 1" />
