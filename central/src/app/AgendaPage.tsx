@@ -300,11 +300,7 @@ function AgendaFormModal({
           <DatePicker label="Data" value={draft.date ? isoToDate(draft.date) : null} onChange={(dt) => setDraft((d) => ({ ...d, date: dateToIso(dt) }))} />
           <TimeRangeField label="Horário" optional value={draft.time} onChange={(time) => setDraft((d) => ({ ...d, time }))} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Local" optional value={draft.location} onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))} placeholder="Google Meet / Sala 1" />
-          <Input label="Link da chamada" optional value={draft.meetingUrl} onChange={(e) => setDraft((d) => ({ ...d, meetingUrl: e.target.value }))} placeholder="https://meet.google.com/…" leadingIcon={<Video size={16} strokeWidth={1.5} />} />
-        </div>
-        <Input label="Subtítulo" optional value={draft.meta} onChange={(e) => setDraft((d) => ({ ...d, meta: e.target.value }))} placeholder="Ex.: Diário · sala virtual" />
+        <Input label="Link da chamada" optional value={draft.meetingUrl} onChange={(e) => setDraft((d) => ({ ...d, meetingUrl: e.target.value }))} placeholder="https://meet.google.com/…" leadingIcon={<Video size={16} strokeWidth={1.5} />} />
         <Textarea label="Descrição / pauta" optional rows={3} value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} />
         <div>
           <div className="mb-2 text-body-s font-medium text-strong">Participantes</div>
