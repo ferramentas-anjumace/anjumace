@@ -87,6 +87,8 @@ interface AgendaCtx {
   events: AgendaEvent[]
   loading: boolean
   addEvent: (input: AgendaInput) => Promise<{ error: string | null }>
+  /** Cria vários eventos de uma vez (ex.: recorrência semanal). */
+  addEvents: (inputs: AgendaInput[]) => Promise<{ error: string | null; count: number }>
   updateEvent: (id: string, input: AgendaInput) => Promise<{ error: string | null }>
   removeEvent: (id: string) => Promise<void>
 }
@@ -128,6 +130,17 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
     [fetchEvents],
   )
 
+  const addEvents = useCallback(
+    async (inputs: AgendaInput[]) => {
+      if (inputs.length === 0) return { error: null, count: 0 }
+      const { error } = await supabase.from('agenda_events').insert(inputs.map(toRow))
+      if (error) return { error: error.message, count: 0 }
+      await fetchEvents()
+      return { error: null, count: inputs.length }
+    },
+    [fetchEvents],
+  )
+
   const updateEvent = useCallback(
     async (id: string, input: AgendaInput) => {
       const { error } = await supabase.from('agenda_events').update(toRow(input)).eq('id', id)
@@ -147,8 +160,8 @@ export function AgendaProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value = useMemo<AgendaCtx>(
-    () => ({ events, loading, addEvent, updateEvent, removeEvent }),
-    [events, loading, addEvent, updateEvent, removeEvent],
+    () => ({ events, loading, addEvent, addEvents, updateEvent, removeEvent }),
+    [events, loading, addEvent, addEvents, updateEvent, removeEvent],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

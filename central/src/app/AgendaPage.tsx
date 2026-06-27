@@ -14,6 +14,7 @@ import {
   Textarea,
   DatePicker,
   Checkbox,
+  Switch,
   Divider,
   Modal,
   EmptyState,
@@ -45,6 +46,37 @@ const weekdayLabel = (iso: string) => {
   return w.charAt(0).toUpperCase() + w.slice(1)
 }
 
+
+/** Dias da semana (getDay: 0=Dom..6=Sáb), na ordem Seg→Dom. */
+const WEEKDAYS: { n: number; label: string }[] = [
+  { n: 1, label: 'Seg' },
+  { n: 2, label: 'Ter' },
+  { n: 3, label: 'Qua' },
+  { n: 4, label: 'Qui' },
+  { n: 5, label: 'Sex' },
+  { n: 6, label: 'Sáb' },
+  { n: 0, label: 'Dom' },
+]
+
+/** Soma dias a um ISO yyyy-mm-dd (sem fuso). */
+function addDaysIso(iso: string, days: number): string {
+  const d = isoToDate(iso)
+  return dateToIso(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days))
+}
+
+/** Gera as datas (ISO) de start até until (inclusive) que caem nos dias da
+ *  semana escolhidos. Limite de segurança de 400 dias. */
+function weeklyDates(startIso: string, untilIso: string, weekdays: number[]): string[] {
+  if (!startIso || !untilIso || weekdays.length === 0) return []
+  if (untilIso < startIso) return []
+  const out: string[] = []
+  let cur = startIso
+  for (let i = 0; i < 400 && cur <= untilIso; i++) {
+    if (weekdays.includes(isoToDate(cur).getDay())) out.push(cur)
+    cur = addDaysIso(cur, 1)
+  }
+  return out
+}
 
 interface DayGroup {
   date: string
@@ -190,8 +222,12 @@ type Draft = {
   meetingUrl: string
   description: string
   people: string[]
+  /** Recorrência semanal (só na criação). */
+  repeat: boolean
+  weekdays: number[]
+  repeatUntil: string
 }
-const EMPTY: Draft = { date: '', time: '', title: '', category: 'steel', meta: '', location: '', meetingUrl: '', description: '', people: [] }
+const EMPTY: Draft = { date: '', time: '', title: '', category: 'steel', meta: '', location: '', meetingUrl: '', description: '', people: [], repeat: false, weekdays: [], repeatUntil: '' }
 
 /** Quebra "09:00 – 09:30" em [início, fim] no formato HH:MM (aceita - ou –). */
 function parseRange(v: string): [string, string] {
@@ -272,10 +308,19 @@ function AgendaFormModal({
             meetingUrl: editing.meetingUrl ?? '',
             description: editing.description ?? '',
             people: [...editing.people],
+            repeat: false,
+            weekdays: [],
+            repeatUntil: '',
           }
         : EMPTY,
     )
   }, [open, editing])
+
+  const toggleWeekday = (n: number) =>
+    setDraft((d) => ({
+      ...d,
+      weekdays: d.weekdays.includes(n) ? d.weekdays.filter((x) => x !== n) : [...d.weekdays, n],
+    }))
 
   const togglePerson = (id: string) =>
     setDraft((d) => ({ ...d, people: d.people.includes(id) ? d.people.filter((x) => x !== id) : [...d.people, id] }))
@@ -297,9 +342,63 @@ function AgendaFormModal({
       <div className="flex flex-col gap-4">
         <Input label="Título" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Ex.: Stand-up do time" autoFocus />
         <div className="grid gap-4 sm:grid-cols-2">
-          <DatePicker label="Data" value={draft.date ? isoToDate(draft.date) : null} onChange={(dt) => setDraft((d) => ({ ...d, date: dateToIso(dt) }))} />
+          <DatePicker label={draft.repeat ? 'A partir de' : 'Data'} value={draft.date ? isoToDate(draft.date) : null} onChange={(dt) => setDraft((d) => ({ ...d, date: dateToIso(dt) }))} />
           <TimeRangeField label="Horário" optional value={draft.time} onChange={(time) => setDraft((d) => ({ ...d, time }))} />
         </div>
+
+        {!editing && (
+          <div className="flex flex-col gap-3 rounded-md border border-line bg-slate-900 p-3">
+            <Switch
+              label="Repetir semanalmente"
+              description="Cria o compromisso nos dias da semana escolhidos, no mesmo horário."
+              checked={draft.repeat}
+              onChange={(e) => {
+                const on = e.target.checked
+                setDraft((d) => ({
+                  ...d,
+                  repeat: on,
+                  weekdays: on && d.weekdays.length === 0 && d.date ? [isoToDate(d.date).getDay()] : d.weekdays,
+                  repeatUntil: on && !d.repeatUntil && d.date ? addDaysIso(d.date, 7 * 12) : d.repeatUntil,
+                }))
+              }}
+            />
+            {draft.repeat && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-body-s font-medium text-strong">Dias da semana</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEEKDAYS.map((w) => {
+                      const on = draft.weekdays.includes(w.n)
+                      return (
+                        <button
+                          key={w.n}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => toggleWeekday(w.n)}
+                          className={`rounded-md border px-3 py-1.5 text-body-s transition focus-visible:outline-none focus-visible:shadow-focus ${
+                            on ? 'border-steel-500 bg-steel-500/15 text-strong' : 'border-strong text-muted hover:border-line'
+                          }`}
+                        >
+                          {w.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <DatePicker
+                  label="Repetir até"
+                  value={draft.repeatUntil ? isoToDate(draft.repeatUntil) : null}
+                  onChange={(dt) => setDraft((d) => ({ ...d, repeatUntil: dateToIso(dt) }))}
+                />
+                {draft.date && draft.repeatUntil && draft.weekdays.length > 0 && (
+                  <p className="text-body-s text-muted">
+                    {weeklyDates(draft.date, draft.repeatUntil, draft.weekdays).length} ocorrência(s) serão criadas.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
         <Input label="Link da chamada" optional value={draft.meetingUrl} onChange={(e) => setDraft((d) => ({ ...d, meetingUrl: e.target.value }))} placeholder="https://meet.google.com/…" leadingIcon={<Video size={16} strokeWidth={1.5} />} />
         <Textarea label="Descrição / pauta" optional rows={3} value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} />
         <div>
@@ -327,7 +426,7 @@ function AgendaFormModal({
 export function AgendaPage() {
   const toast = useToast()
   const { can } = usePermissions()
-  const { events, loading, addEvent, updateEvent, removeEvent } = useAgenda()
+  const { events, loading, addEvent, addEvents, updateEvent, removeEvent } = useAgenda()
   const { getMember } = useProfiles()
   const canManage = can('manage_resources')
 
@@ -345,8 +444,7 @@ export function AgendaPage() {
   const submit = async (draft: Draft) => {
     if (!draft.title.trim()) { toast.error('Informe um título'); return }
     if (!draft.date) { toast.error('Informe a data'); return }
-    const payload: AgendaInput = {
-      date: draft.date,
+    const base = {
       time: draft.time.trim() || undefined,
       title: draft.title.trim(),
       meta: draft.meta.trim() || undefined,
@@ -356,6 +454,23 @@ export function AgendaPage() {
       description: draft.description.trim() || undefined,
       people: draft.people,
     }
+
+    // Recorrência semanal (apenas na criação): gera uma ocorrência por data.
+    if (draft.repeat && !editing) {
+      if (draft.weekdays.length === 0) { toast.error('Selecione ao menos um dia da semana'); return }
+      if (!draft.repeatUntil) { toast.error('Informe até quando repetir'); return }
+      const dates = weeklyDates(draft.date, draft.repeatUntil, draft.weekdays)
+      if (dates.length === 0) { toast.error('Nenhuma data no período', 'Revise os dias da semana e a data final.'); return }
+      const inputs: AgendaInput[] = dates.map((date) => ({ date, ...base }))
+      const { error, count } = await addEvents(inputs)
+      if (error) toast.error('Não foi possível salvar', error)
+      else toast.success('Reuniões semanais criadas', `${count} ocorrência(s) de "${base.title}"`)
+      setFormOpen(false)
+      setEditing(null)
+      return
+    }
+
+    const payload: AgendaInput = { date: draft.date, ...base }
     const { error } = editing ? await updateEvent(editing.id, payload) : await addEvent(payload)
     if (error) toast.error('Não foi possível salvar', error)
     else toast.success(editing ? 'Compromisso atualizado' : 'Compromisso criado', draft.title)
