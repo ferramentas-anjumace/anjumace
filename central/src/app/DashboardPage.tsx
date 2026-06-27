@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CalendarDays,
   CalendarRange,
-  FolderOpen,
   KeyRound,
   ListTodo,
 } from 'lucide-react'
@@ -32,7 +31,6 @@ import { TASK_TAG_TONE } from './data'
 
 const ECOSYSTEM: { to: string; label: string; hint: string; icon: React.ReactNode }[] = [
   { to: '/app/editorial', label: 'Editorial', hint: 'Calendário de criativos', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
-  { to: '/app/conteudo', label: 'Conteúdo', hint: 'Bancos e biblioteca', icon: <FolderOpen size={18} strokeWidth={1.5} /> },
   { to: '/app/acessos', label: 'Acessos', hint: 'Credenciais das plataformas', icon: <KeyRound size={18} strokeWidth={1.5} /> },
 ]
 

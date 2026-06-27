@@ -177,57 +177,6 @@ export function getResources(id?: string): ClientResources | undefined {
   return id ? CLIENT_RESOURCES[id] : undefined
 }
 
-/* ---- Conteúdo (biblioteca estilo galeria) ----------------------------- */
-
-/** Seção/agrupamento da biblioteca de conteúdo. */
-export type ContentSection = 'canais' | 'producao-av' | 'conteudo'
-
-/** Ícone exibido no card (mapeado para lucide-react no componente). */
-export type ContentIcon =
-  | 'calendar'
-  | 'document'
-  | 'users'
-  | 'list'
-  | 'book'
-  | 'expand'
-  | 'edit'
-  | 'link'
-
-export const CONTENT_SECTION_META: Record<ContentSection, { label: string }> = {
-  canais: { label: 'Canais' },
-  'producao-av': { label: 'Produção AV' },
-  conteudo: { label: 'Conteúdo' },
-}
-
-/** Ordem em que as seções aparecem na galeria. */
-export const CONTENT_SECTION_ORDER: ContentSection[] = ['canais', 'producao-av', 'conteudo']
-
-export interface ContentItem {
-  id: string
-  title: string
-  section: ContentSection
-  icon: ContentIcon
-  /** Link do material (abre em nova aba). Opcional. */
-  url?: string
-}
-
-const CONTENT_SEED: Record<string, ContentItem[]> = {
-  [ANJU_ID]: [
-    { id: 'ct1', title: 'Calendário Editorial', section: 'canais', icon: 'calendar' },
-    { id: 'ct2', title: 'Biografias', section: 'canais', icon: 'document' },
-    { id: 'ct3', title: 'AV Batch 1', section: 'producao-av', icon: 'users' },
-    { id: 'ct4', title: 'Shotlist', section: 'producao-av', icon: 'list' },
-    { id: 'ct5', title: 'Módulos & Subtópicos', section: 'conteudo', icon: 'book' },
-    { id: 'ct6', title: 'Adequação de Conteúdo', section: 'conteudo', icon: 'expand' },
-    { id: 'ct7', title: 'Conteúdos desafio', section: 'conteudo', icon: 'document' },
-    { id: 'ct8', title: 'Links de Copy', section: 'conteudo', icon: 'edit' },
-  ],
-}
-
-export function getContentSeed(clientId: string): ContentItem[] {
-  return CONTENT_SEED[clientId] ?? []
-}
-
 /* ---- Calendário editorial --------------------------------------------- */
 
 type Tone = 'neutral' | 'steel' | 'sand' | 'success' | 'danger' | 'warning'

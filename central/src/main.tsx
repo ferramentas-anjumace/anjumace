@@ -25,7 +25,6 @@ import { RequireAuth } from './lib/RequireAuth'
 import { LoginPage } from './pages/Login'
 import { ClientsProvider } from './app/clients'
 import { EditorialProvider } from './app/editorial'
-import { ContentProvider } from './app/content'
 import { TasksProvider } from './app/tasks'
 import { CommentsProvider } from './app/comments'
 import { AttachmentsProvider } from './app/attachments'
@@ -40,7 +39,6 @@ import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
 import { ReportsPage } from './app/ReportsPage'
 import { AccessPage } from './app/AccessPage'
-import { ContentPage } from './app/ContentPage'
 import { EditorialPage } from './app/EditorialPage'
 
 const router = createBrowserRouter([
@@ -60,7 +58,6 @@ const router = createBrowserRouter([
       { path: 'tarefas', element: <TasksPage /> },
       { path: 'agenda', element: <AgendaPage /> },
       { path: 'relatorios', element: <ReportsPage /> },
-      { path: 'conteudo', element: <ContentPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
       { path: 'config', element: <PermissionsPage /> },
@@ -77,21 +74,19 @@ createRoot(document.getElementById('root')!).render(
         <NotificationsProvider>
         <ClientsProvider>
           <EditorialProvider>
-            <ContentProvider>
-              <ProfilesProvider>
-                <TasksProvider>
-                  <CommentsProvider>
-                  <AttachmentsProvider>
-                  <AgendaProvider>
-                    <ToastProvider>
-                      <RouterProvider router={router} />
-                    </ToastProvider>
-                  </AgendaProvider>
-                  </AttachmentsProvider>
-                  </CommentsProvider>
-                </TasksProvider>
-              </ProfilesProvider>
-            </ContentProvider>
+            <ProfilesProvider>
+              <TasksProvider>
+                <CommentsProvider>
+                <AttachmentsProvider>
+                <AgendaProvider>
+                  <ToastProvider>
+                    <RouterProvider router={router} />
+                  </ToastProvider>
+                </AgendaProvider>
+                </AttachmentsProvider>
+                </CommentsProvider>
+              </TasksProvider>
+            </ProfilesProvider>
           </EditorialProvider>
         </ClientsProvider>
         </NotificationsProvider>
