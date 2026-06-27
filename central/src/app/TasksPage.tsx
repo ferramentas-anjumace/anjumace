@@ -42,6 +42,7 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
+import { useCatalogs, CatalogBadge } from './catalogs'
 import { CommentThread } from './CommentThread'
 import { AttachmentList } from './AttachmentList'
 import {
@@ -49,18 +50,14 @@ import {
   TASK_STATUS_META,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
-  TASK_TAG_TONE,
   taskExecutors,
   type ChecklistItem,
   type Task,
   type TaskStatus,
   type TaskPriority,
-  type TaskTag,
 } from './data'
 
 /* ----------------------------------------------------------------- helpers */
-
-const TAGS: TaskTag[] = ['Conteúdo', 'Design', 'Edição', 'Tráfego', 'Lançamento', 'Suporte']
 
 const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
 const fullDateTime = new Intl.DateTimeFormat('pt-BR', {
@@ -133,6 +130,17 @@ function Assignees({ ids, size = 'sm' }: { ids: string[]; size?: 'sm' | 'xs' }) 
 
 /* ----------------------------------------------------------------- task card */
 
+/** Badge de categoria — lê rótulo/cor do catálogo `task_category` (fallback: valor cru). */
+function CategoryBadge({ tag, className }: { tag?: string; className?: string }) {
+  const { tone, label } = useCatalogs()
+  if (!tag) return null
+  return (
+    <CatalogBadge size="sm" tone={tone('task_category', tag)} className={className}>
+      {label('task_category', tag)}
+    </CatalogBadge>
+  )
+}
+
 function TaskCard({
   task,
   canDrag,
@@ -172,11 +180,7 @@ function TaskCard({
             {task.title}
           </span>
         </span>
-        {task.tag && (
-          <Badge size="sm" tone={TASK_TAG_TONE[task.tag]} className="shrink-0">
-            {task.tag}
-          </Badge>
-        )}
+        <CategoryBadge tag={task.tag} className="shrink-0" />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 pl-[30px]">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
@@ -417,7 +421,7 @@ function ListView({
                             <SubtaskChip task={task} />
                             <DueChip task={task} />
                             <PriorityChip priority={task.priority} />
-                            {task.tag && <Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge>}
+                            <CategoryBadge tag={task.tag} />
                           </div>
                           <Assignees ids={task.assignees} />
                           {canManage && (
@@ -621,7 +625,7 @@ type Draft = {
   priority: TaskPriority
   assignees: string[]
   due: string
-  tag: '' | TaskTag
+  tag: string
 }
 
 const EMPTY: Draft = {
@@ -641,6 +645,8 @@ function TaskFormModal({
   onSubmit: (draft: Draft) => void
 }) {
   const { members } = useProfiles()
+  const { items: catalogItems } = useCatalogs()
+  const categories = catalogItems('task_category')
   const [draft, setDraft] = useState<Draft>(EMPTY)
 
   // Sincroniza o rascunho quando abre (cria ou edita).
@@ -725,12 +731,16 @@ function TaskFormModal({
           <Select
             label="Categoria"
             value={draft.tag}
-            onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value as Draft['tag'] }))}
+            onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value }))}
           >
             <option value="">Sem categoria</option>
-            {TAGS.map((t) => (
-              <option key={t} value={t}>{t}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.value}>{c.label}</option>
             ))}
+            {/* Mantém a categoria atual visível mesmo se foi desativada/removida do catálogo. */}
+            {draft.tag && !categories.some((c) => c.value === draft.tag) && (
+              <option value={draft.tag}>{draft.tag}</option>
+            )}
           </Select>
         </div>
         <div>
@@ -962,7 +972,7 @@ function TaskDetailModal({
             {task.tag && (
               <div>
                 <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Categoria</dt>
-                <dd><Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge></dd>
+                <dd><CategoryBadge tag={task.tag} /></dd>
               </div>
             )}
           </dl>
@@ -1024,6 +1034,8 @@ export function TasksPage() {
   const { can } = usePermissions()
   const { tasks, loading, addTask, editTask, moveTask, removeTask, setChecklist } = useTasks()
   const { members } = useProfiles()
+  const { items: catalogItems } = useCatalogs()
+  const categories = catalogItems('task_category')
   // Permissões configuráveis (matriz por papel). canManage = criar/editar/excluir.
   const canManage = can('create_task')
   const canMove = can('move_task')
@@ -1185,8 +1197,8 @@ export function TasksPage() {
           <div className="w-40">
             <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrar por categoria">
               <option value="all">Todas as categorias</option>
-              {TAGS.map((t) => (
-                <option key={t} value={t}>{t}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.value}>{c.label}</option>
               ))}
             </Select>
           </div>

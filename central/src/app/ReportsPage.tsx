@@ -21,17 +21,16 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
 import { useEditorial } from './editorial'
 import { useProfiles } from './profiles'
+import { useCatalogs, isExtraTone, EXTRA_TONE_HEX } from './catalogs'
 import { ANJU_ID } from '@/lib/tenant'
 import {
   TASK_STATUS_ORDER,
   TASK_STATUS_META,
-  TASK_TAG_TONE,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   STAGE_META,
   APPROVAL_META,
   taskExecutors,
-  type TaskTag,
   type TaskStatus,
   type EditorialStage,
   type EditorialApproval,
@@ -76,16 +75,17 @@ function daysAgo(iso: string | undefined): number {
   return Math.floor((Date.now() - then) / DAY_MS)
 }
 
-/** Barra horizontal de distribuição (rótulo · barra · valor). */
-function DistBar({ label, value, total, tone }: { label: string; value: number; total: number; tone: Tone }) {
+/** Barra horizontal de distribuição (rótulo · barra · valor). `color` (hex)
+ *  sobrepõe o tom do DS — usado por cores de catálogo fora da paleta. */
+function DistBar({ label, value, total, tone, color }: { label: string; value: number; total: number; tone: Tone; color?: string }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
   return (
     <div className="flex items-center gap-3">
       <span className="w-36 shrink-0 truncate text-body-s text-fg">{label}</span>
       <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink-deep/60">
         <span
-          className={cn('absolute inset-y-0 left-0 rounded-full transition-[width]', TONE_BG[tone])}
-          style={{ width: `${pct}%` }}
+          className={cn('absolute inset-y-0 left-0 rounded-full transition-[width]', !color && TONE_BG[tone])}
+          style={{ width: `${pct}%`, ...(color ? { backgroundColor: color } : {}) }}
           aria-hidden
         />
       </div>
@@ -101,7 +101,7 @@ function DistCard({
   empty,
 }: {
   title: string
-  rows: { label: string; value: number; tone: Tone }[]
+  rows: { label: string; value: number; tone: Tone; color?: string }[]
   empty: string
 }) {
   const total = rows.reduce((s, r) => s + r.value, 0)
@@ -115,7 +115,7 @@ function DistCard({
       ) : (
         <div className="flex flex-col gap-3">
           {rows.map((r) => (
-            <DistBar key={r.label} label={r.label} value={r.value} total={total} tone={r.tone} />
+            <DistBar key={r.label} label={r.label} value={r.value} total={total} tone={r.tone} color={r.color} />
           ))}
         </div>
       )}
@@ -130,6 +130,8 @@ export function ReportsPage() {
   const { tasks } = useTasks()
   const { getPosts } = useEditorial()
   const { members } = useProfiles()
+  const { items: catalogItems, tone: catTone } = useCatalogs()
+  const categories = catalogItems('task_category')
   const [period, setPeriod] = useState<number>(30)
 
   const posts = getPosts(ANJU_ID)
@@ -150,10 +152,19 @@ export function ReportsPage() {
       key: s as TaskStatus,
     }))
 
-    // Tarefas por categoria.
-    const tags = Object.keys(TASK_TAG_TONE) as TaskTag[]
-    const byTag = tags
-      .map((tag) => ({ label: tag, value: tasks.filter((t) => t.tag === tag).length, tone: TASK_TAG_TONE[tag] as Tone }))
+    // Tarefas por categoria (catálogo task_category). Cores extras (fora do DS)
+    // entram como cor explícita na barra.
+    const byTag = categories
+      .map((c) => {
+        const t = catTone('task_category', c.value)
+        const extra = isExtraTone(t)
+        return {
+          label: c.label,
+          value: tasks.filter((tk) => tk.tag === c.value).length,
+          tone: (extra ? 'neutral' : t) as Tone,
+          color: extra ? EXTRA_TONE_HEX[t].bg : undefined,
+        }
+      })
       .filter((r) => r.value > 0)
 
     // Tarefas abertas por prioridade.
@@ -218,7 +229,7 @@ export function ReportsPage() {
       buckets,
       throughputMax,
     }
-  }, [tasks, posts, members, period])
+  }, [tasks, posts, members, period, categories, catTone])
 
   // Restrito a gestores — colaboradores voltam para a visão geral.
   if (!isManager) return <Navigate to="/app" replace />

@@ -30,11 +30,13 @@ import { CommentsProvider } from './app/comments'
 import { AttachmentsProvider } from './app/attachments'
 import { ProfilesProvider } from './app/profiles'
 import { AgendaProvider } from './app/agenda'
+import { CatalogsProvider } from './app/catalogs'
 import { StyleguidePage } from './pages/Styleguide'
 import { AppShell } from './app/AppShell'
 import { DashboardPage } from './app/DashboardPage'
 import { UsersPage } from './app/UsersPage'
 import { PermissionsPage } from './app/PermissionsPage'
+import { CatalogsPage } from './app/CatalogsPage'
 import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
 import { ReportsPage } from './app/ReportsPage'
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: 'relatorios', element: <ReportsPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
+      { path: 'catalogos', element: <CatalogsPage /> },
       { path: 'config', element: <PermissionsPage /> },
     ],
   },
@@ -73,6 +76,7 @@ createRoot(document.getElementById('root')!).render(
         <PresenceProvider>
         <NotificationsProvider>
         <ClientsProvider>
+          <CatalogsProvider>
           <EditorialProvider>
             <ProfilesProvider>
               <TasksProvider>
@@ -88,6 +92,7 @@ createRoot(document.getElementById('root')!).render(
               </TasksProvider>
             </ProfilesProvider>
           </EditorialProvider>
+          </CatalogsProvider>
         </ClientsProvider>
         </NotificationsProvider>
         </PresenceProvider>

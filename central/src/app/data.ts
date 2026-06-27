@@ -208,9 +208,9 @@ export const CHANNEL_META: Record<EditorialChannel, { label: string; tone: Tone 
 }
 
 export const STAGE_META: Record<EditorialStage, { label: string; tone: Tone }> = {
-  'para-designer': { label: 'Para designer', tone: 'steel' },
-  'para-edicao': { label: 'Para edição de vídeo', tone: 'warning' },
-  'para-anju': { label: 'Para Anju', tone: 'danger' },
+  'para-designer': { label: 'Design', tone: 'steel' },
+  'para-edicao': { label: 'Edição de vídeo', tone: 'warning' },
+  'para-anju': { label: 'Anju', tone: 'danger' },
   concluido: { label: 'Concluído', tone: 'success' },
 }
 
@@ -248,6 +248,8 @@ export interface EditorialPost {
   stage: EditorialStage
   /** "Aprovação Anju". */
   approval: EditorialApproval
+  /** Descrição / conteúdo da demanda (briefing, roteiro, instruções). */
+  description?: string
   /** "Comentário Anju". */
   comment?: string
   /** "Link do upload". */
@@ -368,7 +370,7 @@ export interface DailyTask {
   id: string
   label: string
   done: boolean
-  tag?: TaskTag
+  tag?: string
   clientId?: string
 }
 
@@ -388,7 +390,6 @@ export type TaskStatus = 'a-fazer' | 'em-andamento' | 'em-revisao' | 'concluida'
 /** Prioridade da tarefa. */
 export type TaskPriority = 'baixa' | 'media' | 'alta' | 'urgente'
 /** Categoria — classifica a tarefa por área/tipo de trabalho. */
-export type TaskTag = 'Conteúdo' | 'Design' | 'Edição' | 'Tráfego' | 'Lançamento' | 'Suporte'
 
 export const TASK_STATUS_ORDER: TaskStatus[] = ['a-fazer', 'em-andamento', 'em-revisao', 'concluida']
 
@@ -412,15 +413,6 @@ export const TASK_PRIORITY_META: Record<
   alta: { label: 'Alta', tone: 'warning' },
   media: { label: 'Média', tone: 'steel' },
   baixa: { label: 'Baixa', tone: 'neutral' },
-}
-
-export const TASK_TAG_TONE: Record<TaskTag, 'steel' | 'sand' | 'warning' | 'danger' | 'success' | 'neutral'> = {
-  Conteúdo: 'success',
-  Design: 'steel',
-  Edição: 'sand',
-  Tráfego: 'danger',
-  Lançamento: 'warning',
-  Suporte: 'neutral',
 }
 
 /** Entrada do histórico/log de uma tarefa. */
@@ -451,7 +443,8 @@ export interface Task {
   assignees: string[]
   /** Prazo em ISO (yyyy-mm-dd). */
   due?: string
-  tag?: TaskTag
+  /** Categoria — valor livre, gerido pelo catálogo `task_category`. */
+  tag?: string
   clientId?: string
   /** Subtarefas / checklist. */
   checklist?: ChecklistItem[]

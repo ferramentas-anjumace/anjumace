@@ -11,7 +11,6 @@ import {
   LayoutTemplate,
   Share2,
   Link2,
-  Megaphone,
   ListTodo,
   ListChecks,
   MessageSquare,
@@ -37,7 +36,6 @@ import {
   Select,
   DatePicker,
   EmptyState,
-  Divider,
   useToast,
 } from '@/components/ui'
 import {
@@ -106,7 +104,7 @@ const FORMAT_ICON: Record<EditorialFormat, React.ReactNode> = {
  *  rótulos completos (ex.: "Para edição de vídeo" estoura). No drawer/lista os
  *  labels completos de STAGE_META continuam em uso. */
 const STAGE_SHORT: Record<EditorialStage, string> = {
-  'para-designer': 'Designer',
+  'para-designer': 'Design',
   'para-edicao': 'Edição',
   'para-anju': 'Anju',
   concluido: 'Concluído',
@@ -311,16 +309,19 @@ function ChipSelect<T extends string>({
   onChange,
   canManage,
   readTone,
+  readLabel,
 }: {
   options: { value: T; label: string }[]
   value: T
   onChange: (value: T) => void
   canManage: boolean
   readTone: React.ComponentProps<typeof Badge>['tone']
+  /** Rótulo de leitura quando o valor não está mais nas opções (ex.: legado). */
+  readLabel?: string
 }) {
   if (!canManage) {
     const opt = options.find((o) => o.value === value)
-    return <Badge tone={readTone} size="sm">{opt?.label ?? value}</Badge>
+    return <Badge tone={readTone} size="sm">{opt?.label ?? readLabel ?? value}</Badge>
   }
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -333,11 +334,55 @@ function ChipSelect<T extends string>({
   )
 }
 
+/** Seleção única em BADGES COLORIDOS (cada opção na sua cor). Selecionado fica
+ *  destacado; os demais ficam esmaecidos. Usado no Status. */
+function ToneChipSelect<T extends string>({
+  options,
+  value,
+  onChange,
+  canManage,
+}: {
+  options: { value: T; label: string; tone: React.ComponentProps<typeof Badge>['tone'] }[]
+  value: T
+  onChange: (value: T) => void
+  canManage: boolean
+}) {
+  const current = options.find((o) => o.value === value)
+  if (!canManage) {
+    return <Badge tone={current?.tone} size="sm">{current?.label ?? value}</Badge>
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => {
+        const selected = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(o.value)}
+            className={`rounded-full transition focus-visible:outline-none focus-visible:shadow-focus ${
+              selected ? 'ring-1 ring-strong ring-offset-1 ring-offset-slate-900' : 'opacity-40 hover:opacity-80'
+            }`}
+          >
+            <Badge tone={o.tone} size="sm">{o.label}</Badge>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ---- Drawer de detalhe / edição ---------------------------------------- */
 
 const FORMAT_OPTS = Object.entries(FORMAT_META).map(([value, m]) => ({ value: value as EditorialFormat, label: m.label }))
-const STAGE_OPTS = Object.entries(STAGE_META).map(([value, m]) => ({ value: value as EditorialStage, label: m.label }))
-const APPROVAL_OPTS = Object.entries(APPROVAL_META).map(([value, m]) => ({ value: value as EditorialApproval, label: m.label }))
+// "Tipo" oferece só Design / Edição de vídeo / Anju (concluído saiu do fluxo —
+// a conclusão é refletida no Status). Posts antigos com 'concluido' seguem
+// renderizando via STAGE_META/readLabel.
+const STAGE_OPTS = Object.entries(STAGE_META)
+  .filter(([value]) => value !== 'concluido')
+  .map(([value, m]) => ({ value: value as EditorialStage, label: m.label }))
+const APPROVAL_OPTS = Object.entries(APPROVAL_META).map(([value, m]) => ({ value: value as EditorialApproval, label: m.label, tone: m.tone }))
 const CHANNEL_OPTS = Object.entries(CHANNEL_META).map(([value, m]) => ({ value: value as EditorialChannel, label: m.label }))
 const ASSET_OPTS = Object.entries(ASSET_META).map(([value, m]) => ({ value: value as EditorialAsset, label: m.label }))
 
@@ -403,20 +448,13 @@ function PostDrawer({
     set({ [key]: next } as Partial<EditorialPost>)
   }
 
-  const setCardText = (id: string, text: string) =>
-    set({ cards: post.cards.map((c) => (c.id === id ? { ...c, text } : c)) })
-  const addCard = () =>
-    set({ cards: [...post.cards, { id: `c-${Date.now().toString(36)}`, text: '' }] })
-  const removeCard = (id: string) => set({ cards: post.cards.filter((c) => c.id !== id) })
-
   const fmt = FORMAT_META[post.format]
   const stage = STAGE_META[post.stage]
-  const approval = APPROVAL_META[post.approval]
 
   return (
     <Modal open onClose={onClose} size="lg" className="max-w-3xl">
       {/* Cabeçalho fixo: formato + fechar */}
-      <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-4 flex items-center justify-between gap-2 border-b border-line bg-slate-900 px-5 py-3">
+      <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-12 flex items-center justify-between gap-2 border-b border-line bg-slate-900 px-5 py-3.5">
         <div className="flex items-center gap-2">
           <Badge tone={fmt.tone}>{fmt.label}</Badge>
           <Badge tone={stage.tone}>{stage.label}</Badge>
@@ -437,6 +475,23 @@ function PostDrawer({
         <h2 className="mb-4 font-display text-h2 font-semibold text-strong">{post.title || 'Sem título'}</h2>
       )}
 
+      {/* Descrição — conteúdo da demanda (briefing, roteiro, instruções) */}
+      <div className="mb-5">
+        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Descrição</div>
+        {canManage ? (
+          <Textarea
+            rows={5}
+            value={post.description ?? ''}
+            onChange={(e) => set({ description: e.target.value })}
+            placeholder="Conteúdo da demanda — briefing, roteiro, instruções..."
+          />
+        ) : (
+          <p className="whitespace-pre-wrap text-body-s leading-relaxed text-fg">
+            {post.description || 'Sem descrição.'}
+          </p>
+        )}
+      </div>
+
       <div className="divide-y divide-line">
         <PropertyRow icon={<UserCircle size={16} strokeWidth={1.5} />} label="Responsável">
           {canManage ? (
@@ -451,19 +506,16 @@ function PostDrawer({
           )}
         </PropertyRow>
 
-        <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Aprovação Anju">
-          {canManage ? (
-            <Select value={post.approval} onChange={(e) => set({ approval: e.target.value as EditorialApproval })}>
-              {APPROVAL_OPTS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </Select>
-          ) : (
-            <Badge tone={approval.tone}>{approval.label}</Badge>
-          )}
+        <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Status">
+          <ToneChipSelect
+            options={APPROVAL_OPTS}
+            value={post.approval}
+            onChange={(v) => set({ approval: v })}
+            canManage={canManage}
+          />
         </PropertyRow>
 
-        <PropertyRow icon={<MessageSquare size={16} strokeWidth={1.5} />} label="Comentário Anju">
+        <PropertyRow icon={<MessageSquare size={16} strokeWidth={1.5} />} label="Comentários">
           {canManage ? (
             <Textarea
               rows={2}
@@ -484,13 +536,14 @@ function PostDrawer({
           )}
         </PropertyRow>
 
-        <PropertyRow icon={<Send size={16} strokeWidth={1.5} />} label="Enviar">
+        <PropertyRow icon={<Send size={16} strokeWidth={1.5} />} label="Tipo">
           <ChipSelect
             options={STAGE_OPTS}
             value={post.stage}
             onChange={(v) => set({ stage: v })}
             canManage={canManage}
             readTone={stage.tone}
+            readLabel={stage.label}
           />
         </PropertyRow>
 
@@ -537,14 +590,6 @@ function PostDrawer({
           )}
         </PropertyRow>
 
-        <PropertyRow icon={<Megaphone size={16} strokeWidth={1.5} />} label="CTA">
-          {canManage ? (
-            <Input value={post.cta ?? ''} onChange={(e) => set({ cta: e.target.value })} placeholder="Chamada para ação" />
-          ) : (
-            <p className="text-body-s text-fg">{post.cta || <span className="text-faint">—</span>}</p>
-          )}
-        </PropertyRow>
-
         <PropertyRow icon={<ListTodo size={16} strokeWidth={1.5} />} label="Falta o quê?">
           <ChipToggle
             options={ASSET_OPTS}
@@ -566,47 +611,8 @@ function PostDrawer({
         </PropertyRow>
       </div>
 
-      {/* Conteúdo card-a-card */}
-      <Divider className="my-5" />
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-display text-h3 font-semibold text-strong">Conteúdo</h3>
-        <span className="font-mono text-mono-data text-faint">{post.cards.length} cards</span>
-      </div>
-
-      {post.cards.length === 0 && !canManage && (
-        <p className="text-body-s text-faint">Nenhum card de conteúdo.</p>
-      )}
-
-      <div className="flex flex-col gap-3">
-        {post.cards.map((card, i) => (
-          <div key={card.id} className="rounded-lg border border-line bg-slate-900 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-mono-label uppercase tracking-wider text-steel-300">Card {i + 1}</span>
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={() => removeCard(card.id)}
-                  aria-label={`Remover card ${i + 1}`}
-                  className="grid size-6 place-items-center rounded-sm text-faint transition-colors hover:bg-slate-700 hover:text-err focus-visible:outline-none focus-visible:shadow-focus"
-                >
-                  <Trash2 size={14} strokeWidth={1.5} aria-hidden />
-                </button>
-              )}
-            </div>
-            {canManage ? (
-              <Textarea rows={3} value={card.text} onChange={(e) => setCardText(card.id, e.target.value)} placeholder="Texto do card" />
-            ) : (
-              <p className="whitespace-pre-wrap text-body-s leading-relaxed text-fg">{card.text}</p>
-            )}
-          </div>
-        ))}
-      </div>
-
       {canManage && (
-        <div className="mt-4 flex items-center justify-between">
-          <Button variant="ghost" size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={addCard}>
-            Adicionar card
-          </Button>
+        <div className="mt-6 flex justify-end border-t border-line pt-4">
           <Button
             variant="ghost"
             size="sm"

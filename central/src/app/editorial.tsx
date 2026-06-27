@@ -32,6 +32,7 @@ interface PostRow {
   stage: EditorialStage
   approval: EditorialApproval
   comment: string | null
+  description: string | null
   upload_url: string | null
   cta: string | null
   pending: EditorialPost['pending'] | null
@@ -51,6 +52,7 @@ function rowToPost(r: PostRow): EditorialPost {
     stage: r.stage,
     approval: r.approval,
     comment: r.comment ?? undefined,
+    description: r.description ?? undefined,
     uploadUrl: r.upload_url ?? undefined,
     cta: r.cta ?? undefined,
     pending: r.pending ?? [],
@@ -73,6 +75,7 @@ function patchToRow(patch: PostPatch): Record<string, unknown> {
   if (patch.stage !== undefined) row.stage = patch.stage
   if (patch.approval !== undefined) row.approval = patch.approval
   if (patch.comment !== undefined) row.comment = patch.comment ?? null
+  if (patch.description !== undefined) row.description = patch.description ?? null
   if (patch.uploadUrl !== undefined) row.upload_url = patch.uploadUrl ?? null
   if (patch.cta !== undefined) row.cta = patch.cta ?? null
   if (patch.pending !== undefined) row.pending = patch.pending

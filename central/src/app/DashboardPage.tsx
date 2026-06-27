@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
   StatCard,
-  Badge,
   Avatar,
   AvatarGroup,
   AgendaRow,
@@ -24,8 +23,8 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
+import { useCatalogs, CatalogBadge } from './catalogs'
 import { usePresence } from '@/lib/presence'
-import { TASK_TAG_TONE } from './data'
 
 /* -------------------------------------------------- ecossistema (atalhos) */
 
@@ -311,6 +310,7 @@ function CollaboratorDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
   const { tasks: allTasks, moveTask } = useTasks()
+  const { tone: catTone, label: catLabel } = useCatalogs()
   const firstName = user.name.split(' ')[0]
   const { greeting, dateLabel } = greetingFor()
 
@@ -383,9 +383,9 @@ function CollaboratorDashboard() {
                         />
                         <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5">
                           {t.tag && (
-                            <Badge size="sm" tone={TASK_TAG_TONE[t.tag]}>
-                              {t.tag}
-                            </Badge>
+                            <CatalogBadge size="sm" tone={catTone('task_category', t.tag)}>
+                              {catLabel('task_category', t.tag)}
+                            </CatalogBadge>
                           )}
                         </div>
                       </div>
