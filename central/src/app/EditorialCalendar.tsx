@@ -398,7 +398,7 @@ function PostDrawer({
   onClose: () => void
 }) {
   const { updatePost, removePost } = useEditorial()
-  const { addTask, editTask } = useTasks()
+  const { addTask, editTask, removeTask } = useTasks()
   const { members } = useProfiles()
   const { user } = useSession()
   const toast = useToast()
@@ -413,13 +413,18 @@ function PostDrawer({
     const title = post.title || 'Sem título'
     let taskId = post.taskId
     if (taskId) {
-      await editTask(taskId, { title, assignees: [memberId], due: post.date || undefined })
-    } else {
-      const id = await addTask({
+      await editTask(taskId, {
         title,
         assignees: [memberId],
         due: post.date || undefined,
-        tag: 'Conteúdo',
+        description: post.description ?? undefined,
+      })
+    } else {
+      const id = await addTask({
+        title,
+        description: post.description ?? undefined,
+        assignees: [memberId],
+        due: post.date || undefined,
         clientId,
         status: 'a-fazer',
       })
@@ -483,6 +488,10 @@ function PostDrawer({
             rows={5}
             value={post.description ?? ''}
             onChange={(e) => set({ description: e.target.value })}
+            onBlur={(e) => {
+              // Espelha a descrição na tarefa vinculada (se houver).
+              if (post.taskId) editTask(post.taskId, { description: e.target.value || undefined })
+            }}
             placeholder="Conteúdo da demanda — briefing, roteiro, instruções..."
           />
         ) : (
@@ -617,8 +626,10 @@ function PostDrawer({
             variant="ghost"
             size="sm"
             leftIcon={<Trash2 size={16} strokeWidth={1.5} />}
-            onClick={() => {
-              removePost(clientId, post.id)
+            onClick={async () => {
+              // Remove também a tarefa vinculada (se houver) — elas andam juntas.
+              if (post.taskId) await removeTask(post.taskId)
+              await removePost(clientId, post.id)
               toast.success('Postagem removida', post.title || 'Sem título')
               onClose()
             }}
