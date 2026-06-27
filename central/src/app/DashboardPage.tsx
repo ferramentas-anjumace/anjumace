@@ -17,7 +17,6 @@ import {
   AvatarGroup,
   AgendaRow,
   ProgressBar,
-  Checkbox,
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
@@ -309,7 +308,7 @@ function AdminDashboard() {
 function CollaboratorDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
-  const { tasks: allTasks, moveTask } = useTasks()
+  const { tasks: allTasks } = useTasks()
   const { tone: catTone, label: catLabel } = useCatalogs()
   const firstName = user.name.split(' ')[0]
   const { greeting, dateLabel } = greetingFor()
@@ -320,8 +319,6 @@ function CollaboratorDashboard() {
     .sort((a, b) => Number(a.status === 'concluida') - Number(b.status === 'concluida'))
   const doneCount = tasks.filter((t) => t.status === 'concluida').length
   const pending = tasks.length - doneCount
-  const toggle = (id: string, status: string) =>
-    moveTask(id, status === 'concluida' ? 'a-fazer' : 'concluida')
 
   const { events } = useAgenda()
   const todayAgenda = events.filter((e) => e.date === todayIso() && e.people.includes(user.id))
@@ -371,24 +368,24 @@ function CollaboratorDashboard() {
                   return (
                     <li
                       key={t.id}
-                      className={i < tasks.length - 1 ? 'border-b border-subtle py-3 first:pt-0' : 'py-3 first:pt-0'}
+                      className={i < tasks.length - 1 ? 'border-b border-subtle first:pt-0' : 'first:pt-0'}
                     >
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={done}
-                          onChange={() => toggle(t.id, t.status)}
-                          label={
-                            <span className={done ? 'text-faint line-through' : 'text-strong'}>{t.title}</span>
-                          }
-                        />
-                        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5">
-                          {t.tag && (
-                            <CatalogBadge size="sm" tone={catTone('task_category', t.tag)}>
-                              {catLabel('task_category', t.tag)}
-                            </CatalogBadge>
-                          )}
-                        </div>
-                      </div>
+                      {/* Atalho: abre a tarefa de fato em Tarefas (sem concluir aqui). */}
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/tarefas?task=${t.id}`)}
+                        className="group flex w-full items-center gap-3 rounded-sm py-3 text-left transition-colors focus-visible:outline-none focus-visible:shadow-focus"
+                      >
+                        <span className={`min-w-0 flex-1 truncate text-body-s ${done ? 'text-faint line-through' : 'text-strong'}`}>
+                          {t.title}
+                        </span>
+                        {t.tag && (
+                          <CatalogBadge size="sm" tone={catTone('task_category', t.tag)}>
+                            {catLabel('task_category', t.tag)}
+                          </CatalogBadge>
+                        )}
+                        <ArrowRight size={14} strokeWidth={1.5} className="shrink-0 text-faint transition-colors group-hover:text-steel-300" aria-hidden />
+                      </button>
                     </li>
                   )
                 })}

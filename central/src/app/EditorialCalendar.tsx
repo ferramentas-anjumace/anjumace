@@ -110,14 +110,28 @@ const STAGE_SHORT: Record<EditorialStage, string> = {
   concluido: 'Concluído',
 }
 
-function PostChip({ post, onOpen }: { post: EditorialPost; onOpen: () => void }) {
+function PostChip({
+  post,
+  onOpen,
+  draggable,
+  onDragStart,
+}: {
+  post: EditorialPost
+  onOpen: () => void
+  draggable?: boolean
+  onDragStart?: (e: React.DragEvent) => void
+}) {
   const stage = STAGE_META[post.stage]
   const fmt = FORMAT_META[post.format]
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group/chip flex w-full flex-col gap-1.5 overflow-hidden rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus"
+      draggable={draggable}
+      onDragStart={onDragStart}
+      className={`group/chip flex w-full flex-col gap-1.5 overflow-hidden rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus ${
+        draggable ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
     >
       <span className="flex items-start gap-1.5">
         <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{FORMAT_ICON[post.format]}</span>
@@ -139,14 +153,17 @@ function MonthGrid({
   canManage,
   onOpen,
   onAdd,
+  onMove,
 }: {
   view: Date
   byDay: Map<string, EditorialPost[]>
   canManage: boolean
   onOpen: (id: string) => void
   onAdd: (iso: string) => void
+  onMove: (id: string, iso: string) => void
 }) {
   const days = buildGrid(view)
+  const [dragOver, setDragOver] = useState<string | null>(null)
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[760px]">
@@ -164,9 +181,21 @@ function MonthGrid({
             return (
               <div
                 key={iso}
-                className={`group/cell min-h-[8.5rem] border-b border-r border-line p-1.5 ${
+                onDragOver={canManage ? (e) => { e.preventDefault(); setDragOver(iso) } : undefined}
+                onDragLeave={canManage ? () => setDragOver((cur) => (cur === iso ? null : cur)) : undefined}
+                onDrop={
+                  canManage
+                    ? (e) => {
+                        e.preventDefault()
+                        setDragOver(null)
+                        const id = e.dataTransfer.getData('text/plain')
+                        if (id) onMove(id, iso)
+                      }
+                    : undefined
+                }
+                className={`group/cell min-h-[8.5rem] border-b border-r border-line p-1.5 transition-colors ${
                   inMonth ? '' : 'bg-ink/40'
-                }`}
+                } ${dragOver === iso ? 'bg-steel-tint ring-1 ring-inset ring-steel-500/40' : ''}`}
               >
                 <div className="mb-1.5 flex items-center justify-between px-0.5">
                   <span
@@ -193,7 +222,16 @@ function MonthGrid({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {posts.map((p) => (
-                    <PostChip key={p.id} post={p} onOpen={() => onOpen(p.id)} />
+                    <PostChip
+                      key={p.id}
+                      post={p}
+                      onOpen={() => onOpen(p.id)}
+                      draggable={canManage}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', p.id)
+                        e.dataTransfer.effectAllowed = 'move'
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -361,8 +399,8 @@ function ToneChipSelect<T extends string>({
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(o.value)}
-            className={`rounded-full transition focus-visible:outline-none focus-visible:shadow-focus ${
-              selected ? 'ring-1 ring-strong ring-offset-1 ring-offset-slate-900' : 'opacity-40 hover:opacity-80'
+            className={`rounded-md transition focus-visible:outline-none focus-visible:shadow-focus ${
+              selected ? '' : 'opacity-35 hover:opacity-75'
             }`}
           >
             <Badge tone={o.tone} size="sm">{o.label}</Badge>
@@ -646,8 +684,18 @@ function PostDrawer({
 /* ---- Componente principal ---------------------------------------------- */
 
 export function EditorialCalendar({ clientId, canManage }: { clientId: string; canManage: boolean }) {
-  const { getPosts, addPost } = useEditorial()
+  const { getPosts, addPost, updatePost } = useEditorial()
+  const { editTask } = useTasks()
   const posts = getPosts(clientId)
+
+  /* Arrastar um card para outra data: muda a data de publicação do post e, se
+     houver tarefa vinculada, atualiza o prazo dela junto. */
+  const movePost = async (id: string, iso: string) => {
+    const post = posts.find((p) => p.id === id)
+    if (!post || post.date === iso) return
+    await updatePost(clientId, id, { date: iso })
+    if (post.taskId) await editTask(post.taskId, { due: iso })
+  }
 
   const [tab, setTab] = useState<'calendario' | 'lista'>('calendario')
   const [view, setView] = useState<Date>(() => {
@@ -730,7 +778,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
         </div>
 
         {tab === 'calendario' ? (
-          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={createOn} />
+          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={createOn} onMove={movePost} />
         ) : (
           <PostList posts={posts} onOpen={setOpenId} />
         )}

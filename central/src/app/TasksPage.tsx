@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus,
   LayoutGrid,
@@ -43,6 +44,8 @@ import { usePermissions } from '@/lib/permissions'
 import { useTasks, type TaskInput } from './tasks'
 import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge } from './catalogs'
+import { useEditorial } from './editorial'
+import { ANJU_ID } from '@/lib/tenant'
 import { CommentThread } from './CommentThread'
 import { AttachmentList } from './AttachmentList'
 import {
@@ -50,11 +53,13 @@ import {
   TASK_STATUS_META,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
+  APPROVAL_META,
   taskExecutors,
   type ChecklistItem,
   type Task,
   type TaskStatus,
   type TaskPriority,
+  type EditorialApproval,
 } from './data'
 
 /* ----------------------------------------------------------------- helpers */
@@ -560,13 +565,9 @@ function CalendarView({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => v
 
 /* ------------------------------------------------------------ admin summary */
 
-function AdminSummary({ tasks }: { tasks: Task[] }) {
+/** Card "Avanço por pessoa" — visível para todos (gestores e time). */
+function PeopleProgress({ tasks }: { tasks: Task[] }) {
   const { members } = useProfiles()
-  const total = tasks.length
-  const inProgress = tasks.filter((t) => t.status === 'em-andamento' || t.status === 'em-revisao').length
-  const done = tasks.filter((t) => t.status === 'concluida').length
-  const t = todayIso()
-  const overdue = tasks.filter((x) => x.due && x.due < t && x.status !== 'concluida').length
 
   // Progresso por pessoa (apenas quem tem tarefa atribuída). Em revisão, a
   // tarefa conta para quem executou — não para o administrador que revisa.
@@ -580,6 +581,37 @@ function AdminSummary({ tasks }: { tasks: Task[] }) {
     .sort((a, b) => b.total - a.total)
 
   return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Avanço por pessoa</CardTitle>
+      </CardHeader>
+      <div className="flex flex-col gap-3">
+        {perPerson.length === 0 && <p className="text-body-s text-faint">Nenhuma tarefa atribuída.</p>}
+        {perPerson.map((p) => (
+          <div key={p.user.id} className="flex items-center gap-3">
+            <Avatar size="sm" name={p.user.name} src={p.user.avatar ?? undefined} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-body-s font-medium text-strong">{p.user.name}</span>
+                <span className="shrink-0 font-mono text-[11px] text-faint tabular-nums">{p.done}/{p.total}</span>
+              </div>
+              <ProgressBar value={p.total ? (p.done / p.total) * 100 : 0} tone="success" className="mt-1" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function AdminSummary({ tasks }: { tasks: Task[] }) {
+  const total = tasks.length
+  const inProgress = tasks.filter((t) => t.status === 'em-andamento' || t.status === 'em-revisao').length
+  const done = tasks.filter((t) => t.status === 'concluida').length
+  const t = todayIso()
+  const overdue = tasks.filter((x) => x.due && x.due < t && x.status !== 'concluida').length
+
+  return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="grid grid-cols-2 gap-4 lg:col-span-2 lg:grid-cols-4">
         <StatCard label="Total" value={String(total)} />
@@ -591,27 +623,7 @@ function AdminSummary({ tasks }: { tasks: Task[] }) {
           delta={overdue > 0 ? { value: 'atenção', direction: 'down' } : undefined}
         />
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Avanço por pessoa</CardTitle>
-          <Badge tone="steel" dot>admin</Badge>
-        </CardHeader>
-        <div className="flex flex-col gap-3">
-          {perPerson.length === 0 && <p className="text-body-s text-faint">Nenhuma tarefa atribuída.</p>}
-          {perPerson.map((p) => (
-            <div key={p.user.id} className="flex items-center gap-3">
-              <Avatar size="sm" name={p.user.name} src={p.user.avatar ?? undefined} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-body-s font-medium text-strong">{p.user.name}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-faint tabular-nums">{p.done}/{p.total}</span>
-                </div>
-                <ProgressBar value={p.total ? (p.done / p.total) * 100 : 0} tone="success" className="mt-1" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <PeopleProgress tasks={tasks} />
     </div>
   )
 }
@@ -843,6 +855,7 @@ function TaskDetailModal({
   task,
   canManage,
   allowComplete,
+  editorialApproval,
   onClose,
   onMove,
   onEdit,
@@ -854,6 +867,8 @@ function TaskDetailModal({
   /** Se a origem permite concluir pelo popup (lista/calendário — onde não há
    *  arrastar). No quadro fica false: concluir é só arrastando. */
   allowComplete: boolean
+  /** Status do Editorial, quando a tarefa veio de uma postagem vinculada. */
+  editorialApproval?: EditorialApproval
   onClose: () => void
   onMove: (status: TaskStatus) => void
   onEdit: () => void
@@ -959,6 +974,14 @@ function TaskDetailModal({
             )}
           </div>
 
+          {/* Status do Editorial (somente leitura) — quando a tarefa veio de uma postagem. */}
+          {editorialApproval && (
+            <div>
+              <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status no Editorial</div>
+              <Badge tone={APPROVAL_META[editorialApproval].tone}>{APPROVAL_META[editorialApproval].label}</Badge>
+            </div>
+          )}
+
           {/* Metadados */}
           <dl className="grid grid-cols-2 gap-4">
             <div>
@@ -1036,6 +1059,13 @@ export function TasksPage() {
   const { members } = useProfiles()
   const { items: catalogItems } = useCatalogs()
   const categories = catalogItems('task_category')
+  // Mapa tarefa→status do editorial (para postagens vinculadas).
+  const { getPosts } = useEditorial()
+  const approvalByTask = useMemo(() => {
+    const map: Record<string, EditorialApproval> = {}
+    for (const p of getPosts(ANJU_ID)) if (p.taskId) map[p.taskId] = p.approval
+    return map
+  }, [getPosts])
   // Permissões configuráveis (matriz por papel). canManage = criar/editar/excluir.
   const canManage = can('create_task')
   const canMove = can('move_task')
@@ -1050,6 +1080,16 @@ export function TasksPage() {
   const [editing, setEditing] = useState<Task | null>(null)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) ?? null : null
+
+  // Deep-link: /app/tarefas?task=<id> abre a tarefa direto (atalho do dashboard).
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    const id = searchParams.get('task')
+    if (!id) return
+    setOpenTaskId(id)
+    searchParams.delete('task')
+    setSearchParams(searchParams, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -1144,7 +1184,8 @@ export function TasksPage() {
       </div>
 
       {/* Painel de admin */}
-      {canManage && <AdminSummary tasks={tasks} />}
+      <AdminSummary tasks={tasks} />
+
 
       {/* Barra de controles */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1264,6 +1305,7 @@ export function TasksPage() {
         task={openTask}
         canManage={canManage}
         allowComplete={view !== 'board'}
+        editorialApproval={openTask ? approvalByTask[openTask.id] : undefined}
         onClose={() => setOpenTaskId(null)}
         onMove={(status) => openTask && moveTask(openTask.id, status)}
         onEdit={() => {
