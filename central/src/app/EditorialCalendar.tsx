@@ -42,18 +42,17 @@ import {
   APPROVAL_META,
   ASSET_META,
   CHANNEL_META,
-  FORMAT_META,
   STAGE_META,
   type EditorialApproval,
   type EditorialAsset,
   type EditorialChannel,
-  type EditorialFormat,
   type EditorialPost,
   type EditorialStage,
 } from './data'
 import { useEditorial } from './editorial'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
+import { useCatalogs, CatalogBadge } from './catalogs'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 
@@ -91,11 +90,24 @@ function buildGrid(view: Date) {
   return Array.from({ length: 42 }, (_, i) => addDays(start, i))
 }
 
-const FORMAT_ICON: Record<EditorialFormat, React.ReactNode> = {
+// Ícone por formato (chave = value do catálogo). Formatos novos criados pelo
+// gestor caem no ícone genérico (LayoutTemplate).
+const FORMAT_ICON: Record<string, React.ReactNode> = {
   carrossel: <GalleryHorizontalEnd size={13} strokeWidth={1.5} />,
   reels: <Film size={13} strokeWidth={1.5} />,
   corte: <Scissors size={13} strokeWidth={1.5} />,
   imagem: <ImageIcon size={13} strokeWidth={1.5} />,
+}
+const formatIcon = (format: string) => FORMAT_ICON[format] ?? <LayoutTemplate size={13} strokeWidth={1.5} />
+
+/** Badge de formato — lê rótulo/cor do catálogo `editorial_format`. */
+function FormatBadge({ format, size = 'sm' }: { format: string; size?: 'sm' | 'md' }) {
+  const { label, tone } = useCatalogs()
+  return (
+    <CatalogBadge size={size} tone={tone('editorial_format', format)}>
+      {label('editorial_format', format)}
+    </CatalogBadge>
+  )
 }
 
 /* ---- Chip de postagem na célula do calendário -------------------------- */
@@ -122,7 +134,6 @@ function PostChip({
   onDragStart?: (e: React.DragEvent) => void
 }) {
   const stage = STAGE_META[post.stage]
-  const fmt = FORMAT_META[post.format]
   return (
     <button
       type="button"
@@ -134,11 +145,11 @@ function PostChip({
       }`}
     >
       <span className="flex items-start gap-1.5">
-        <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{FORMAT_ICON[post.format]}</span>
+        <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{formatIcon(post.format)}</span>
         <span className="line-clamp-2 text-body-s font-medium leading-snug text-strong">{post.title || 'Sem título'}</span>
       </span>
       <span className="flex min-w-0 flex-wrap items-center gap-1">
-        <Badge tone={fmt.tone} size="sm" className="max-w-full">{fmt.label}</Badge>
+        <FormatBadge format={post.format} />
         <Badge tone={stage.tone} size="sm" className="max-w-full">{STAGE_SHORT[post.stage]}</Badge>
       </span>
     </button>
@@ -261,7 +272,6 @@ function PostList({ posts, onOpen }: { posts: EditorialPost[]; onOpen: (id: stri
       {sorted.map((p) => {
         const d = parseISO(p.date)
         const stage = STAGE_META[p.stage]
-        const fmt = FORMAT_META[p.format]
         return (
           <button
             key={p.id}
@@ -276,7 +286,7 @@ function PostList({ posts, onOpen }: { posts: EditorialPost[]; onOpen: (id: stri
             <div className="min-w-0 flex-1">
               <div className="truncate text-body-s font-medium text-strong">{p.title || 'Sem título'}</div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <Badge tone={fmt.tone} size="sm">{fmt.label}</Badge>
+                <FormatBadge format={p.format} />
                 {p.channels.map((ch) => (
                   <Badge key={ch} tone={CHANNEL_META[ch].tone} size="sm">{CHANNEL_META[ch].label}</Badge>
                 ))}
@@ -413,7 +423,6 @@ function ToneChipSelect<T extends string>({
 
 /* ---- Drawer de detalhe / edição ---------------------------------------- */
 
-const FORMAT_OPTS = Object.entries(FORMAT_META).map(([value, m]) => ({ value: value as EditorialFormat, label: m.label }))
 // "Tipo" oferece só Design / Edição de vídeo / Anju (concluído saiu do fluxo —
 // a conclusão é refletida no Status). Posts antigos com 'concluido' seguem
 // renderizando via STAGE_META/readLabel.
@@ -439,6 +448,8 @@ function PostDrawer({
   const { addTask, editTask, removeTask } = useTasks()
   const { members } = useProfiles()
   const { user } = useSession()
+  const { items: catItems } = useCatalogs()
+  const formatOpts = catItems('editorial_format').map((c) => ({ value: c.value, label: c.label }))
   const toast = useToast()
 
   const set = (patch: Partial<Omit<EditorialPost, 'id'>>) => updatePost(clientId, post.id, patch)
@@ -491,7 +502,6 @@ function PostDrawer({
     set({ [key]: next } as Partial<EditorialPost>)
   }
 
-  const fmt = FORMAT_META[post.format]
   const stage = STAGE_META[post.stage]
 
   return (
@@ -499,7 +509,7 @@ function PostDrawer({
       {/* Cabeçalho fixo: formato + fechar */}
       <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-12 flex items-center justify-between gap-2 border-b border-line bg-slate-900 px-5 py-3.5">
         <div className="flex items-center gap-2">
-          <Badge tone={fmt.tone}>{fmt.label}</Badge>
+          <FormatBadge format={post.format} size="md" />
           <Badge tone={stage.tone}>{stage.label}</Badge>
         </div>
         <IconButton aria-label="Fechar" size="sm" onClick={onClose}>
@@ -595,13 +605,22 @@ function PostDrawer({
         </PropertyRow>
 
         <PropertyRow icon={<LayoutTemplate size={16} strokeWidth={1.5} />} label="Formato">
-          <ChipSelect
-            options={FORMAT_OPTS}
-            value={post.format}
-            onChange={(v) => set({ format: v })}
-            canManage={canManage}
-            readTone={fmt.tone}
-          />
+          {canManage ? (
+            <div className="flex flex-wrap gap-1.5">
+              {formatOpts.map((o) => (
+                <Tag
+                  key={o.value}
+                  selectable
+                  selected={post.format === o.value}
+                  onSelect={() => set({ format: o.value })}
+                >
+                  {o.label}
+                </Tag>
+              ))}
+            </div>
+          ) : (
+            <FormatBadge format={post.format} size="md" />
+          )}
         </PropertyRow>
 
         <PropertyRow icon={<Share2 size={16} strokeWidth={1.5} />} label="Mídia social">

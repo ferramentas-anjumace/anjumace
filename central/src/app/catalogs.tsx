@@ -106,6 +106,12 @@ export const CATALOGS = {
     help: 'Classificam as tarefas no quadro (campo Categoria).',
     usage: { table: 'tasks', column: 'tag' },
   },
+  editorial_format: {
+    label: 'Formatos do Editorial',
+    singular: 'formato',
+    help: 'Tipos de criativo no calendário editorial (carrossel, reels, imagem...).',
+    usage: { table: 'editorial_posts', column: 'format' },
+  },
 } as const
 
 export type CatalogKey = keyof typeof CATALOGS

@@ -181,8 +181,6 @@ export function getResources(id?: string): ClientResources | undefined {
 
 type Tone = 'neutral' | 'steel' | 'sand' | 'success' | 'danger' | 'warning'
 
-/** Formato do criativo. */
-export type EditorialFormat = 'carrossel' | 'reels' | 'corte' | 'imagem'
 /** Canal de publicação (mídia social). */
 export type EditorialChannel = 'instagram' | 'youtube' | 'tiktok' | 'blog' | 'email'
 /** Etapa do fluxo de produção ("Enviar" — para quem está a bola). */
@@ -191,13 +189,6 @@ export type EditorialStage = 'para-designer' | 'para-edicao' | 'para-anju' | 'co
 export type EditorialApproval = 'em-producao' | 'em-revisao' | 'aprovado' | 'reprovado'
 /** Itens de checklist usados em "Falta o quê?" e "O que está pronto". */
 export type EditorialAsset = 'copy' | 'legenda' | 'imagens' | 'edicao' | 'roteiro' | 'cta'
-
-export const FORMAT_META: Record<EditorialFormat, { label: string; tone: Tone }> = {
-  carrossel: { label: 'Carrossel', tone: 'sand' },
-  reels: { label: 'Reels', tone: 'steel' },
-  corte: { label: 'Corte', tone: 'neutral' },
-  imagem: { label: 'Imagem', tone: 'warning' },
-}
 
 export const CHANNEL_META: Record<EditorialChannel, { label: string; tone: Tone }> = {
   instagram: { label: 'Instagram', tone: 'steel' },
@@ -241,7 +232,8 @@ export interface EditorialPost {
   /** Data de publicação em ISO (yyyy-mm-dd). */
   date: string
   title: string
-  format: EditorialFormat
+  /** Formato — valor livre, gerido pelo catálogo `editorial_format`. */
+  format: string
   /** Mídia social — pode publicar em mais de um canal. */
   channels: EditorialChannel[]
   /** "Enviar" — etapa atual do fluxo. */

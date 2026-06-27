@@ -6,7 +6,6 @@ import type {
   EditorialApproval,
   EditorialCard,
   EditorialChannel,
-  EditorialFormat,
   EditorialPost,
   EditorialStage,
 } from './data'
@@ -27,7 +26,7 @@ interface PostRow {
   client_id: string
   date: string
   title: string
-  format: EditorialFormat
+  format: string
   channels: EditorialChannel[] | null
   stage: EditorialStage
   approval: EditorialApproval

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Central Anju — TODAS as migrations (0001→0019) concatenadas para o SQL Editor
+-- Central Anju — TODAS as migrations (0001→0020) concatenadas para o SQL Editor
 -- Gerado automaticamente por _build_apply_all.sh. NÃO edite à mão.
 -- Rode INTEIRO no Supabase → SQL Editor → New query → Run. Idempotente.
 -- ============================================================================
@@ -1152,3 +1152,24 @@ create policy cred_update on public.client_credentials for update to authenticat
 drop policy if exists cred_delete on public.client_credentials;
 create policy cred_delete on public.client_credentials for delete to authenticated
   using (public.can('manage_resources'));
+
+-- >>>>>>>>>>>>>>>>>>>> 0020_editorial_format_catalog.sql >>>>>>>>>>>>>>>>>>>>
+
+-- ============================================================================
+-- Central Anju — Formato do Editorial vira catálogo editável
+-- ----------------------------------------------------------------------------
+-- O formato das postagens (carrossel/reels/corte/imagem) sai do hardcoded e
+-- passa a ser gerido pela tela Configurações → Catálogos (catalog 'editorial_format').
+-- Faz o seed dos formatos atuais e solta o CHECK fixo da coluna.
+-- Rode inteiro no SQL Editor → Run. Idempotente.
+-- ============================================================================
+
+insert into public.catalog_items (catalog, value, label, tone, sort) values
+  ('editorial_format','carrossel','Carrossel','sand',    0),
+  ('editorial_format','reels',    'Reels',    'steel',   1),
+  ('editorial_format','corte',    'Corte',    'neutral', 2),
+  ('editorial_format','imagem',   'Imagem',   'warning', 3)
+on conflict (catalog, value) do nothing;
+
+-- Formato agora é livre (governado pelo catálogo) — sem CHECK fixo.
+alter table public.editorial_posts drop constraint if exists editorial_posts_format_check;
