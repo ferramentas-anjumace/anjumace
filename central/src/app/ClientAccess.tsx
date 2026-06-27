@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   Copy,
-  ShieldCheck,
   Plus,
   Pencil,
   Trash2,
@@ -364,44 +363,36 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
         )}
       </Card>
 
-      {/* Senhas das plataformas — só admin (RLS protege as senhas) */}
-      {canManage ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2.5">
-              <KeyRound size={18} strokeWidth={1.5} className="text-steel-300" aria-hidden />
-              <CardTitle>Senhas das plataformas</CardTitle>
-            </div>
+      {/* Senhas das plataformas — todo o time vê (acessa as plataformas);
+          adicionar/editar/excluir segue restrito a quem gere recursos. */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2.5">
+            <KeyRound size={18} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+            <CardTitle>Senhas das plataformas</CardTitle>
+          </div>
+          {canManage && (
             <Button size="sm" variant="secondary" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => { setEditingCred(null); setCredModal(true) }}>
               Adicionar
             </Button>
-          </CardHeader>
-          {creds.length === 0 ? (
-            <EmptyState className="border-0 bg-transparent" icon={<KeyRound size={22} strokeWidth={1.5} />} title="Nenhum acesso" description="Adicione as credenciais das plataformas do cliente." />
-          ) : (
-            <div className="flex flex-col gap-2">
-              {creds.map((cred) => (
-                <CredentialRow
-                  key={cred.id}
-                  cred={cred}
-                  canManage={canManage}
-                  onEdit={() => { setEditingCred(cred); setCredModal(true) }}
-                  onDelete={() => delCred(cred)}
-                />
-              ))}
-            </div>
           )}
-          <p className="mt-4 flex items-center gap-2 text-body-s text-faint">
-            <ShieldCheck size={15} strokeWidth={1.5} aria-hidden />
-            Senhas visíveis apenas para administradores (protegidas por RLS no banco).
-          </p>
-        </Card>
-      ) : (
-        <Card className="flex items-center gap-3">
-          <KeyRound size={18} strokeWidth={1.5} className="text-faint" aria-hidden />
-          <p className="text-body-s text-muted">As senhas das plataformas são visíveis apenas para administradores.</p>
-        </Card>
-      )}
+        </CardHeader>
+        {creds.length === 0 ? (
+          <EmptyState className="border-0 bg-transparent" icon={<KeyRound size={22} strokeWidth={1.5} />} title="Nenhum acesso" description="Adicione as credenciais das plataformas do cliente." />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {creds.map((cred) => (
+              <CredentialRow
+                key={cred.id}
+                cred={cred}
+                canManage={canManage}
+                onEdit={() => { setEditingCred(cred); setCredModal(true) }}
+                onDelete={() => delCred(cred)}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
 
       <CredentialModal open={credModal} editing={editingCred} onClose={() => { setCredModal(false); setEditingCred(null) }} onSave={saveCred} />
       <MediaModal open={mediaModal} onClose={() => setMediaModal(false)} onSave={saveMedia} />

@@ -376,7 +376,7 @@ function CollaboratorDashboard() {
                         onClick={() => navigate(`/app/tarefas?task=${t.id}`)}
                         className="group flex w-full items-center gap-3 rounded-sm py-3 text-left transition-colors focus-visible:outline-none focus-visible:shadow-focus"
                       >
-                        <span className={`min-w-0 flex-1 truncate text-body-s ${done ? 'text-faint line-through' : 'text-strong'}`}>
+                        <span className={`min-w-0 flex-1 truncate text-body-l font-medium ${done ? 'text-faint line-through' : 'text-strong'}`}>
                           {t.title}
                         </span>
                         {t.tag && (
