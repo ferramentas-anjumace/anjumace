@@ -61,6 +61,27 @@ function rowToAttachment(r: AttachmentRow): Attachment {
 
 const key = (type: AttachmentEntity, id: string) => `${type}:${id}`
 
+/** Caminhos dos arquivos de uma entidade (bucket + path), para limpeza. */
+export async function listEntityFiles(entityType: AttachmentEntity, entityId: string) {
+  const { data } = await supabase
+    .from('attachments')
+    .select('bucket, path')
+    .eq('entity_type', entityType)
+    .eq('entity_id', entityId)
+  return (data ?? []) as { bucket: string; path: string }[]
+}
+
+/** Remove objetos do Storage via Storage API (DELETE direto em storage.objects
+ *  é bloqueado pelo Supabase). Agrupa por bucket. Tolerante a falhas. */
+export async function removeStorageFiles(files: { bucket: string; path: string }[]) {
+  if (!files.length) return
+  const byBucket: Record<string, string[]> = {}
+  for (const f of files) (byBucket[f.bucket] ??= []).push(f.path)
+  for (const [bucket, paths] of Object.entries(byBucket)) {
+    await supabase.storage.from(bucket).remove(paths)
+  }
+}
+
 /** Sanitiza o nome para compor um caminho de objeto seguro. */
 function safeName(name: string) {
   return name

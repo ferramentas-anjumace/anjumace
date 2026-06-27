@@ -83,8 +83,8 @@ const monthFmt = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeri
 const longFmt = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 const dayMonthFmt = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
 
-/** "Hoje" do mock — alinhado ao currentDate do ambiente. */
-const TODAY_ISO = '2026-06-22'
+/** "Hoje" real do navegador (ISO local), recalculado a cada carga. */
+const TODAY_ISO = toISO(new Date())
 
 /** Matriz 6×7 cobrindo o mês de `view`, começando no domingo. */
 function buildGrid(view: Date) {

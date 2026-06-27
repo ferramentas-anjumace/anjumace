@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
+import { listEntityFiles, removeStorageFiles } from './attachments'
 import type {
   EditorialApproval,
   EditorialCard,
@@ -181,7 +182,10 @@ export function EditorialProvider({ children }: { children: React.ReactNode }) {
     delete timers.current[id]
     delete pending.current[id]
     setMap((m) => ({ ...m, [clientId]: (m[clientId] ?? []).filter((p) => p.id !== id) }))
+    // Captura os arquivos antes de excluir (o gatilho limpa os metadados depois).
+    const files = await listEntityFiles('editorial', id)
     await supabase.from('editorial_posts').delete().eq('id', id)
+    await removeStorageFiles(files) // remove os arquivos órfãos do Storage
   }, [])
 
   const value = useMemo<EditorialCtx>(

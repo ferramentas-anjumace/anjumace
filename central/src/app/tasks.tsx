@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
+import { listEntityFiles, removeStorageFiles } from './attachments'
 import { TASK_STATUS_META, type ChecklistItem, type Task, type TaskStatus } from './data'
 
 /* ----------------------------------------------------------------------------
@@ -65,7 +66,8 @@ interface TasksCtx {
   addTask: (input: TaskInput) => Promise<string | null>
   editTask: (id: string, patch: TaskPatch) => Promise<void>
   moveTask: (id: string, status: TaskStatus) => Promise<void>
-  removeTask: (id: string) => Promise<void>
+  /** Exclui a tarefa; devolve a mensagem de erro (null em sucesso). */
+  removeTask: (id: string) => Promise<{ error: string | null }>
   /** Atualiza a checklist sem registrar evento no histórico (evita poluir o log). */
   setChecklist: (id: string, checklist: ChecklistItem[]) => Promise<void>
 }
@@ -217,8 +219,29 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
 
   const removeTask = useCallback(
     async (id: string) => {
-      const { error } = await supabase.from('tasks').delete().eq('id', id)
-      if (!error) await fetchTasks()
+      // Pedimos as linhas excluídas de volta (.select) para distinguir três casos:
+      // erro real, RLS bloqueando (0 linhas, sem erro) e sucesso. Sem isso, um
+      // delete barrado pela política passava como "sucesso" e a tarefa ficava.
+      // Captura os arquivos ANTES de excluir: ao apagar a tarefa, o gatilho
+      // limpa os metadados, então depois não há mais como descobrir os caminhos.
+      const files = await listEntityFiles('task', id)
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id)
+        .select('id')
+      if (error) return { error: error.message }
+      if (!data || data.length === 0) {
+        return {
+          error: 'Você não tem permissão para excluir tarefas (requer o papel de gestor ou a permissão "Criar tarefas").',
+        }
+      }
+      // Tarefa excluída: remove os arquivos órfãos do Storage (via Storage API).
+      await removeStorageFiles(files)
+      setTasks((prev) => prev.filter((t) => t.id !== id)) // some na hora
+      await fetchTasks()
+      return { error: null }
     },
     [fetchTasks],
   )

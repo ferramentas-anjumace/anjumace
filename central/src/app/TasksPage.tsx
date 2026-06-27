@@ -1236,9 +1236,13 @@ export function TasksPage() {
           setOpenTaskId(null)
           setFormOpen(true)
         }}
-        onDelete={() => {
+        onDelete={async () => {
           if (!openTask) return
-          removeTask(openTask.id)
+          const { error } = await removeTask(openTask.id)
+          if (error) {
+            toast.error('Não foi possível remover', error)
+            return // mantém o drawer aberto para o usuário ver o motivo
+          }
           toast.success('Tarefa removida', openTask.title)
           setOpenTaskId(null)
         }}
