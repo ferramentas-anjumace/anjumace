@@ -56,13 +56,13 @@ const NAV: { group: string; items: NavLink[] }[] = [
       { to: '/app/tarefas', label: 'Tarefas', icon: <ListChecks size={18} strokeWidth={1.5} /> },
       { to: '/app/agenda', label: 'Agenda', icon: <CalendarDays size={18} strokeWidth={1.5} /> },
       { to: '/app/relatorios', label: 'Relatórios', icon: <BarChart3 size={18} strokeWidth={1.5} />, managerOnly: true },
-      { to: '/app/acessos', label: 'Acessos', icon: <KeyRound size={18} strokeWidth={1.5} /> },
     ],
   },
   {
     group: 'Configurações',
     items: [
       { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} />, need: 'manage_users' },
+      { to: '/app/acessos', label: 'Acessos', icon: <KeyRound size={18} strokeWidth={1.5} /> },
       { to: '/app/config', label: 'Permissões', icon: <Settings2 size={18} strokeWidth={1.5} />, need: 'manage_users' },
     ],
   },
