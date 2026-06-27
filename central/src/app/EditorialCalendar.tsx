@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,6 +20,7 @@ import {
   Image as ImageIcon,
   X,
   UserCircle,
+  ChevronDown,
 } from 'lucide-react'
 import {
   Card,
@@ -33,9 +34,11 @@ import {
   Modal,
   Input,
   Textarea,
-  Select,
   DatePicker,
   EmptyState,
+  Avatar,
+  DropdownMenu,
+  MenuItem,
   useToast,
 } from '@/components/ui'
 import {
@@ -51,7 +54,7 @@ import {
 } from './data'
 import { useEditorial } from './editorial'
 import { useTasks } from './tasks'
-import { useProfiles } from './profiles'
+import { useProfiles, type Member } from './profiles'
 import { useCatalogs, CatalogBadge } from './catalogs'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
@@ -421,6 +424,55 @@ function ToneChipSelect<T extends string>({
   )
 }
 
+/** Seletor de responsável COM AVATAR. Substitui o <select> nativo (que não
+ *  renderiza imagem): o gatilho e cada item mostram a foto + nome · time. */
+function ResponsavelSelect({
+  value,
+  onChange,
+  members,
+}: {
+  value: string | undefined
+  onChange: (memberId: string) => void
+  members: Member[]
+}) {
+  const current = members.find((m) => m.id === value)
+  return (
+    <DropdownMenu
+      className="max-h-72 overflow-y-auto"
+      trigger={
+        <button
+          type="button"
+          className="inline-flex h-10 items-center gap-2 rounded-xs border border-strong bg-slate-900 pl-1.5 pr-2.5 text-body-s text-strong transition-[border-color,box-shadow] duration-fast ease-out hover:border-line focus-visible:shadow-focus focus-visible:outline-none"
+        >
+          {current ? (
+            <>
+              <Avatar size="xs" name={current.name} src={current.avatar ?? undefined} />
+              <span>{current.name}{current.team ? ` · ${current.team}` : ''}</span>
+            </>
+          ) : (
+            <span className="pl-1 text-faint">— Selecionar —</span>
+          )}
+          <ChevronDown size={16} strokeWidth={1.5} className="ml-1 text-muted" aria-hidden />
+        </button>
+      }
+    >
+      <MenuItem onClick={() => onChange('')}>
+        <span className="text-muted">— Selecionar —</span>
+      </MenuItem>
+      {members.map((m) => (
+        <MenuItem
+          key={m.id}
+          icon={<Avatar size="xs" name={m.name} src={m.avatar ?? undefined} />}
+          shortcut={m.id === value ? '✓' : undefined}
+          onClick={() => onChange(m.id)}
+        >
+          {m.name}{m.team ? ` · ${m.team}` : ''}
+        </MenuItem>
+      ))}
+    </DropdownMenu>
+  )
+}
+
 /* ---- Drawer de detalhe / edição ---------------------------------------- */
 
 // "Tipo" oferece só Design / Edição de vídeo / Anju (concluído saiu do fluxo —
@@ -552,15 +604,18 @@ function PostDrawer({
       <div className="divide-y divide-line">
         <PropertyRow icon={<UserCircle size={16} strokeWidth={1.5} />} label="Responsável">
           {canManage ? (
-            <Select value={post.assignee ?? ''} onChange={(e) => assignResponsible(e.target.value)}>
-              <option value="">— Selecionar —</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}{m.team ? ` · ${m.team}` : ''}</option>
-              ))}
-            </Select>
-          ) : (
-            <Badge tone="steel">{members.find((m) => m.id === post.assignee)?.name ?? '—'}</Badge>
-          )}
+            <ResponsavelSelect value={post.assignee} onChange={assignResponsible} members={members} />
+          ) : (() => {
+            const who = members.find((m) => m.id === post.assignee)
+            return who ? (
+              <span className="inline-flex items-center gap-2">
+                <Avatar size="xs" name={who.name} src={who.avatar ?? undefined} />
+                <span className="text-body-s text-strong">{who.name}{who.team ? ` · ${who.team}` : ''}</span>
+              </span>
+            ) : (
+              <Badge tone="steel">—</Badge>
+            )
+          })()}
         </PropertyRow>
 
         <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Status">
@@ -700,6 +755,98 @@ function PostDrawer({
   )
 }
 
+/** Modal de criação de demanda — coleta título, data e formato e só persiste
+ *  quando o usuário clica em "Criar" (evita criar por engano e ter que excluir). */
+function NewPostModal({
+  open,
+  initialDate,
+  formatOpts,
+  onCancel,
+  onCreate,
+}: {
+  open: boolean
+  initialDate: string
+  formatOpts: { value: string; label: string }[]
+  onCancel: () => void
+  onCreate: (draft: { title: string; date: string; format: string }) => Promise<void>
+}) {
+  const [title, setTitle] = useState('')
+  const [date, setDate] = useState(initialDate)
+  const [format, setFormat] = useState(formatOpts[0]?.value ?? 'carrossel')
+  const [saving, setSaving] = useState(false)
+
+  // (Re)inicializa os campos sempre que o modal abre.
+  useEffect(() => {
+    if (!open) return
+    setTitle('')
+    setDate(initialDate)
+    setFormat(formatOpts[0]?.value ?? 'carrossel')
+    setSaving(false)
+  }, [open, initialDate]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCreate = async () => {
+    setSaving(true)
+    try {
+      await onCreate({ title: title.trim(), date, format })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onCancel}
+      title="Nova demanda"
+      description="Preencha os dados e clique em Criar."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={handleCreate} loading={saving}>
+            Criar
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <Input
+          label="Título"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ex.: Carrossel | Intensidade x exaustão"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !saving) handleCreate()
+          }}
+        />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-body-s font-medium text-strong">Data de publicação</span>
+          <DatePicker value={parseISO(date)} onChange={(d) => d && setDate(toISO(d))} />
+        </div>
+        {formatOpts.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-body-s font-medium text-strong">Formato</span>
+            <div className="flex flex-wrap gap-1.5">
+              {formatOpts.map((o) => (
+                <Tag
+                  key={o.value}
+                  selectable
+                  selected={format === o.value}
+                  onSelect={() => setFormat(o.value)}
+                >
+                  {o.label}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 /* ---- Componente principal ---------------------------------------------- */
 
 export function EditorialCalendar({ clientId, canManage }: { clientId: string; canManage: boolean }) {
@@ -722,6 +869,10 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
     return first ? addMonths(parseISO(first.date), 0) : new Date()
   })
   const [openId, setOpenId] = useState<string | null>(null)
+  /** Data da demanda em criação (null = modal fechado). */
+  const [newDate, setNewDate] = useState<string | null>(null)
+  const { items: catItems } = useCatalogs()
+  const formatOpts = catItems('editorial_format').map((c) => ({ value: c.value, label: c.label }))
 
   const byDay = useMemo(() => {
     const map = new Map<string, EditorialPost[]>()
@@ -735,11 +886,15 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
 
   const openPost = openId ? posts.find((p) => p.id === openId) ?? null : null
 
-  const createOn = async (iso: string) => {
+  /** Abre o modal de criação (não cria nada ainda). */
+  const openNew = (iso: string) => setNewDate(iso)
+
+  /** Cria de fato a demanda — chamado pelo botão "Criar" do modal. */
+  const createPost = async (draft: { title: string; date: string; format: string }) => {
     const id = await addPost(clientId, {
-      date: iso,
-      title: '',
-      format: 'carrossel',
+      date: draft.date,
+      title: draft.title,
+      format: draft.format,
       channels: ['instagram'],
       stage: 'para-designer',
       approval: 'em-producao',
@@ -747,6 +902,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
       ready: [],
       cards: [],
     })
+    setNewDate(null)
     if (id) setOpenId(id)
   }
 
@@ -787,7 +943,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
                 leftIcon={<Plus size={16} strokeWidth={1.5} />}
                 onClick={() => {
                   const todayInView = sameMonth(view, parseISO(TODAY_ISO)) ? TODAY_ISO : toISO(new Date(view.getFullYear(), view.getMonth(), 1))
-                  createOn(todayInView)
+                  openNew(todayInView)
                 }}
               >
                 Nova postagem
@@ -797,7 +953,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
         </div>
 
         {tab === 'calendario' ? (
-          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={createOn} onMove={movePost} />
+          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={openNew} onMove={movePost} />
         ) : (
           <PostList posts={posts} onOpen={setOpenId} />
         )}
@@ -817,6 +973,14 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
           onClose={() => setOpenId(null)}
         />
       )}
+
+      <NewPostModal
+        open={newDate !== null}
+        initialDate={newDate ?? TODAY_ISO}
+        formatOpts={formatOpts}
+        onCancel={() => setNewDate(null)}
+        onCreate={createPost}
+      />
     </div>
   )
 }
