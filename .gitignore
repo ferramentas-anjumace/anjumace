@@ -26,3 +26,10 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Opensquad (compartilhado via junction com a pasta-mae; nao versionar aqui)
+/_opensquad/
+/squads/
+/skills/
+/.mcp.json
+/.claude/skills/opensquad/
