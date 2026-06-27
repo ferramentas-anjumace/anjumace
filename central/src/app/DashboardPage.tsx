@@ -143,7 +143,11 @@ function WelcomeBanner({
 }) {
   const { greeting, dateLabel } = greetingFor()
   const { members } = useProfiles()
-  const active = members.filter((u) => u.status === 'ativo')
+  // Time inteiro (sem limite de avatares), com o(s) administrador(es) sempre à
+  // esquerda. sort é estável: os demais mantêm a ordem original.
+  const active = members
+    .filter((u) => u.status === 'ativo')
+    .sort((a, b) => Number(b.role === 'admin') - Number(a.role === 'admin'))
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-line bg-slate-900 p-6 sm:p-8">
@@ -169,7 +173,7 @@ function WelcomeBanner({
 
         {active.length > 0 && (
           <div className="flex shrink-0 items-center gap-4 rounded-xl border border-line bg-ink-deep/40 px-5 py-4">
-            <AvatarGroup max={4}>
+            <AvatarGroup max={active.length}>
               {active.map((u) => (
                 <Avatar key={u.id} size="md" name={u.name} src={u.avatar ?? undefined} />
               ))}
@@ -198,7 +202,7 @@ function AdminDashboard() {
   const todayAgenda = events.filter((e) => e.date === todayIso())
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8">
+    <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       <WelcomeBanner
         name={firstName}
         onPrimary={() => navigate('/app/usuarios')}
@@ -325,7 +329,7 @@ function CollaboratorDashboard() {
   const todayAgenda = events.filter((e) => e.date === todayIso() && e.people.includes(user.id))
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8">
+    <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       {/* Banner */}
       <section className="relative overflow-hidden rounded-2xl border border-line bg-slate-900 p-6 sm:p-8">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-glow-steel" aria-hidden />

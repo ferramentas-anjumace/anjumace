@@ -364,7 +364,7 @@ export function AgendaPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-screen-2xl px-6 py-8">
       <SectionHeader
         eyebrow="Operação"
         title="Agenda do time"

@@ -42,7 +42,6 @@ import { ReportsPage } from './app/ReportsPage'
 import { AccessPage } from './app/AccessPage'
 import { ContentPage } from './app/ContentPage'
 import { EditorialPage } from './app/EditorialPage'
-import { PlaceholderPage } from './app/PlaceholderPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/app" replace /> },
@@ -64,7 +63,6 @@ const router = createBrowserRouter([
       { path: 'conteudo', element: <ContentPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
-      { path: 'integracoes', element: <PlaceholderPage eyebrow="Sistema" title="Integrações" /> },
       { path: 'config', element: <PermissionsPage /> },
     ],
   },

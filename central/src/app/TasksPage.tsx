@@ -11,7 +11,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Check,
+  Save,
   History,
   ListChecks,
   Loader2,
@@ -33,7 +33,6 @@ import {
   Select,
   DatePicker,
   SearchField,
-  Drawer,
   Modal,
   EmptyState,
   Divider,
@@ -830,34 +829,45 @@ function ChecklistSection({ task, onChange }: { task: Task; onChange: (items: Ch
 
 /* ------------------------------------------------------------- task drawer */
 
-function TaskDrawer({
+function TaskDetailModal({
   task,
   canManage,
+  allowComplete,
   onClose,
   onMove,
-  onToggle,
   onEdit,
   onDelete,
   onChecklistChange,
 }: {
   task: Task | null
   canManage: boolean
+  /** Se a origem permite concluir pelo popup (lista/calendário — onde não há
+   *  arrastar). No quadro fica false: concluir é só arrastando. */
+  allowComplete: boolean
   onClose: () => void
   onMove: (status: TaskStatus) => void
-  onToggle: () => void
   onEdit: () => void
   onDelete: () => void
   onChecklistChange: (items: ChecklistItem[]) => void
 }) {
   const { getMember } = useProfiles()
+  // Status é um rascunho: só é aplicado ao clicar em "Salvar".
+  const [draftStatus, setDraftStatus] = useState<TaskStatus>(task?.status ?? 'a-fazer')
+  useEffect(() => {
+    if (task) setDraftStatus(task.status)
+  }, [task?.id, task?.status])
   if (!task) return null
-  const done = task.status === 'concluida'
+
+  const save = () => {
+    if (draftStatus !== task.status) onMove(draftStatus)
+    onClose()
+  }
 
   return (
-    <Drawer
+    <Modal
       open={!!task}
       onClose={onClose}
-      width={460}
+      size="xl"
       title={task.title}
       description={`Criada em ${fullDateTime.format(new Date(task.createdAt))}`}
       footer={
@@ -872,123 +882,137 @@ function TaskDrawer({
               </Button>
             </>
           )}
-          <Button
-            variant={done ? 'secondary' : 'primary'}
-            leftIcon={<Check size={16} strokeWidth={1.5} />}
-            onClick={onToggle}
-          >
-            {done ? 'Reabrir' : 'Concluir'}
+          {/* Salvar aplica o status escolhido (rascunho) e fecha. Checklist,
+              anexos e discussão já persistem ao vivo. No quadro, concluir é só
+              arrastando; na lista/calendário, escolha "Concluída" e Salvar. */}
+          <Button variant="primary" leftIcon={<Save size={16} strokeWidth={1.5} />} onClick={save}>
+            Salvar
           </Button>
         </>
       }
     >
-      <div className="flex flex-col gap-5">
-        {/* Status */}
-        <div>
-          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status</div>
-          {canManage ? (
-            <Select value={task.status} onChange={(e) => onMove(e.target.value as TaskStatus)}>
-              {TASK_STATUS_ORDER.map((s) => (
-                <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
-              ))}
-            </Select>
-          ) : (
-            <Badge tone={TASK_STATUS_META[task.status].tone} dot>{TASK_STATUS_META[task.status].label}</Badge>
-          )}
-        </div>
-
-        {/* Metadados */}
-        <dl className="grid grid-cols-2 gap-4">
-          <div>
-            <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prioridade</dt>
-            <dd><PriorityChip priority={task.priority} /></dd>
-          </div>
-          <div>
-            <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prazo</dt>
-            <dd>{task.due ? <DueChip task={task} /> : <span className="text-body-s text-faint">—</span>}</dd>
-          </div>
-          {task.tag && (
-            <div>
-              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Categoria</dt>
-              <dd><Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge></dd>
-            </div>
-          )}
-        </dl>
-
-        {/* Responsáveis */}
-        <div>
-          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Responsáveis</div>
-          {task.assignees.length === 0 ? (
-            <span className="text-body-s text-faint">Sem responsável</span>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {task.assignees.map((id) => {
-                const u = getMember(id)
-                return (
-                  <li key={id} className="flex items-center gap-2.5">
-                    <Avatar size="sm" name={u?.name ?? '?'} src={u?.avatar ?? undefined} />
-                    <span className="text-body-s text-strong">{u?.name ?? 'Desconhecido'}</span>
-                    {u && <span className="font-mono text-[11px] text-faint">{ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}</span>}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-
-        {/* Descrição */}
-        {task.description && (
+      {/* Duas colunas: conteúdo à esquerda, metadados/histórico à direita.
+          Empilha em telas estreitas. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        {/* ---- Coluna principal (conteúdo) ---- */}
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* Descrição */}
           <div>
             <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Descrição</div>
-            <p className="whitespace-pre-wrap text-body-s text-fg">{task.description}</p>
+            {task.description ? (
+              <p className="whitespace-pre-wrap text-body-s text-fg">{task.description}</p>
+            ) : (
+              <p className="text-body-s text-faint">Sem descrição.</p>
+            )}
           </div>
-        )}
 
-        <Divider />
+          <Divider />
 
-        {/* Subtarefas / checklist */}
-        <ChecklistSection task={task} onChange={onChecklistChange} />
+          {/* Subtarefas / checklist */}
+          <ChecklistSection task={task} onChange={onChecklistChange} />
 
-        <Divider />
+          <Divider />
 
-        {/* Anexos */}
-        <AttachmentList entityType="task" entityId={task.id} />
+          {/* Anexos */}
+          <AttachmentList entityType="task" entityId={task.id} />
 
-        <Divider />
+          <Divider />
 
-        {/* Discussão */}
-        <CommentThread
-          entityType="task"
-          entityId={task.id}
-          notifyUserIds={task.assignees}
-          notifyLabel={task.title}
-          taskId={task.id}
-        />
-
-        <Divider />
-
-        {/* Histórico */}
-        <div>
-          <div className="mb-3 flex items-center gap-2">
-            <History size={15} strokeWidth={1.5} className="text-steel-300" aria-hidden />
-            <span className="text-body-s font-medium text-strong">Histórico</span>
-          </div>
-          <ol className="flex flex-col gap-3">
-            {[...task.history].reverse().map((ev) => (
-              <li key={ev.id} className="flex gap-3">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-steel-400" aria-hidden />
-                <div className="min-w-0">
-                  <p className="text-body-s text-fg">
-                    <span className="font-medium text-strong">{ev.who}</span> {ev.text}
-                  </p>
-                  <p className="font-mono text-[11px] text-faint">{fullDateTime.format(new Date(ev.at))}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          {/* Discussão */}
+          <CommentThread
+            entityType="task"
+            entityId={task.id}
+            notifyUserIds={task.assignees}
+            notifyLabel={task.title}
+            taskId={task.id}
+          />
         </div>
+
+        {/* ---- Coluna lateral (metadados) ---- */}
+        <aside className="flex flex-col gap-5 lg:border-l lg:border-line lg:pl-6">
+          {/* Status */}
+          <div>
+            <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status</div>
+            {canManage ? (
+              // "Concluída" só aparece quando a origem permite concluir pelo popup
+              // (lista/calendário) ou quando a tarefa já está concluída (para o
+              // select renderizar o valor atual). No quadro, conclua arrastando.
+              <Select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as TaskStatus)}>
+                {TASK_STATUS_ORDER.filter(
+                  (s) => s !== 'concluida' || allowComplete || task.status === 'concluida',
+                ).map((s) => (
+                  <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
+                ))}
+              </Select>
+            ) : (
+              <Badge tone={TASK_STATUS_META[task.status].tone} dot>{TASK_STATUS_META[task.status].label}</Badge>
+            )}
+          </div>
+
+          {/* Metadados */}
+          <dl className="grid grid-cols-2 gap-4">
+            <div>
+              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prioridade</dt>
+              <dd><PriorityChip priority={task.priority} /></dd>
+            </div>
+            <div>
+              <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Prazo</dt>
+              <dd>{task.due ? <DueChip task={task} /> : <span className="text-body-s text-faint">—</span>}</dd>
+            </div>
+            {task.tag && (
+              <div>
+                <dt className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">Categoria</dt>
+                <dd><Badge size="sm" tone={TASK_TAG_TONE[task.tag]}>{task.tag}</Badge></dd>
+              </div>
+            )}
+          </dl>
+
+          {/* Responsáveis */}
+          <div>
+            <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Responsáveis</div>
+            {task.assignees.length === 0 ? (
+              <span className="text-body-s text-faint">Sem responsável</span>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {task.assignees.map((id) => {
+                  const u = getMember(id)
+                  return (
+                    <li key={id} className="flex items-center gap-2.5">
+                      <Avatar size="sm" name={u?.name ?? '?'} src={u?.avatar ?? undefined} />
+                      <span className="text-body-s text-strong">{u?.name ?? 'Desconhecido'}</span>
+                      {u && <span className="font-mono text-[11px] text-faint">{ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}</span>}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+
+          <Divider />
+
+          {/* Histórico */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <History size={15} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+              <span className="text-body-s font-medium text-strong">Histórico</span>
+            </div>
+            <ol className="flex flex-col gap-3">
+              {[...task.history].reverse().map((ev) => (
+                <li key={ev.id} className="flex gap-3">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-steel-400" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-body-s text-fg">
+                      <span className="font-medium text-strong">{ev.who}</span> {ev.text}
+                    </p>
+                    <p className="font-mono text-[11px] text-faint">{fullDateTime.format(new Date(ev.at))}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </aside>
       </div>
-    </Drawer>
+    </Modal>
   )
 }
 
@@ -1081,7 +1105,7 @@ export function TasksPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-screen-2xl px-6 py-8">
         <div className="grid place-items-center py-24 text-muted">
           <Loader2 size={26} strokeWidth={1.5} className="animate-spin text-steel-300" aria-label="Carregando tarefas" />
         </div>
@@ -1090,7 +1114,7 @@ export function TasksPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5 px-6 py-8">
+    <div className="mx-auto flex max-w-screen-2xl flex-col gap-5 px-6 py-8">
       {/* Cabeçalho */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -1224,12 +1248,12 @@ export function TasksPage() {
         onClose={() => { setFormOpen(false); setEditing(null) }}
         onSubmit={submitForm}
       />
-      <TaskDrawer
+      <TaskDetailModal
         task={openTask}
         canManage={canManage}
+        allowComplete={view !== 'board'}
         onClose={() => setOpenTaskId(null)}
         onMove={(status) => openTask && moveTask(openTask.id, status)}
-        onToggle={() => openTask && toggle(openTask)}
         onEdit={() => {
           if (!openTask) return
           setEditing(openTask)

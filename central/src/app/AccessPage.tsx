@@ -7,7 +7,7 @@ export function AccessPage() {
   const { can } = usePermissions()
   const isManager = can('manage_resources')
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-screen-2xl px-6 py-8">
       <div className="mb-6">
         <span className="font-mono text-mono-label uppercase text-steel-400">Ecossistema</span>
         <h1 className="mt-1 font-display text-h1 font-semibold text-strong">Acessos</h1>

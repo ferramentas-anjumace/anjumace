@@ -226,7 +226,7 @@ export function ReportsPage() {
   const periodLabel = PERIODS.find((p) => p.key === period)?.label ?? '30 dias'
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8">
+    <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

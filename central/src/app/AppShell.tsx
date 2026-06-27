@@ -9,7 +9,6 @@ import {
   KeyRound,
   ListChecks,
   BarChart3,
-  Plug,
   Settings2,
   LogOut,
   UserCog,
@@ -26,7 +25,6 @@ import {
   Badge,
   DropdownMenu,
   MenuItem,
-  MenuLabel,
   MenuSeparator,
   Modal,
   Button,
@@ -64,10 +62,9 @@ const NAV: { group: string; items: NavLink[] }[] = [
     ],
   },
   {
-    group: 'Sistema',
+    group: 'Configurações',
     items: [
       { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} />, need: 'manage_users' },
-      { to: '/app/integracoes', label: 'Integrações', icon: <Plug size={18} strokeWidth={1.5} />, need: 'manage_resources' },
       { to: '/app/config', label: 'Permissões', icon: <Settings2 size={18} strokeWidth={1.5} />, need: 'manage_users' },
     ],
   },
@@ -136,16 +133,14 @@ export function AppShell() {
                 </button>
               }
             >
-              <MenuLabel>
-                <span className="flex flex-col">
-                  <span className="text-strong">{user.name}</span>
-                  <span className="font-mono text-[11px] text-faint">{user.email} · {user.roleLabel}</span>
-                </span>
-              </MenuLabel>
+              {/* Cabeçalho da conta — caixa normal (sem uppercase do MenuLabel). */}
+              <div className="flex flex-col gap-1 px-2.5 pb-2 pt-2.5">
+                <span className="text-body-l font-semibold leading-tight text-strong">{user.name}</span>
+                <span className="text-caption text-faint">{user.email} · {user.roleLabel}</span>
+              </div>
               <MenuItem icon={<UserCog size={16} strokeWidth={1.5} />} onClick={() => setAccountOpen(true)}>
                 Conta
               </MenuItem>
-              <MenuItem icon={<Settings2 size={16} strokeWidth={1.5} />}>Preferências</MenuItem>
               <MenuSeparator />
               <MenuItem icon={<LogOut size={16} strokeWidth={1.5} />} destructive onClick={handleSignOut}>
                 Sair

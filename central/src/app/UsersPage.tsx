@@ -230,7 +230,7 @@ export function UsersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-screen-2xl px-6 py-8">
       <SectionHeader
         eyebrow="Operação"
         title="Usuários"
