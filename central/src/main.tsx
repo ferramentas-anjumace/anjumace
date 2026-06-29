@@ -31,6 +31,7 @@ import { AttachmentsProvider } from './app/attachments'
 import { ProfilesProvider } from './app/profiles'
 import { AgendaProvider } from './app/agenda'
 import { CatalogsProvider } from './app/catalogs'
+import { PaidTrafficProvider } from './app/paidTraffic'
 import { StyleguidePage } from './pages/Styleguide'
 import { AppShell } from './app/AppShell'
 import { DashboardPage } from './app/DashboardPage'
@@ -40,6 +41,7 @@ import { CatalogsPage } from './app/CatalogsPage'
 import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
 import { ReportsPage } from './app/ReportsPage'
+import { PaidTrafficPage } from './app/PaidTrafficPage'
 import { AccessPage } from './app/AccessPage'
 import { EditorialPage } from './app/EditorialPage'
 
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: 'tarefas', element: <TasksPage /> },
       { path: 'agenda', element: <AgendaPage /> },
       { path: 'relatorios', element: <ReportsPage /> },
+      { path: 'trafego-pago', element: <PaidTrafficPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
       { path: 'catalogos', element: <CatalogsPage /> },
@@ -77,6 +80,7 @@ createRoot(document.getElementById('root')!).render(
         <NotificationsProvider>
         <ClientsProvider>
           <CatalogsProvider>
+          <PaidTrafficProvider>
           <EditorialProvider>
             <ProfilesProvider>
               <TasksProvider>
@@ -92,6 +96,7 @@ createRoot(document.getElementById('root')!).render(
               </TasksProvider>
             </ProfilesProvider>
           </EditorialProvider>
+          </PaidTrafficProvider>
           </CatalogsProvider>
         </ClientsProvider>
         </NotificationsProvider>
