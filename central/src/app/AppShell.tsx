@@ -23,7 +23,6 @@ import {
   ThemeToggle,
   BrandSwitcher,
   Avatar,
-  Badge,
   DropdownMenu,
   MenuItem,
   MenuSeparator,
@@ -169,15 +168,6 @@ export function AppShell() {
               ))}
             </SidebarGroup>
           ))}
-          <div className="mt-auto px-2">
-            <a
-              href="/styleguide"
-              className="flex items-center gap-2 rounded-md px-2 py-2 text-body-s text-faint transition-colors hover:bg-slate-800 hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
-            >
-              <Badge tone="steel">DS</Badge>
-              Voltar ao styleguide
-            </a>
-          </div>
         </Sidebar>
 
         <main className="min-w-0 flex-1 overflow-y-auto">
