@@ -3,11 +3,13 @@ import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
 import { listEntityFiles, removeStorageFiles } from './attachments'
 import type {
+  ApprovalEvent,
   EditorialApproval,
   EditorialCard,
   EditorialChannel,
   EditorialPost,
   EditorialStage,
+  TrackStatus,
 } from './data'
 
 /* ----------------------------------------------------------------------------
@@ -31,6 +33,11 @@ interface PostRow {
   stage: EditorialStage
   approval: EditorialApproval
   comment: string | null
+  copy: string | null
+  caption: string | null
+  copy_status: TrackStatus | null
+  art_status: TrackStatus | null
+  approval_log: ApprovalEvent[] | null
   description: string | null
   upload_url: string | null
   cta: string | null
@@ -51,6 +58,11 @@ function rowToPost(r: PostRow): EditorialPost {
     stage: r.stage,
     approval: r.approval,
     comment: r.comment ?? undefined,
+    copy: r.copy ?? undefined,
+    caption: r.caption ?? undefined,
+    copyStatus: r.copy_status ?? 'pendente',
+    artStatus: r.art_status ?? 'pendente',
+    approvalLog: r.approval_log ?? [],
     description: r.description ?? undefined,
     uploadUrl: r.upload_url ?? undefined,
     cta: r.cta ?? undefined,
@@ -74,6 +86,11 @@ function patchToRow(patch: PostPatch): Record<string, unknown> {
   if (patch.stage !== undefined) row.stage = patch.stage
   if (patch.approval !== undefined) row.approval = patch.approval
   if (patch.comment !== undefined) row.comment = patch.comment ?? null
+  if (patch.copy !== undefined) row.copy = patch.copy ?? null
+  if (patch.caption !== undefined) row.caption = patch.caption ?? null
+  if (patch.copyStatus !== undefined) row.copy_status = patch.copyStatus
+  if (patch.artStatus !== undefined) row.art_status = patch.artStatus
+  if (patch.approvalLog !== undefined) row.approval_log = patch.approvalLog
   if (patch.description !== undefined) row.description = patch.description ?? null
   if (patch.uploadUrl !== undefined) row.upload_url = patch.uploadUrl ?? null
   if (patch.cta !== undefined) row.cta = patch.cta ?? null

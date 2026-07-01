@@ -21,6 +21,12 @@ import {
   X,
   UserCircle,
   ChevronDown,
+  Copy as CopyIcon,
+  Check,
+  RotateCcw,
+  History,
+  FileText,
+  AlignLeft,
 } from 'lucide-react'
 import {
   Card,
@@ -46,16 +52,22 @@ import {
   ASSET_META,
   CHANNEL_META,
   STAGE_META,
+  TRACK_META,
+  TRACK_STATUS_META,
+  type ApprovalEvent,
+  type ApprovalTrack,
   type EditorialApproval,
   type EditorialAsset,
   type EditorialChannel,
   type EditorialPost,
   type EditorialStage,
+  type TrackStatus,
 } from './data'
 import { useEditorial } from './editorial'
 import { useTasks } from './tasks'
 import { useProfiles, type Member } from './profiles'
 import { useCatalogs, CatalogBadge } from './catalogs'
+import { CommentThread } from './CommentThread'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 
@@ -473,6 +485,187 @@ function ResponsavelSelect({
   )
 }
 
+/* ---- Copy / Legenda / Aprovação em etapas ------------------------------ */
+
+const histFmt = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+/** Campo de texto (copy/legenda) com botão "Copiar". Editável para gestor,
+ *  somente-leitura para o time. */
+function CopyableField({
+  icon,
+  label,
+  value,
+  placeholder,
+  canManage,
+  onChange,
+  rows = 4,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  placeholder: string
+  canManage: boolean
+  onChange: (v: string) => void
+  rows?: number
+}) {
+  const toast = useToast()
+  const copy = async () => {
+    if (!value.trim()) return
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success('Copiado', label)
+    } catch {
+      toast.error('Não foi possível copiar')
+    }
+  }
+  return (
+    <div className="mb-5">
+      <div className="mb-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-faint">
+          <span aria-hidden>{icon}</span>
+          {label}
+        </div>
+        {value.trim() && (
+          <button
+            type="button"
+            onClick={copy}
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            <CopyIcon size={12} strokeWidth={1.5} aria-hidden /> Copiar
+          </button>
+        )}
+      </div>
+      {canManage ? (
+        <Textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      ) : value.trim() ? (
+        <p className="whitespace-pre-wrap rounded-lg border border-line bg-slate-900 p-3 text-body-s leading-relaxed text-fg">
+          {value}
+        </p>
+      ) : (
+        <p className="text-body-s text-faint">—</p>
+      )}
+    </div>
+  )
+}
+
+/** Uma etapa de aprovação (Copy ou Arte/Vídeo): status + ações de gestor. */
+function ApprovalTrackRow({
+  track,
+  status,
+  canManage,
+  onApprove,
+  onRequestChanges,
+}: {
+  track: ApprovalTrack
+  status: TrackStatus
+  canManage: boolean
+  onApprove: () => void
+  onRequestChanges: (note: string) => void
+}) {
+  const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState('')
+  const meta = TRACK_STATUS_META[status]
+  const submit = () => {
+    const n = note.trim()
+    if (!n) return
+    onRequestChanges(n)
+    setNote('')
+    setAsking(false)
+  }
+  return (
+    <div className="rounded-lg border border-line bg-slate-900 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-body-s font-medium text-strong">{TRACK_META[track].label}</span>
+          <Badge tone={meta.tone} size="sm">{meta.label}</Badge>
+        </div>
+        {canManage && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<Check size={14} strokeWidth={1.5} />}
+              onClick={onApprove}
+              disabled={status === 'aprovado'}
+            >
+              Aprovar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              leftIcon={<RotateCcw size={14} strokeWidth={1.5} />}
+              onClick={() => setAsking((v) => !v)}
+            >
+              Pedir ajuste
+            </Button>
+          </div>
+        )}
+      </div>
+      {asking && canManage && (
+        <div className="mt-2.5 flex flex-col gap-2">
+          <Textarea
+            rows={2}
+            autoFocus
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={`O que ajustar na ${TRACK_META[track].label.toLowerCase()}?`}
+          />
+          <div className="flex items-center justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => { setAsking(false); setNote('') }}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={submit} disabled={!note.trim()}>
+              Enviar ajuste
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Linha do tempo das aprovações (mais recente primeiro). */
+function ApprovalHistory({ log, members }: { log: ApprovalEvent[]; members: Member[] }) {
+  const sorted = [...log].sort((a, b) => b.at.localeCompare(a.at))
+  return (
+    <div className="mt-4">
+      <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-faint">
+        <History size={12} strokeWidth={1.5} aria-hidden /> Histórico
+      </div>
+      <ul className="flex flex-col gap-2.5">
+        {sorted.map((e) => {
+          const who = members.find((m) => m.id === e.by)
+          const verb = e.status === 'aprovado' ? 'aprovou' : 'pediu ajuste em'
+          return (
+            <li key={e.id} className="flex gap-2.5">
+              <span className="mt-0.5 shrink-0">
+                <Avatar size="xs" name={e.byName} src={who?.avatar ?? undefined} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-body-s text-fg">
+                  <span className="font-medium text-strong">{e.byName}</span> {verb}{' '}
+                  <span className="font-medium text-strong">{TRACK_META[e.track].label}</span>
+                  <span className="ml-1.5 font-mono text-[11px] text-faint">{histFmt.format(new Date(e.at))}</span>
+                </p>
+                {e.note && (
+                  <p className="mt-0.5 whitespace-pre-wrap rounded-md border border-line bg-slate-900 px-2.5 py-1.5 text-body-s text-muted">
+                    {e.note}
+                  </p>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 /* ---- Drawer de detalhe / edição ---------------------------------------- */
 
 // "Tipo" oferece só Design / Edição de vídeo / Anju (concluído saiu do fluxo —
@@ -554,6 +747,43 @@ function PostDrawer({
     set({ [key]: next } as Partial<EditorialPost>)
   }
 
+  /* Aprovação em etapas: registra o evento no histórico, move o status da etapa
+     e — ao pedir ajuste — avisa o responsável (loop de revisão). */
+  const pushApproval = async (track: ApprovalTrack, status: TrackStatus, note?: string) => {
+    const event: ApprovalEvent = {
+      id: crypto.randomUUID(),
+      track,
+      status,
+      by: user.userId,
+      byName: user.name,
+      at: new Date().toISOString(),
+      note: note?.trim() || undefined,
+    }
+    const statusPatch: Partial<EditorialPost> =
+      track === 'copy' ? { copyStatus: status } : { artStatus: status }
+    set({ ...statusPatch, approvalLog: [...(post.approvalLog ?? []), event] })
+    // Avisa o responsável nas duas transições (pedido de ajuste e aprovação).
+    if ((status === 'ajuste' || status === 'aprovado') && post.assignee && post.assignee !== user.userId) {
+      const label = TRACK_META[track].label
+      const title = post.title || 'Sem título'
+      await supabase.from('notifications').insert(
+        status === 'ajuste'
+          ? {
+              user_id: post.assignee,
+              title: `Ajuste pedido — ${label}`,
+              body: `${user.name} pediu ajuste em "${title}"${note ? `: ${note.slice(0, 80)}` : ''}`,
+              task_id: post.taskId ?? null,
+            }
+          : {
+              user_id: post.assignee,
+              title: `${label} aprovada`,
+              body: `${user.name} aprovou ${label.toLowerCase()} de "${title}".`,
+              task_id: post.taskId ?? null,
+            },
+      )
+    }
+  }
+
   const stage = STAGE_META[post.stage]
 
   return (
@@ -600,6 +830,26 @@ function PostDrawer({
           </p>
         )}
       </div>
+
+      {/* Conteúdo textual — copy e legenda geridas dentro da ferramenta */}
+      <CopyableField
+        icon={<FileText size={13} strokeWidth={1.5} />}
+        label="Copy do post"
+        value={post.copy ?? ''}
+        placeholder="Texto do criativo — a copy que a Anju revisa…"
+        canManage={canManage}
+        onChange={(v) => set({ copy: v })}
+        rows={5}
+      />
+      <CopyableField
+        icon={<AlignLeft size={13} strokeWidth={1.5} />}
+        label="Legenda"
+        value={post.caption ?? ''}
+        placeholder="Legenda do post…"
+        canManage={canManage}
+        onChange={(v) => set({ caption: v })}
+        rows={3}
+      />
 
       <div className="divide-y divide-line">
         <PropertyRow icon={<UserCircle size={16} strokeWidth={1.5} />} label="Responsável">
@@ -732,6 +982,47 @@ function PostDrawer({
         </PropertyRow>
       </div>
 
+      {/* Aprovação em etapas — Copy e Arte/Vídeo aprovadas separadamente */}
+      <div className="mt-6 border-t border-line pt-5">
+        <div className="mb-1 flex items-center gap-2">
+          <BadgeCheck size={15} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+          <span className="text-body-s font-medium text-strong">Aprovação por etapa</span>
+        </div>
+        <p className="mb-3 text-body-s text-faint">
+          Copy e arte/vídeo são aprovadas separadamente. Pedir ajuste avisa o responsável.
+        </p>
+        <div className="flex flex-col gap-2">
+          <ApprovalTrackRow
+            track="copy"
+            status={post.copyStatus ?? 'pendente'}
+            canManage={canManage}
+            onApprove={() => pushApproval('copy', 'aprovado')}
+            onRequestChanges={(n) => pushApproval('copy', 'ajuste', n)}
+          />
+          <ApprovalTrackRow
+            track="art"
+            status={post.artStatus ?? 'pendente'}
+            canManage={canManage}
+            onApprove={() => pushApproval('art', 'aprovado')}
+            onRequestChanges={(n) => pushApproval('art', 'ajuste', n)}
+          />
+        </div>
+        {(post.approvalLog?.length ?? 0) > 0 && (
+          <ApprovalHistory log={post.approvalLog ?? []} members={members} />
+        )}
+      </div>
+
+      {/* Discussão do post (reaproveita o CommentThread genérico) */}
+      <div className="mt-6 border-t border-line pt-5">
+        <CommentThread
+          entityType="editorial"
+          entityId={post.id}
+          notifyUserIds={post.assignee ? [post.assignee] : undefined}
+          notifyLabel={post.title || 'Sem título'}
+          taskId={post.taskId}
+        />
+      </div>
+
       {canManage && (
         <div className="mt-6 flex justify-end border-t border-line pt-4">
           <Button
@@ -847,6 +1138,69 @@ function NewPostModal({
   )
 }
 
+/* ---- Filtro por estado de aprovação ------------------------------------ */
+
+type ApprovalState = 'aguardando' | 'ajuste' | 'aprovado'
+
+/** Estado consolidado do post a partir das duas etapas (copy + arte/vídeo):
+ *  qualquer etapa em ajuste → "ajuste"; ambas aprovadas → "aprovado"; senão
+ *  ainda "aguardando aprovação". */
+function postApprovalState(post: EditorialPost): ApprovalState {
+  const copy = post.copyStatus ?? 'pendente'
+  const art = post.artStatus ?? 'pendente'
+  if (copy === 'ajuste' || art === 'ajuste') return 'ajuste'
+  if (copy === 'aprovado' && art === 'aprovado') return 'aprovado'
+  return 'aguardando'
+}
+
+const APPROVAL_FILTERS: { value: ApprovalState | 'todos'; label: string }[] = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'aguardando', label: 'Aguardando aprovação' },
+  { value: 'ajuste', label: 'Em ajuste' },
+  { value: 'aprovado', label: 'Aprovado' },
+]
+
+/** Chips-filtro com contadores — dão visibilidade do que trava e filtram as
+ *  duas visões (calendário e lista). Os contadores refletem TODOS os posts. */
+function ApprovalFilterBar({
+  posts,
+  value,
+  onChange,
+}: {
+  posts: EditorialPost[]
+  value: ApprovalState | 'todos'
+  onChange: (v: ApprovalState | 'todos') => void
+}) {
+  const counts = useMemo(() => {
+    const c: Record<ApprovalState | 'todos', number> = { todos: posts.length, aguardando: 0, ajuste: 0, aprovado: 0 }
+    for (const p of posts) c[postApprovalState(p)]++
+    return c
+  }, [posts])
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      {APPROVAL_FILTERS.map((f) => {
+        const active = value === f.value
+        return (
+          <button
+            key={f.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(f.value)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-body-s transition-colors focus-visible:outline-none focus-visible:shadow-focus ${
+              active
+                ? 'border-strong bg-slate-800 text-strong'
+                : 'border-line text-muted hover:border-strong hover:text-strong'
+            }`}
+          >
+            {f.label}
+            <span className="font-mono text-[11px] tabular-nums text-faint">{counts[f.value]}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ---- Componente principal ---------------------------------------------- */
 
 export function EditorialCalendar({ clientId, canManage }: { clientId: string; canManage: boolean }) {
@@ -871,18 +1225,25 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
   const [openId, setOpenId] = useState<string | null>(null)
   /** Data da demanda em criação (null = modal fechado). */
   const [newDate, setNewDate] = useState<string | null>(null)
+  /** Filtro por estado de aprovação (copy+arte). */
+  const [approvalFilter, setApprovalFilter] = useState<ApprovalState | 'todos'>('todos')
   const { items: catItems } = useCatalogs()
   const formatOpts = catItems('editorial_format').map((c) => ({ value: c.value, label: c.label }))
 
+  const visiblePosts = useMemo(
+    () => (approvalFilter === 'todos' ? posts : posts.filter((p) => postApprovalState(p) === approvalFilter)),
+    [posts, approvalFilter],
+  )
+
   const byDay = useMemo(() => {
     const map = new Map<string, EditorialPost[]>()
-    for (const p of posts) {
+    for (const p of visiblePosts) {
       const list = map.get(p.date) ?? []
       list.push(p)
       map.set(p.date, list)
     }
     return map
-  }, [posts])
+  }, [visiblePosts])
 
   const openPost = openId ? posts.find((p) => p.id === openId) ?? null : null
 
@@ -952,10 +1313,12 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
           </div>
         </div>
 
+        <ApprovalFilterBar posts={posts} value={approvalFilter} onChange={setApprovalFilter} />
+
         {tab === 'calendario' ? (
           <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={openNew} onMove={movePost} />
         ) : (
-          <PostList posts={posts} onOpen={setOpenId} />
+          <PostList posts={visiblePosts} onOpen={setOpenId} />
         )}
       </Card>
 

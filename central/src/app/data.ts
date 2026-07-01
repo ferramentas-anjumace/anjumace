@@ -190,6 +190,36 @@ export type EditorialApproval = 'em-producao' | 'em-revisao' | 'aprovado' | 'rep
 /** Itens de checklist usados em "Falta o quê?" e "O que está pronto". */
 export type EditorialAsset = 'copy' | 'legenda' | 'imagens' | 'edicao' | 'roteiro' | 'cta'
 
+/** Etapa de aprovação editorial: a copy e a arte/vídeo são aprovadas separadamente. */
+export type ApprovalTrack = 'copy' | 'art'
+/** Situação de uma etapa de aprovação. */
+export type TrackStatus = 'pendente' | 'aprovado' | 'ajuste'
+
+export const TRACK_META: Record<ApprovalTrack, { label: string }> = {
+  copy: { label: 'Copy' },
+  art: { label: 'Arte / Vídeo' },
+}
+
+export const TRACK_STATUS_META: Record<TrackStatus, { label: string; tone: Tone }> = {
+  pendente: { label: 'Pendente', tone: 'neutral' },
+  aprovado: { label: 'Aprovado', tone: 'success' },
+  ajuste: { label: 'Ajustes pedidos', tone: 'danger' },
+}
+
+/** Evento no histórico de aprovação de um post. */
+export interface ApprovalEvent {
+  id: string
+  track: ApprovalTrack
+  status: TrackStatus
+  /** userId de quem registrou. */
+  by: string
+  byName: string
+  /** ISO timestamp. */
+  at: string
+  /** Observação — obrigatória ao pedir ajuste. */
+  note?: string
+}
+
 export const CHANNEL_META: Record<EditorialChannel, { label: string; tone: Tone }> = {
   instagram: { label: 'Instagram', tone: 'steel' },
   youtube: { label: 'YouTube', tone: 'danger' },
@@ -240,6 +270,16 @@ export interface EditorialPost {
   stage: EditorialStage
   /** "Aprovação Anju". */
   approval: EditorialApproval
+  /** Copy do post — texto do criativo que a Anju revisa. */
+  copy?: string
+  /** Legenda do post. */
+  caption?: string
+  /** Aprovação da COPY (etapa editorial). O provider sempre preenche (default 'pendente'). */
+  copyStatus?: TrackStatus
+  /** Aprovação da ARTE/VÍDEO (etapa editorial). O provider sempre preenche (default 'pendente'). */
+  artStatus?: TrackStatus
+  /** Histórico de aprovações (copy/arte). O provider sempre preenche (default []). */
+  approvalLog?: ApprovalEvent[]
   /** Descrição / conteúdo da demanda (briefing, roteiro, instruções). */
   description?: string
   /** "Comentário Anju". */
