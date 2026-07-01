@@ -10,7 +10,7 @@ import { useSession } from '@/lib/session'
    guarda nome/tipo/tamanho/autor. Download é por signed URL temporária.
 ---------------------------------------------------------------------------- */
 
-export type AttachmentEntity = 'task' | 'editorial'
+export type AttachmentEntity = 'task' | 'editorial' | 'chat_message'
 
 const BUCKET = 'attachments'
 export const MAX_BYTES = 25 * 1024 * 1024 // 25 MB (igual ao limite do bucket)
@@ -101,6 +101,8 @@ interface AttachmentsCtx {
   removeAttachment: (att: Attachment) => Promise<void>
   /** Gera uma URL temporária para baixar o arquivo (force download). */
   getDownloadUrl: (att: Attachment) => Promise<string | null>
+  /** Gera uma URL temporária para exibir o arquivo (ex.: <img> inline). */
+  getViewUrl: (att: Attachment) => Promise<string | null>
 }
 
 const Context = createContext<AttachmentsCtx | null>(null)
@@ -208,9 +210,17 @@ export function AttachmentsProvider({ children }: { children: React.ReactNode })
     return data.signedUrl
   }, [])
 
+  const getViewUrl = useCallback(async (att: Attachment) => {
+    // URL para exibição inline (sem forçar download) — vida útil maior, pois
+    // miniaturas podem permanecer na tela por mais tempo.
+    const { data, error } = await supabase.storage.from(att.bucket).createSignedUrl(att.path, 3600)
+    if (error || !data) return null
+    return data.signedUrl
+  }, [])
+
   const value = useMemo<AttachmentsCtx>(
-    () => ({ loading, getAttachments, count, addAttachment, removeAttachment, getDownloadUrl }),
-    [loading, getAttachments, count, addAttachment, removeAttachment, getDownloadUrl],
+    () => ({ loading, getAttachments, count, addAttachment, removeAttachment, getDownloadUrl, getViewUrl }),
+    [loading, getAttachments, count, addAttachment, removeAttachment, getDownloadUrl, getViewUrl],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

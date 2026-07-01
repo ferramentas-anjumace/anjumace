@@ -16,6 +16,7 @@ export interface AppNotification {
   title: string
   body: string | null
   taskId: string | null
+  chatChannelId: string | null
   read: boolean
   createdAt: string
 }
@@ -25,6 +26,7 @@ interface NotificationRow {
   title: string
   body: string | null
   task_id: string | null
+  chat_channel_id: string | null
   read: boolean
   created_at: string
 }
@@ -55,7 +57,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     if (!user.userId) return
     const { data, error } = await supabase
       .from('notifications')
-      .select('id, title, body, task_id, read, created_at')
+      .select('id, title, body, task_id, chat_channel_id, read, created_at')
       .eq('user_id', user.userId)
       .order('created_at', { ascending: false })
       .limit(30)
@@ -66,6 +68,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           title: r.title,
           body: r.body,
           taskId: r.task_id,
+          chatChannelId: r.chat_channel_id,
           read: r.read,
           createdAt: r.created_at,
         })),

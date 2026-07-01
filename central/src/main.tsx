@@ -32,6 +32,7 @@ import { ProfilesProvider } from './app/profiles'
 import { AgendaProvider } from './app/agenda'
 import { CatalogsProvider } from './app/catalogs'
 import { PaidTrafficProvider } from './app/paidTraffic'
+import { ChatProvider } from './app/chat'
 import { StyleguidePage } from './pages/Styleguide'
 import { AppShell } from './app/AppShell'
 import { DashboardPage } from './app/DashboardPage'
@@ -44,6 +45,7 @@ import { ReportsPage } from './app/ReportsPage'
 import { PaidTrafficPage } from './app/PaidTrafficPage'
 import { AccessPage } from './app/AccessPage'
 import { EditorialPage } from './app/EditorialPage'
+import { ChatPage } from './app/ChatPage'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/app" replace /> },
@@ -59,6 +61,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'editorial', element: <EditorialPage /> },
+      { path: 'chat', element: <ChatPage /> },
       { path: 'tarefas', element: <TasksPage /> },
       { path: 'agenda', element: <AgendaPage /> },
       { path: 'relatorios', element: <ReportsPage /> },
@@ -87,9 +90,11 @@ createRoot(document.getElementById('root')!).render(
                 <CommentsProvider>
                 <AttachmentsProvider>
                 <AgendaProvider>
+                <ChatProvider>
                   <ToastProvider>
                     <RouterProvider router={router} />
                   </ToastProvider>
+                </ChatProvider>
                 </AgendaProvider>
                 </AttachmentsProvider>
                 </CommentsProvider>

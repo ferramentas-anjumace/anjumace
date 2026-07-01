@@ -9,6 +9,7 @@ import {
   ListChecks,
   BarChart3,
   Megaphone,
+  MessagesSquare,
   Tags,
   Settings2,
   LogOut,
@@ -30,9 +31,11 @@ import {
   Button,
   useToast,
 } from '@/components/ui'
+import { cn } from '@/lib/cn'
 import { useSession } from '@/lib/session'
 import { usePermissions, type Capability } from '@/lib/permissions'
 import { useProfiles } from './profiles'
+import { useChat } from './chat'
 import { AvatarUploader } from './AvatarUploader'
 import { NotificationsBell } from './NotificationsBell'
 import { GlobalSearch } from './GlobalSearch'
@@ -77,6 +80,7 @@ export function AppShell() {
   const { user, signOut, isManager } = useSession()
   const { can } = usePermissions()
   const { members, setMemberAvatar } = useProfiles()
+  const { totalUnread } = useChat()
   const toast = useToast()
   const [accountOpen, setAccountOpen] = useState(false)
 
@@ -168,6 +172,32 @@ export function AppShell() {
               ))}
             </SidebarGroup>
           ))}
+
+          {/* Chat — fixado no rodapé, com destaque visual próprio. */}
+          <a
+            href="/app/chat"
+            onClick={go('/app/chat')}
+            aria-current={isActive('/app/chat') ? 'page' : undefined}
+            className={cn(
+              'group mt-auto flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-body-s font-medium transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+              isActive('/app/chat')
+                ? 'border-transparent bg-steel-500 text-accent-fg shadow-e1'
+                : 'border-steel-500/30 bg-steel-tint text-steel-200 hover:bg-steel-500/25 hover:text-strong',
+            )}
+          >
+            <MessagesSquare size={19} strokeWidth={1.5} className="shrink-0" aria-hidden />
+            <span className="flex-1">Chat</span>
+            {totalUnread > 0 && (
+              <span
+                className={cn(
+                  'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                  isActive('/app/chat') ? 'bg-accent-fg/25 text-accent-fg' : 'bg-steel-500 text-accent-fg',
+                )}
+              >
+                {totalUnread > 99 ? '99+' : totalUnread}
+              </span>
+            )}
+          </a>
         </Sidebar>
 
         <main className="min-w-0 flex-1 overflow-y-auto">
