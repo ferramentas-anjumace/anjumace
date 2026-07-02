@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import {
-  Plus, Upload, Download, Trash2, CalendarClock, MessageSquarePlus, FileDown,
+  Plus, Upload, Download, Trash2, CalendarClock, MessageSquarePlus, FileDown, Maximize2,
 } from 'lucide-react'
 import {
   Card, CardHeader, CardTitle, StatCard, Button, IconButton, Input, Textarea, Select,
@@ -10,10 +11,11 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import {
-  useCrm, fmtBRL, fmtDateBR, isActiveLead,
+  useCrm, fmtBRL, fmtDateBR, isActiveLead, isWon, isLost, isInactive,
   buildKpis, breakdownBy, ownerStats,
   parseLeadsCsv, leadsToCsv, leadsCsvTemplate, downloadText,
   type Lead, type LeadInteraction,
@@ -86,6 +88,7 @@ type OwnerFilter = 'all' | 'me' | string
 
 export function CrmPage() {
   const { user, isManager } = useSession()
+  const { can } = usePermissions()
   const { members, getMember } = useProfiles()
   const { items } = useCatalogs()
   const { toast } = useToast()
@@ -111,6 +114,9 @@ export function CrmPage() {
       return true
     })
   }, [leads, owner, query, user.id])
+
+  // Guarda de permissão: sem `manage_crm` a seção não é acessível (nem por URL).
+  if (!can('manage_crm')) return <Navigate to="/app" replace />
 
   const statusCols = items('crm_status')
 
@@ -173,6 +179,7 @@ export function CrmPage() {
         <TabList aria-label="Visões do CRM">
           <Tab value="pipeline">Pipeline</Tab>
           <Tab value="leads">Leads</Tab>
+          <Tab value="planilha">Planilha</Tab>
           <Tab value="dashboard">Dashboard</Tab>
         </TabList>
 
@@ -203,6 +210,10 @@ export function CrmPage() {
             interactionCount={interactionCount}
             onOpen={setOpenId}
           />
+        </TabPanel>
+
+        <TabPanel value="planilha">
+          <SpreadsheetView leads={filtered} isManager={isManager} onOpen={setOpenId} />
         </TabPanel>
 
         <TabPanel value="dashboard">
@@ -408,6 +419,162 @@ function LeadsTable({
       </Table>
     </div>
   )
+}
+
+/* --------------------------------------------------- planilha (grade editável) */
+
+// Célula editável genérica: input transparente que "acende" ao focar.
+const GRID_INPUT = 'w-full min-w-0 bg-transparent px-2 py-1.5 text-body-s text-fg rounded-sm focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-steel-500'
+
+function GridText({ value, onChange, type = 'text', align }: {
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  align?: 'right'
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn(GRID_INPUT, align === 'right' && 'text-right tabular-nums')}
+    />
+  )
+}
+
+function GridDate({ value, onChange }: { value?: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <input
+      type="date"
+      value={value ?? ''}
+      onChange={(e) => onChange(e.target.value || null)}
+      className={cn(GRID_INPUT, 'tabular-nums [color-scheme:dark]')}
+    />
+  )
+}
+
+function GridCatSelect({ catalog, value, onChange }: { catalog: CatalogKey; value?: string; onChange: (v: string) => void }) {
+  const { items } = useCatalogs()
+  return (
+    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={cn(GRID_INPUT, 'cursor-pointer')}>
+      <option value="">—</option>
+      {items(catalog).map((it) => (
+        <option key={it.id} value={it.value}>{it.label}</option>
+      ))}
+    </select>
+  )
+}
+
+function SpreadsheetView({ leads, isManager, onOpen }: { leads: Lead[]; isManager: boolean; onOpen: (id: string) => void }) {
+  const { updateLead, setLeadStatus, removeLead, lastContactAt, interactionCount } = useCrm()
+  const { members } = useProfiles()
+  const { items } = useCatalogs()
+  const statusOpts = items('crm_status')
+
+  if (leads.length === 0) {
+    return <EmptyState className="my-8" title="Nenhum lead" description="Adicione um lead ou importe a base por CSV." />
+  }
+
+  const th = 'whitespace-nowrap border-b border-line px-2 py-2 text-left font-mono text-[11px] uppercase text-muted'
+  const td = 'border-b border-r border-subtle align-middle'
+
+  const resultOf = (status: string) => {
+    if (isWon(status)) return <CatalogChip label="Ganho" tone="success" />
+    if (isLost(status)) return <CatalogChip label="Perdido" tone="danger" />
+    if (isInactive(status)) return <CatalogChip label="Inativo" tone="neutral" />
+    return <span className="px-2 text-faint">—</span>
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-line">
+      <table className="min-w-[2000px] border-collapse">
+        <thead className="bg-ink-deep/50">
+          <tr>
+            <th className={cn(th, 'w-10 text-center')}>#</th>
+            <th className={cn(th, 'border-r border-subtle')}>Nome</th>
+            <th className={th}>WhatsApp</th>
+            <th className={th}>E-mail</th>
+            <th className={th}>Origem</th>
+            <th className={th}>Produto/Serviço</th>
+            <th className={cn(th, 'text-right')}>Valor (R$)</th>
+            <th className={th}>Etapa do Funil</th>
+            <th className={th}>Status</th>
+            <th className={th}>Responsável</th>
+            <th className={th}>1º Contato</th>
+            <th className={th}>Últ. Contato</th>
+            <th className={th}>Próx. Follow-up</th>
+            <th className={cn(th, 'text-right')}>Qtd.</th>
+            <th className={th}>Canal</th>
+            <th className={th}>Interesse</th>
+            <th className={th}>Objeção Principal</th>
+            <th className={th}>Histórico / Observações</th>
+            <th className={th}>Fechamento</th>
+            <th className={th}>Resultado</th>
+            <th className={cn(th, 'w-16 text-center')}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {leads.map((l, idx) => {
+            const set = (patch: Partial<Lead>) => updateLead(l.id, patch)
+            return (
+              <tr key={l.id} className="hover:bg-slate-900/40">
+                <td className={cn(td, 'px-2 text-center font-mono text-[11px] text-faint tabular-nums')}>{idx + 1}</td>
+                <td className={cn(td, 'min-w-[180px] border-r-line')}>
+                  <GridText value={l.name} onChange={(v) => set({ name: v })} />
+                </td>
+                <td className={cn(td, 'min-w-[130px]')}><GridText value={l.whatsapp ?? ''} onChange={(v) => set({ whatsapp: v })} /></td>
+                <td className={cn(td, 'min-w-[180px]')}><GridText type="email" value={l.email ?? ''} onChange={(v) => set({ email: v })} /></td>
+                <td className={cn(td, 'min-w-[120px]')}><GridCatSelect catalog="crm_origin" value={l.origin} onChange={(v) => set({ origin: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_product" value={l.product} onChange={(v) => set({ product: v })} /></td>
+                <td className={cn(td, 'min-w-[110px]')}>
+                  <GridText align="right" type="number" value={l.potentialValue ? String(l.potentialValue) : ''} onChange={(v) => set({ potentialValue: Number(v) || 0 })} />
+                </td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_funnel_stage" value={l.funnelStage} onChange={(v) => set({ funnelStage: v })} /></td>
+                <td className={cn(td, 'min-w-[150px]')}>
+                  <select value={l.status} onChange={(e) => setLeadStatus(l.id, e.target.value)} className={cn(GRID_INPUT, 'cursor-pointer font-medium')}>
+                    {statusOpts.map((it) => <option key={it.id} value={it.value}>{it.label}</option>)}
+                  </select>
+                </td>
+                <td className={cn(td, 'min-w-[130px]')}>
+                  <select value={l.ownerId ?? ''} onChange={(e) => set({ ownerId: e.target.value || null })} className={cn(GRID_INPUT, 'cursor-pointer')}>
+                    <option value="">—</option>
+                    {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.firstContactAt} onChange={(v) => set({ firstContactAt: v })} /></td>
+                <td className={cn(td, 'min-w-[110px] px-2 font-mono text-mono-data text-faint tabular-nums')}>{fmtDateBR(lastContactAt(l)) || '—'}</td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.nextFollowupAt} onChange={(v) => set({ nextFollowupAt: v })} /></td>
+                <td className={cn(td, 'px-2 text-right font-mono text-mono-data text-muted tabular-nums')}>{interactionCount(l.id)}</td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_channel" value={l.contactChannel} onChange={(v) => set({ contactChannel: v })} /></td>
+                <td className={cn(td, 'min-w-[100px]')}><GridCatSelect catalog="crm_interest" value={l.interest} onChange={(v) => set({ interest: v })} /></td>
+                <td className={cn(td, 'min-w-[200px]')}><GridText value={l.mainObjection ?? ''} onChange={(v) => set({ mainObjection: v })} /></td>
+                <td className={cn(td, 'min-w-[280px]')}><GridText value={l.notes ?? ''} onChange={(v) => set({ notes: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.closedAt} onChange={(v) => set({ closedAt: v })} /></td>
+                <td className={cn(td, 'min-w-[110px] px-1')}>{resultOf(l.status)}</td>
+                <td className={cn(td, 'border-r-0 px-1')}>
+                  <div className="flex items-center justify-center gap-0.5">
+                    <IconButton aria-label="Abrir ficha" size="sm" onClick={() => onOpen(l.id)}>
+                      <Maximize2 size={14} strokeWidth={1.5} aria-hidden />
+                    </IconButton>
+                    {isManager && (
+                      <IconButton aria-label="Excluir lead" size="sm" onClick={() => { if (confirm(`Excluir "${l.name}"?`)) removeLead(l.id) }}>
+                        <Trash2 size={14} strokeWidth={1.5} aria-hidden />
+                      </IconButton>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** Chip compacto para a coluna Resultado (não-editável). */
+function CatalogChip({ label, tone }: { label: string; tone: 'success' | 'danger' | 'neutral' }) {
+  return <CatalogBadge tone={tone} size="sm">{label}</CatalogBadge>
 }
 
 /* ------------------------------------------------------------- dashboard */

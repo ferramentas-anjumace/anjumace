@@ -73,7 +73,7 @@ export default async function handler(req: any, res: any) {
   const email = String(body.email || '').trim()
   const password = String(body.password || '')
   const name = String(body.name || '').trim()
-  const role = ['admin', 'lideranca', 'time'].includes(body.role) ? body.role : 'time'
+  const role = ['admin', 'lideranca', 'comercial', 'social', 'time'].includes(body.role) ? body.role : 'time'
   const team = body.team ? String(body.team).trim() : null
 
   if (!email || !password) {

@@ -18,12 +18,14 @@ import { supabase } from './supabase'
                 usado para "Minhas tarefas". Sem ele, o id é o uuid do Supabase.
 ---------------------------------------------------------------------------- */
 
-export type Role = 'admin' | 'lideranca' | 'time'
+export type Role = 'admin' | 'lideranca' | 'time' | 'comercial' | 'social'
 
 /** Rótulo exibido para cada papel. */
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'Administrador',
   lideranca: 'Liderança',
+  comercial: 'Comercial',
+  social: 'Social Media',
   time: 'Time',
 }
 
@@ -52,7 +54,12 @@ function profileFromSession(session: Session | null): { profile: Profile; role: 
   if (!u) return { profile: EMPTY_PROFILE, role: 'time' }
   const meta = (u.user_metadata ?? {}) as { role?: string; name?: string; member_id?: string }
   // Mapeia o valor cru do metadata (tolerando o antigo 'colaborador' → 'time').
-  const role: Role = meta.role === 'admin' ? 'admin' : meta.role === 'lideranca' ? 'lideranca' : 'time'
+  const role: Role =
+    meta.role === 'admin' ? 'admin'
+    : meta.role === 'lideranca' ? 'lideranca'
+    : meta.role === 'comercial' ? 'comercial'
+    : meta.role === 'social' ? 'social'
+    : 'time'
   const email = u.email ?? ''
   return {
     profile: {
@@ -119,7 +126,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         .then(({ data }) => {
           if (!active) return
           const r = data?.role
-          setDbRole(r === 'admin' ? 'admin' : r === 'lideranca' ? 'lideranca' : r === 'time' ? 'time' : null)
+          setDbRole(
+            r === 'admin' ? 'admin'
+            : r === 'lideranca' ? 'lideranca'
+            : r === 'comercial' ? 'comercial'
+            : r === 'social' ? 'social'
+            : r === 'time' ? 'time'
+            : null,
+          )
         })
     load()
     // Reavalia ao voltar o foco — pega mudanças de papel feitas por um gestor.

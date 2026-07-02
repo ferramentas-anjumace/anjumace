@@ -10,25 +10,33 @@ import { useSession, type Role } from './session'
    (função public.can). Admin tem SEMPRE tudo.
 ---------------------------------------------------------------------------- */
 
-export type Capability = 'create_task' | 'move_task' | 'manage_users' | 'manage_resources'
+export type Capability =
+  | 'create_task' | 'move_task' | 'manage_users' | 'manage_resources' | 'manage_crm' | 'manage_social'
 
 export const CAPABILITIES: { key: Capability; label: string; hint: string }[] = [
   { key: 'create_task', label: 'Criar tarefas', hint: 'Subir novas demandas no quadro.' },
   { key: 'move_task', label: 'Mover/concluir tarefas', hint: 'Arrastar entre etapas e concluir.' },
   { key: 'manage_users', label: 'Gerir usuários', hint: 'Criar/excluir pessoas e trocar papéis.' },
-  { key: 'manage_resources', label: 'Gerir acessos, agenda e editorial', hint: 'Credenciais, agenda, calendário e conteúdo.' },
+  { key: 'manage_resources', label: 'Gerir acessos, agenda e catálogos', hint: 'Credenciais, agenda e catálogos.' },
+  { key: 'manage_crm', label: 'Gerir CRM comercial', hint: 'Ver e editar leads, pipeline e histórico do CRM.' },
+  { key: 'manage_social', label: 'Gerir Social Media', hint: 'Editar o Calendário de Conteúdos e a área de métricas do Instagram.' },
 ]
 
 export type RoleCaps = Record<Capability, boolean>
 export type PermissionMatrix = Record<Role, RoleCaps>
 
-const ALL_TRUE: RoleCaps = { create_task: true, move_task: true, manage_users: true, manage_resources: true }
+const ALL_TRUE: RoleCaps = { create_task: true, move_task: true, manage_users: true, manage_resources: true, manage_crm: true, manage_social: true }
 
 /** Fallback até carregar do banco (mesmos defaults da migration). */
 const DEFAULT_MATRIX: PermissionMatrix = {
   admin: { ...ALL_TRUE },
   lideranca: { ...ALL_TRUE },
-  time: { create_task: false, move_task: true, manage_users: false, manage_resources: false },
+  // Comercial: executa tarefas como o Time, porém com acesso ao CRM.
+  comercial: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_crm: true, manage_social: false },
+  // Social Media: executa tarefas como o Time, porém gerindo o Editorial/Social.
+  social: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_crm: false, manage_social: true },
+  // Time: sem CRM nem Social (exclusivos dos papéis dedicados + gestores).
+  time: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_crm: false, manage_social: false },
 }
 
 interface PermissionRow {
@@ -37,6 +45,8 @@ interface PermissionRow {
   move_task: boolean
   manage_users: boolean
   manage_resources: boolean
+  manage_crm: boolean
+  manage_social: boolean
 }
 
 interface PermissionsCtx {
@@ -61,7 +71,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const refresh = useCallback(async () => {
     const { data, error } = await supabase
       .from('role_permissions')
-      .select('role, create_task, move_task, manage_users, manage_resources')
+      .select('role, create_task, move_task, manage_users, manage_resources, manage_crm, manage_social')
     if (!error && data) {
       const next: PermissionMatrix = { ...DEFAULT_MATRIX }
       for (const r of data as PermissionRow[]) {
@@ -70,6 +80,8 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
           move_task: r.move_task,
           manage_users: r.manage_users,
           manage_resources: r.manage_resources,
+          manage_crm: r.manage_crm,
+          manage_social: r.manage_social,
         }
       }
       next.admin = { ...ALL_TRUE } // admin sempre tudo

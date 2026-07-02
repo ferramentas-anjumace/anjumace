@@ -31,9 +31,11 @@ import { usePermissions } from '@/lib/permissions'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
 
-const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral'> = {
+const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral' | 'sand' | 'warning'> = {
   admin: 'steel',
   lideranca: 'success',
+  comercial: 'sand',
+  social: 'warning',
   time: 'neutral',
 }
 /** Administrador e Liderança são gestores — recebem o ponto de destaque. */
@@ -89,6 +91,8 @@ function EditMemberModal({
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
         <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
           <option value="time">Time</option>
+          <option value="comercial">Comercial</option>
+          <option value="social">Social Media</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
         </Select>
@@ -181,6 +185,8 @@ export function UsersPage() {
     todos: members.length,
     admin: members.filter((u) => u.role === 'admin').length,
     lideranca: members.filter((u) => u.role === 'lideranca').length,
+    comercial: members.filter((u) => u.role === 'comercial').length,
+    social: members.filter((u) => u.role === 'social').length,
     time: members.filter((u) => u.role === 'time').length,
   }
 
@@ -250,6 +256,8 @@ export function UsersPage() {
           <Tab value="todos" badge={<Badge tone="neutral">{counts.todos}</Badge>}>Todos</Tab>
           <Tab value="admin" badge={<Badge tone="steel">{counts.admin}</Badge>}>Administradores</Tab>
           <Tab value="lideranca" badge={<Badge tone="success">{counts.lideranca}</Badge>}>Liderança</Tab>
+          <Tab value="comercial" badge={<Badge tone="sand">{counts.comercial}</Badge>}>Comercial</Tab>
+          <Tab value="social" badge={<Badge tone="warning">{counts.social}</Badge>}>Social Media</Tab>
           <Tab value="time" badge={<Badge tone="neutral">{counts.time}</Badge>}>Time</Tab>
         </TabList>
       </Tabs>

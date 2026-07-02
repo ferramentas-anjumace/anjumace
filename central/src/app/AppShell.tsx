@@ -77,7 +77,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
   {
     group: 'Comercial',
     items: [
-      { to: '/app/crm', label: 'CRM', icon: <Contact size={18} strokeWidth={1.5} /> },
+      { to: '/app/crm', label: 'CRM', icon: <Contact size={18} strokeWidth={1.5} />, need: 'manage_crm' },
     ],
   },
   {

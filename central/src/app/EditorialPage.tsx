@@ -5,7 +5,7 @@ import { ANJU_ID } from '@/lib/tenant'
 /** Editorial — calendário de criativos e fluxo de produção da Anju Mace. */
 export function EditorialPage() {
   const { can } = usePermissions()
-  const isManager = can('manage_resources')
+  const isManager = can('manage_social')
   return (
     <div className="mx-auto max-w-screen-2xl px-6 py-8">
       <div className="mb-6">
