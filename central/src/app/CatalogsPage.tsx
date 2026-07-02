@@ -200,7 +200,7 @@ export function CatalogsPage() {
   const [editorItem, setEditorItem] = useState<CatalogItem | null>(null)
 
   // Só gestores de recursos.
-  if (!can('manage_resources')) return <Navigate to="/app" replace />
+  if (!can('manage_catalogs')) return <Navigate to="/app" replace />
 
   const openAdd = (catalog: CatalogKey) => {
     setEditorCatalog(catalog)

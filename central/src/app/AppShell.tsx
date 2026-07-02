@@ -85,7 +85,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
     items: [
       { to: '/app/usuarios', label: 'Equipe', icon: <Users size={18} strokeWidth={1.5} />, need: 'manage_users' },
       { to: '/app/acessos', label: 'Acessos', icon: <KeyRound size={18} strokeWidth={1.5} /> },
-      { to: '/app/catalogos', label: 'Catálogos', icon: <Tags size={18} strokeWidth={1.5} />, need: 'manage_resources' },
+      { to: '/app/catalogos', label: 'Catálogos', icon: <Tags size={18} strokeWidth={1.5} />, need: 'manage_catalogs' },
       { to: '/app/config', label: 'Permissões', icon: <Settings2 size={18} strokeWidth={1.5} />, need: 'manage_users' },
     ],
   },
