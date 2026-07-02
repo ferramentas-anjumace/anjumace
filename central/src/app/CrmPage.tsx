@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import {
   Plus, Upload, Download, Trash2, CalendarClock, MessageSquarePlus, FileDown, Maximize2,
 } from 'lucide-react'
@@ -50,7 +49,7 @@ function todayIso(): string {
 /* ------------------------------------------------------------- select de catálogo */
 
 function CatalogSelect({
-  catalog, value, onChange, label, placeholder, className,
+  catalog, value, onChange, label, placeholder, className, disabled,
 }: {
   catalog: CatalogKey
   value?: string
@@ -58,6 +57,7 @@ function CatalogSelect({
   label?: React.ReactNode
   placeholder?: string
   className?: string
+  disabled?: boolean
 }) {
   const { items } = useCatalogs()
   return (
@@ -65,6 +65,7 @@ function CatalogSelect({
       label={label}
       className={className}
       value={value ?? ''}
+      disabled={disabled}
       placeholder={placeholder ?? 'Selecione…'}
       onChange={(e) => onChange(e.target.value)}
     >
@@ -115,8 +116,8 @@ export function CrmPage() {
     })
   }, [leads, owner, query, user.id])
 
-  // Guarda de permissão: sem `manage_crm` a seção não é acessível (nem por URL).
-  if (!can('manage_crm')) return <Navigate to="/app" replace />
+  // Todos veem o CRM; só quem tem `manage_crm` edita (o resto é só-leitura).
+  const canManage = can('manage_crm')
 
   const statusCols = items('crm_status')
 
@@ -143,15 +144,19 @@ export function CrmPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" leftIcon={<Upload size={16} strokeWidth={1.5} />} onClick={() => setImportOpen(true)}>
-            Importar CSV
-          </Button>
+          {canManage && (
+            <Button variant="secondary" size="sm" leftIcon={<Upload size={16} strokeWidth={1.5} />} onClick={() => setImportOpen(true)}>
+              Importar CSV
+            </Button>
+          )}
           <Button variant="secondary" size="sm" leftIcon={<Download size={16} strokeWidth={1.5} />} onClick={handleExport}>
             Exportar
           </Button>
-          <Button size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={handleNewLead}>
-            Novo lead
-          </Button>
+          {canManage && (
+            <Button size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={handleNewLead}>
+              Novo lead
+            </Button>
+          )}
         </div>
       </div>
 
@@ -190,6 +195,7 @@ export function CrmPage() {
             <PipelineBoard
               columns={statusCols.map((s) => ({ value: s.value, label: s.label }))}
               leads={filtered}
+              canManage={canManage}
               memberName={memberName}
               lastContactAt={lastContactAt}
               interactionCount={interactionCount}
@@ -213,7 +219,7 @@ export function CrmPage() {
         </TabPanel>
 
         <TabPanel value="planilha">
-          <SpreadsheetView leads={filtered} isManager={isManager} onOpen={setOpenId} />
+          <SpreadsheetView leads={filtered} canManage={canManage} isManager={isManager} onOpen={setOpenId} />
         </TabPanel>
 
         <TabPanel value="dashboard">
@@ -222,7 +228,7 @@ export function CrmPage() {
       </Tabs>
 
       {openId && (
-        <LeadDrawer leadId={openId} onClose={() => setOpenId(null)} canDelete={isManager} />
+        <LeadDrawer leadId={openId} onClose={() => setOpenId(null)} canManage={canManage} canDelete={isManager} />
       )}
 
       {importOpen && (
@@ -250,10 +256,11 @@ interface CardHelpers {
 }
 
 function PipelineBoard({
-  columns, leads, onOpen, onDrop, onQuickAdd, ...helpers
+  columns, leads, canManage, onOpen, onDrop, onQuickAdd, ...helpers
 }: {
   columns: { value: string; label: string }[]
   leads: Lead[]
+  canManage: boolean
   onOpen: (id: string) => void
   onDrop: (id: string, status: string) => void
   onQuickAdd: (status: string, name: string) => void
@@ -267,14 +274,14 @@ function PipelineBoard({
         return (
           <div
             key={col.value}
-            onDragOver={(e) => { e.preventDefault(); setOver(col.value) }}
-            onDragLeave={() => setOver((s) => (s === col.value ? null : s))}
-            onDrop={(e) => {
+            onDragOver={canManage ? (e) => { e.preventDefault(); setOver(col.value) } : undefined}
+            onDragLeave={canManage ? () => setOver((s) => (s === col.value ? null : s)) : undefined}
+            onDrop={canManage ? (e) => {
               e.preventDefault()
               const id = e.dataTransfer.getData('text/plain')
               if (id) onDrop(id, col.value)
               setOver(null)
-            }}
+            } : undefined}
             className={cn(
               'flex w-72 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors',
               over === col.value ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30',
@@ -291,13 +298,14 @@ function PipelineBoard({
               <LeadCard
                 key={lead.id}
                 lead={lead}
+                canDrag={canManage}
                 onOpen={() => onOpen(lead.id)}
                 onDragStart={(e) => e.dataTransfer.setData('text/plain', lead.id)}
                 {...helpers}
               />
             ))}
             {items.length === 0 && <p className="px-1 py-4 text-center text-body-s text-faint">Vazio.</p>}
-            <QuickAddLead onAdd={(name) => onQuickAdd(col.value, name)} />
+            {canManage && <QuickAddLead onAdd={(name) => onQuickAdd(col.value, name)} />}
           </div>
         )
       })}
@@ -306,9 +314,10 @@ function PipelineBoard({
 }
 
 function LeadCard({
-  lead, onOpen, onDragStart, interactionCount,
+  lead, canDrag, onOpen, onDragStart, interactionCount,
 }: {
   lead: Lead
+  canDrag: boolean
   onOpen: () => void
   onDragStart: (e: React.DragEvent) => void
 } & CardHelpers) {
@@ -318,13 +327,16 @@ function LeadCard({
   const nInteractions = interactionCount(lead.id)
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
+      draggable={canDrag}
+      onDragStart={canDrag ? onDragStart : undefined}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
-      className="group flex cursor-grab select-none flex-col gap-2.5 rounded-lg border border-line bg-slate-900 p-3 transition-colors hover:border-strong focus-visible:outline-none focus-visible:shadow-focus active:cursor-grabbing"
+      className={cn(
+        'group flex select-none flex-col gap-2.5 rounded-lg border border-line bg-slate-900 p-3 transition-colors hover:border-strong focus-visible:outline-none focus-visible:shadow-focus',
+        canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 flex-1 truncate text-body-s font-medium text-strong">{lead.name}</span>
@@ -426,37 +438,40 @@ function LeadsTable({
 // Célula editável genérica: input transparente que "acende" ao focar.
 const GRID_INPUT = 'w-full min-w-0 bg-transparent px-2 py-1.5 text-body-s text-fg rounded-sm focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-steel-500'
 
-function GridText({ value, onChange, type = 'text', align }: {
+function GridText({ value, onChange, type = 'text', align, disabled }: {
   value: string
   onChange: (v: string) => void
   type?: string
   align?: 'right'
+  disabled?: boolean
 }) {
   return (
     <input
       type={type}
       value={value}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      className={cn(GRID_INPUT, align === 'right' && 'text-right tabular-nums')}
+      className={cn(GRID_INPUT, align === 'right' && 'text-right tabular-nums', disabled && 'cursor-default')}
     />
   )
 }
 
-function GridDate({ value, onChange }: { value?: string | null; onChange: (v: string | null) => void }) {
+function GridDate({ value, onChange, disabled }: { value?: string | null; onChange: (v: string | null) => void; disabled?: boolean }) {
   return (
     <input
       type="date"
       value={value ?? ''}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value || null)}
-      className={cn(GRID_INPUT, 'tabular-nums [color-scheme:dark]')}
+      className={cn(GRID_INPUT, 'tabular-nums [color-scheme:dark]', disabled && 'cursor-default')}
     />
   )
 }
 
-function GridCatSelect({ catalog, value, onChange }: { catalog: CatalogKey; value?: string; onChange: (v: string) => void }) {
+function GridCatSelect({ catalog, value, onChange, disabled }: { catalog: CatalogKey; value?: string; onChange: (v: string) => void; disabled?: boolean }) {
   const { items } = useCatalogs()
   return (
-    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={cn(GRID_INPUT, 'cursor-pointer')}>
+    <select value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)} className={cn(GRID_INPUT, disabled ? 'cursor-default' : 'cursor-pointer')}>
       <option value="">—</option>
       {items(catalog).map((it) => (
         <option key={it.id} value={it.value}>{it.label}</option>
@@ -465,8 +480,9 @@ function GridCatSelect({ catalog, value, onChange }: { catalog: CatalogKey; valu
   )
 }
 
-function SpreadsheetView({ leads, isManager, onOpen }: { leads: Lead[]; isManager: boolean; onOpen: (id: string) => void }) {
+function SpreadsheetView({ leads, canManage, isManager, onOpen }: { leads: Lead[]; canManage: boolean; isManager: boolean; onOpen: (id: string) => void }) {
   const { updateLead, setLeadStatus, removeLead, lastContactAt, interactionCount } = useCrm()
+  const ro = !canManage
   const { members } = useProfiles()
   const { items } = useCatalogs()
   const statusOpts = items('crm_status')
@@ -520,36 +536,36 @@ function SpreadsheetView({ leads, isManager, onOpen }: { leads: Lead[]; isManage
               <tr key={l.id} className="hover:bg-slate-900/40">
                 <td className={cn(td, 'px-2 text-center font-mono text-[11px] text-faint tabular-nums')}>{idx + 1}</td>
                 <td className={cn(td, 'min-w-[180px] border-r-line')}>
-                  <GridText value={l.name} onChange={(v) => set({ name: v })} />
+                  <GridText value={l.name} disabled={ro} onChange={(v) => set({ name: v })} />
                 </td>
-                <td className={cn(td, 'min-w-[130px]')}><GridText value={l.whatsapp ?? ''} onChange={(v) => set({ whatsapp: v })} /></td>
-                <td className={cn(td, 'min-w-[180px]')}><GridText type="email" value={l.email ?? ''} onChange={(v) => set({ email: v })} /></td>
-                <td className={cn(td, 'min-w-[120px]')}><GridCatSelect catalog="crm_origin" value={l.origin} onChange={(v) => set({ origin: v })} /></td>
-                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_product" value={l.product} onChange={(v) => set({ product: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridText value={l.whatsapp ?? ''} disabled={ro} onChange={(v) => set({ whatsapp: v })} /></td>
+                <td className={cn(td, 'min-w-[180px]')}><GridText type="email" value={l.email ?? ''} disabled={ro} onChange={(v) => set({ email: v })} /></td>
+                <td className={cn(td, 'min-w-[120px]')}><GridCatSelect catalog="crm_origin" value={l.origin} disabled={ro} onChange={(v) => set({ origin: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_product" value={l.product} disabled={ro} onChange={(v) => set({ product: v })} /></td>
                 <td className={cn(td, 'min-w-[110px]')}>
-                  <GridText align="right" type="number" value={l.potentialValue ? String(l.potentialValue) : ''} onChange={(v) => set({ potentialValue: Number(v) || 0 })} />
+                  <GridText align="right" type="number" value={l.potentialValue ? String(l.potentialValue) : ''} disabled={ro} onChange={(v) => set({ potentialValue: Number(v) || 0 })} />
                 </td>
-                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_funnel_stage" value={l.funnelStage} onChange={(v) => set({ funnelStage: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_funnel_stage" value={l.funnelStage} disabled={ro} onChange={(v) => set({ funnelStage: v })} /></td>
                 <td className={cn(td, 'min-w-[150px]')}>
-                  <select value={l.status} onChange={(e) => setLeadStatus(l.id, e.target.value)} className={cn(GRID_INPUT, 'cursor-pointer font-medium')}>
+                  <select value={l.status} disabled={ro} onChange={(e) => setLeadStatus(l.id, e.target.value)} className={cn(GRID_INPUT, 'font-medium', ro ? 'cursor-default' : 'cursor-pointer')}>
                     {statusOpts.map((it) => <option key={it.id} value={it.value}>{it.label}</option>)}
                   </select>
                 </td>
                 <td className={cn(td, 'min-w-[130px]')}>
-                  <select value={l.ownerId ?? ''} onChange={(e) => set({ ownerId: e.target.value || null })} className={cn(GRID_INPUT, 'cursor-pointer')}>
+                  <select value={l.ownerId ?? ''} disabled={ro} onChange={(e) => set({ ownerId: e.target.value || null })} className={cn(GRID_INPUT, ro ? 'cursor-default' : 'cursor-pointer')}>
                     <option value="">—</option>
                     {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </td>
-                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.firstContactAt} onChange={(v) => set({ firstContactAt: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.firstContactAt} disabled={ro} onChange={(v) => set({ firstContactAt: v })} /></td>
                 <td className={cn(td, 'min-w-[110px] px-2 font-mono text-mono-data text-faint tabular-nums')}>{fmtDateBR(lastContactAt(l)) || '—'}</td>
-                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.nextFollowupAt} onChange={(v) => set({ nextFollowupAt: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.nextFollowupAt} disabled={ro} onChange={(v) => set({ nextFollowupAt: v })} /></td>
                 <td className={cn(td, 'px-2 text-right font-mono text-mono-data text-muted tabular-nums')}>{interactionCount(l.id)}</td>
-                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_channel" value={l.contactChannel} onChange={(v) => set({ contactChannel: v })} /></td>
-                <td className={cn(td, 'min-w-[100px]')}><GridCatSelect catalog="crm_interest" value={l.interest} onChange={(v) => set({ interest: v })} /></td>
-                <td className={cn(td, 'min-w-[200px]')}><GridText value={l.mainObjection ?? ''} onChange={(v) => set({ mainObjection: v })} /></td>
-                <td className={cn(td, 'min-w-[280px]')}><GridText value={l.notes ?? ''} onChange={(v) => set({ notes: v })} /></td>
-                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.closedAt} onChange={(v) => set({ closedAt: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_channel" value={l.contactChannel} disabled={ro} onChange={(v) => set({ contactChannel: v })} /></td>
+                <td className={cn(td, 'min-w-[100px]')}><GridCatSelect catalog="crm_interest" value={l.interest} disabled={ro} onChange={(v) => set({ interest: v })} /></td>
+                <td className={cn(td, 'min-w-[200px]')}><GridText value={l.mainObjection ?? ''} disabled={ro} onChange={(v) => set({ mainObjection: v })} /></td>
+                <td className={cn(td, 'min-w-[280px]')}><GridText value={l.notes ?? ''} disabled={ro} onChange={(v) => set({ notes: v })} /></td>
+                <td className={cn(td, 'min-w-[130px]')}><GridDate value={l.closedAt} disabled={ro} onChange={(v) => set({ closedAt: v })} /></td>
                 <td className={cn(td, 'min-w-[110px] px-1')}>{resultOf(l.status)}</td>
                 <td className={cn(td, 'border-r-0 px-1')}>
                   <div className="flex items-center justify-center gap-0.5">
@@ -684,7 +700,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: () => void; canDelete: boolean }) {
+function LeadDrawer({ leadId, onClose, canManage, canDelete }: { leadId: string; onClose: () => void; canManage: boolean; canDelete: boolean }) {
   const { leads, updateLead, removeLead } = useCrm()
   const { members } = useProfiles()
   const { toast } = useToast()
@@ -692,6 +708,7 @@ function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: (
   const [confirmDel, setConfirmDel] = useState(false)
 
   if (!lead) return null
+  const ro = !canManage
   const set = (patch: Partial<Lead>) => updateLead(lead.id, patch)
 
   const ownerOptions = members.map((m) => ({
@@ -704,21 +721,21 @@ function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: (
     <Drawer open onClose={onClose} width={560} title={lead.name || 'Lead'} description="Ficha do lead e histórico de contatos">
       <div className="flex flex-col gap-5">
         <Field label="Nome">
-          <Input value={lead.name} onChange={(e) => set({ name: e.target.value })} placeholder="Nome do lead" />
+          <Input value={lead.name} disabled={ro} onChange={(e) => set({ name: e.target.value })} placeholder="Nome do lead" />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="WhatsApp">
-            <Input value={lead.whatsapp ?? ''} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="+55…" />
+            <Input value={lead.whatsapp ?? ''} disabled={ro} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="+55…" />
           </Field>
           <Field label="E-mail">
-            <Input value={lead.email ?? ''} onChange={(e) => set({ email: e.target.value })} placeholder="email@…" />
+            <Input value={lead.email ?? ''} disabled={ro} onChange={(e) => set({ email: e.target.value })} placeholder="email@…" />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <CatalogSelect catalog="crm_origin" label="Origem" value={lead.origin} onChange={(v) => set({ origin: v })} />
-          <CatalogSelect catalog="crm_product" label="Produto/Serviço" value={lead.product} onChange={(v) => set({ product: v })} />
+          <CatalogSelect catalog="crm_origin" label="Origem" value={lead.origin} disabled={ro} onChange={(v) => set({ origin: v })} />
+          <CatalogSelect catalog="crm_product" label="Produto/Serviço" value={lead.product} disabled={ro} onChange={(v) => set({ product: v })} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -726,16 +743,17 @@ function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: (
             <Input
               type="number" min={0} step={1}
               value={lead.potentialValue || ''}
+              disabled={ro}
               onChange={(e) => set({ potentialValue: Number(e.target.value) || 0 })}
               placeholder="0"
             />
           </Field>
-          <CatalogSelect catalog="crm_interest" label="Interesse" value={lead.interest} onChange={(v) => set({ interest: v })} />
+          <CatalogSelect catalog="crm_interest" label="Interesse" value={lead.interest} disabled={ro} onChange={(v) => set({ interest: v })} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <CatalogSelect catalog="crm_funnel_stage" label="Etapa do funil" value={lead.funnelStage} onChange={(v) => set({ funnelStage: v })} />
-          <CatalogSelect catalog="crm_status" label="Status" value={lead.status} onChange={(v) => set({ status: v })} />
+          <CatalogSelect catalog="crm_funnel_stage" label="Etapa do funil" value={lead.funnelStage} disabled={ro} onChange={(v) => set({ funnelStage: v })} />
+          <CatalogSelect catalog="crm_status" label="Status" value={lead.status} disabled={ro} onChange={(v) => set({ status: v })} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -743,31 +761,32 @@ function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: (
             <Combobox
               options={ownerOptions}
               value={lead.ownerId ?? null}
+              disabled={ro}
               onChange={(v) => set({ ownerId: v })}
               placeholder="Sem responsável"
             />
           </Field>
-          <CatalogSelect catalog="crm_channel" label="Canal de contato" value={lead.contactChannel} onChange={(v) => set({ contactChannel: v })} />
+          <CatalogSelect catalog="crm_channel" label="Canal de contato" value={lead.contactChannel} disabled={ro} onChange={(v) => set({ contactChannel: v })} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="1º contato">
-            <DatePicker value={isoToDate(lead.firstContactAt)} onChange={(d) => set({ firstContactAt: dateToIso(d) })} />
+            <DatePicker value={isoToDate(lead.firstContactAt)} disabled={ro} onChange={(d) => set({ firstContactAt: dateToIso(d) })} />
           </Field>
           <Field label="Próximo follow-up">
-            <DatePicker value={isoToDate(lead.nextFollowupAt)} onChange={(d) => set({ nextFollowupAt: dateToIso(d) })} />
+            <DatePicker value={isoToDate(lead.nextFollowupAt)} disabled={ro} onChange={(d) => set({ nextFollowupAt: dateToIso(d) })} />
           </Field>
         </div>
 
         <Field label="Objeção principal">
-          <Input value={lead.mainObjection ?? ''} onChange={(e) => set({ mainObjection: e.target.value })} placeholder="Ex.: preço, timing…" />
+          <Input value={lead.mainObjection ?? ''} disabled={ro} onChange={(e) => set({ mainObjection: e.target.value })} placeholder="Ex.: preço, timing…" />
         </Field>
 
         <Field label="Histórico / observações">
-          <Textarea rows={3} value={lead.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} placeholder="Contexto, combinados, detalhes…" />
+          <Textarea rows={3} value={lead.notes ?? ''} disabled={ro} onChange={(e) => set({ notes: e.target.value })} placeholder="Contexto, combinados, detalhes…" />
         </Field>
 
-        <InteractionsSection leadId={lead.id} />
+        <InteractionsSection leadId={lead.id} canManage={canManage} />
 
         <div className="flex items-center justify-between border-t border-line pt-4">
           {canDelete ? (
@@ -790,7 +809,7 @@ function LeadDrawer({ leadId, onClose, canDelete }: { leadId: string; onClose: (
 
 /* ------------------------------------------------------- histórico de interações */
 
-function InteractionsSection({ leadId }: { leadId: string }) {
+function InteractionsSection({ leadId, canManage }: { leadId: string; canManage: boolean }) {
   const { user } = useSession()
   const { interactionsFor, addInteraction, removeInteraction } = useCrm()
   const list = interactionsFor(leadId)
@@ -800,7 +819,7 @@ function InteractionsSection({ leadId }: { leadId: string }) {
     <div className="rounded-lg border border-line bg-ink-deep/30 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-display text-body font-semibold text-strong">Histórico de interações</h3>
-        {!adding && (
+        {canManage && !adding && (
           <Button variant="ghost" size="sm" leftIcon={<MessageSquarePlus size={16} strokeWidth={1.5} />} onClick={() => setAdding(true)}>
             Registrar
           </Button>
@@ -823,14 +842,14 @@ function InteractionsSection({ leadId }: { leadId: string }) {
 
       <ul className="flex flex-col gap-3">
         {list.map((it) => (
-          <InteractionItem key={it.id} it={it} onRemove={() => removeInteraction(it.id)} />
+          <InteractionItem key={it.id} it={it} canManage={canManage} onRemove={() => removeInteraction(it.id)} />
         ))}
       </ul>
     </div>
   )
 }
 
-function InteractionItem({ it, onRemove }: { it: LeadInteraction; onRemove: () => void }) {
+function InteractionItem({ it, canManage, onRemove }: { it: LeadInteraction; canManage: boolean; onRemove: () => void }) {
   const { getMember } = useProfiles()
   return (
     <li className="group flex flex-col gap-1.5 rounded-md border border-subtle bg-slate-900 p-3">
@@ -840,9 +859,11 @@ function InteractionItem({ it, onRemove }: { it: LeadInteraction; onRemove: () =
           <CatBadge catalog="crm_interaction_type" value={it.type} />
           <CatBadge catalog="crm_channel" value={it.channel} />
         </div>
-        <IconButton aria-label="Excluir interação" size="sm" className="opacity-0 group-hover:opacity-100" onClick={onRemove}>
-          <Trash2 size={14} strokeWidth={1.5} aria-hidden />
-        </IconButton>
+        {canManage && (
+          <IconButton aria-label="Excluir interação" size="sm" className="opacity-0 group-hover:opacity-100" onClick={onRemove}>
+            <Trash2 size={14} strokeWidth={1.5} aria-hidden />
+          </IconButton>
+        )}
       </div>
       {it.summary && <p className="text-body-s text-fg">{it.summary}</p>}
       {it.nextAction && (

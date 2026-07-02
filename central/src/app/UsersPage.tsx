@@ -282,13 +282,12 @@ export function UsersPage() {
             <TableRow>
               <TableHeaderCell>Usuário</TableHeaderCell>
               <TableHeaderCell>Papel</TableHeaderCell>
-              <TableHeaderCell>Time</TableHeaderCell>
               {isAdmin && <TableHeaderCell className="w-12" align="right">Ações</TableHeaderCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableEmpty colSpan={isAdmin ? 4 : 3}>
+              <TableEmpty colSpan={isAdmin ? 3 : 2}>
                 <EmptyState
                   className="border-0 bg-transparent py-0"
                   icon={<UserX size={22} strokeWidth={1.5} />}
@@ -313,7 +312,6 @@ export function UsersPage() {
                     <TableCell>
                       <Badge tone={ROLE_TONE[u.role]} dot={MANAGER_ROLES.includes(u.role)}>{ROLE_LABEL[u.role]}</Badge>
                     </TableCell>
-                    <TableCell>{u.team || <span className="text-faint">—</span>}</TableCell>
                     {isAdmin && (
                       <TableCell align="right">
                         <DropdownMenu

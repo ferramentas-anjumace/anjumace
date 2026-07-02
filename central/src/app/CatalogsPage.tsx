@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   Card,
@@ -111,8 +110,9 @@ function ItemEditor({
 }
 
 /** Bloco de um catálogo: lista de itens + ações. */
-function CatalogCard({ catalog, onAdd, onEdit }: {
+function CatalogCard({ catalog, canManage, onAdd, onEdit }: {
   catalog: CatalogKey
+  canManage: boolean
   onAdd: () => void
   onEdit: (item: CatalogItem) => void
 }) {
@@ -137,9 +137,11 @@ function CatalogCard({ catalog, onAdd, onEdit }: {
           <h3 className="font-display text-h3 font-semibold text-strong">{def.label}</h3>
           <p className="mt-1 text-body-s text-muted">{def.help}</p>
         </div>
-        <Button size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={onAdd}>
-          Adicionar
-        </Button>
+        {canManage && (
+          <Button size="sm" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={onAdd}>
+            Adicionar
+          </Button>
+        )}
       </div>
 
       {list.length === 0 ? (
@@ -148,43 +150,47 @@ function CatalogCard({ catalog, onAdd, onEdit }: {
         <ul className="flex flex-col divide-y divide-line">
           {list.map((item, i) => (
             <li key={item.id} className="flex items-center gap-3 py-2.5">
-              <div className="flex flex-col">
-                <IconButton
-                  size="sm"
-                  aria-label="Mover para cima"
-                  disabled={i === 0}
-                  onClick={() => move(catalog, item.id, -1)}
-                >
-                  <ChevronUp size={14} strokeWidth={1.5} />
-                </IconButton>
-                <IconButton
-                  size="sm"
-                  aria-label="Mover para baixo"
-                  disabled={i === list.length - 1}
-                  onClick={() => move(catalog, item.id, 1)}
-                >
-                  <ChevronDown size={14} strokeWidth={1.5} />
-                </IconButton>
-              </div>
+              {canManage && (
+                <div className="flex flex-col">
+                  <IconButton
+                    size="sm"
+                    aria-label="Mover para cima"
+                    disabled={i === 0}
+                    onClick={() => move(catalog, item.id, -1)}
+                  >
+                    <ChevronUp size={14} strokeWidth={1.5} />
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    aria-label="Mover para baixo"
+                    disabled={i === list.length - 1}
+                    onClick={() => move(catalog, item.id, 1)}
+                  >
+                    <ChevronDown size={14} strokeWidth={1.5} />
+                  </IconButton>
+                </div>
+              )}
 
               <CatalogBadge size="sm" tone={item.tone}>{item.label}</CatalogBadge>
               {!item.active && (
                 <span className="font-mono text-[10px] uppercase tracking-wider text-faint">inativo</span>
               )}
 
-              <div className="ml-auto flex items-center gap-3">
-                <Switch
-                  checked={item.active}
-                  onChange={(e) => updateItem(item, { active: e.target.checked })}
-                  aria-label={item.active ? 'Desativar' : 'Ativar'}
-                />
-                <IconButton size="sm" aria-label="Editar" onClick={() => onEdit(item)}>
-                  <Pencil size={15} strokeWidth={1.5} />
-                </IconButton>
-                <IconButton size="sm" aria-label="Remover" onClick={() => remove(item)}>
-                  <Trash2 size={15} strokeWidth={1.5} />
-                </IconButton>
-              </div>
+              {canManage && (
+                <div className="ml-auto flex items-center gap-3">
+                  <Switch
+                    checked={item.active}
+                    onChange={(e) => updateItem(item, { active: e.target.checked })}
+                    aria-label={item.active ? 'Desativar' : 'Ativar'}
+                  />
+                  <IconButton size="sm" aria-label="Editar" onClick={() => onEdit(item)}>
+                    <Pencil size={15} strokeWidth={1.5} />
+                  </IconButton>
+                  <IconButton size="sm" aria-label="Remover" onClick={() => remove(item)}>
+                    <Trash2 size={15} strokeWidth={1.5} />
+                  </IconButton>
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -195,12 +201,10 @@ function CatalogCard({ catalog, onAdd, onEdit }: {
 
 export function CatalogsPage() {
   const { can } = usePermissions()
+  const canManage = can('manage_catalogs')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorCatalog, setEditorCatalog] = useState<CatalogKey | null>(null)
   const [editorItem, setEditorItem] = useState<CatalogItem | null>(null)
-
-  // Só gestores de recursos.
-  if (!can('manage_catalogs')) return <Navigate to="/app" replace />
 
   const openAdd = (catalog: CatalogKey) => {
     setEditorCatalog(catalog)
@@ -218,7 +222,11 @@ export function CatalogsPage() {
       <SectionHeader
         eyebrow="Configurações"
         title="Catálogos"
-        description="Listas que alimentam o app. Adicione, renomeie, recoloque a cor e a ordem — sem precisar de código."
+        description={
+          canManage
+            ? 'Listas que alimentam o app. Adicione, renomeie, recoloque a cor e a ordem — sem precisar de código.'
+            : 'Listas que alimentam o app. Você pode consultar; a edição é restrita a quem gere catálogos.'
+        }
         className="mb-8"
       />
 
@@ -227,6 +235,7 @@ export function CatalogsPage() {
           <CatalogCard
             key={catalog}
             catalog={catalog}
+            canManage={canManage}
             onAdd={() => openAdd(catalog)}
             onEdit={(item) => openEdit(catalog, item)}
           />

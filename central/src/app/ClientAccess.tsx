@@ -204,18 +204,25 @@ function CredentialModal({
 type MediaDraft = { label: string; kind: MediaKind; url: string; hint: string }
 const EMPTY_MEDIA: MediaDraft = { label: '', kind: 'imagens', url: '', hint: '' }
 
-function MediaModal({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (d: MediaDraft) => void }) {
+function MediaModal({ open, editing, onClose, onSave }: { open: boolean; editing: MediaLink | null; onClose: () => void; onSave: (d: MediaDraft) => void }) {
   const [draft, setDraft] = useState<MediaDraft>(EMPTY_MEDIA)
-  useEffect(() => { if (open) setDraft(EMPTY_MEDIA) }, [open])
+  useEffect(() => {
+    if (!open) return
+    setDraft(
+      editing
+        ? { label: editing.label, kind: editing.kind, url: editing.url ?? '', hint: editing.hint ?? '' }
+        : EMPTY_MEDIA,
+    )
+  }, [open, editing])
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Novo banco / mídia"
+      title={editing ? 'Editar banco / mídia' : 'Novo banco / mídia'}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(draft)}>Adicionar</Button>
+          <Button onClick={() => onSave(draft)}>{editing ? 'Salvar' : 'Adicionar'}</Button>
         </>
       }
     >
@@ -240,6 +247,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
   const [credModal, setCredModal] = useState(false)
   const [editingCred, setEditingCred] = useState<Credential | null>(null)
   const [mediaModal, setMediaModal] = useState(false)
+  const [editingMedia, setEditingMedia] = useState<MediaLink | null>(null)
 
   const fetchAll = useCallback(async () => {
     const [m, c] = await Promise.all([
@@ -287,17 +295,19 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
 
   const saveMedia = async (draft: MediaDraft) => {
     if (!draft.label.trim()) { toast.error('Informe o nome'); return }
-    const { error } = await supabase.from('client_media').insert({
-      client_id: clientId,
+    const payload = {
       label: draft.label.trim(),
       kind: draft.kind,
       url: draft.url.trim() || null,
       hint: draft.hint.trim() || null,
-      sort: nextSort(media),
-    })
+    }
+    const { error } = editingMedia
+      ? await supabase.from('client_media').update(payload).eq('id', editingMedia.id)
+      : await supabase.from('client_media').insert({ ...payload, client_id: clientId, sort: nextSort(media) })
     if (error) toast.error('Falha ao salvar', error.message)
-    else { toast.success('Banco adicionado', draft.label); await fetchAll() }
+    else { toast.success(editingMedia ? 'Banco atualizado' : 'Banco adicionado', draft.label); await fetchAll() }
     setMediaModal(false)
+    setEditingMedia(null)
   }
 
   const delMedia = async (m: MediaLink) => {
@@ -321,7 +331,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
         <CardHeader>
           <CardTitle>Bancos & mídia</CardTitle>
           {canManage && (
-            <Button size="sm" variant="secondary" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => setMediaModal(true)}>
+            <Button size="sm" variant="secondary" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => { setEditingMedia(null); setMediaModal(true) }}>
               Adicionar
             </Button>
           )}
@@ -348,14 +358,24 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
                   </div>
                 </a>
                 {canManage && (
-                  <button
-                    type="button"
-                    onClick={() => delMedia(m)}
-                    aria-label={`Excluir ${m.label}`}
-                    className="absolute right-2 top-2 grid size-7 place-items-center rounded-md border border-line bg-slate-800/90 text-muted opacity-0 backdrop-blur transition-opacity hover:text-err group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
-                  >
-                    <Trash2 size={14} strokeWidth={1.5} />
-                  </button>
+                  <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => { setEditingMedia(m); setMediaModal(true) }}
+                      aria-label={`Editar ${m.label}`}
+                      className="grid size-7 place-items-center rounded-md border border-line bg-slate-800/90 text-muted backdrop-blur transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                    >
+                      <Pencil size={14} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => delMedia(m)}
+                      aria-label={`Excluir ${m.label}`}
+                      className="grid size-7 place-items-center rounded-md border border-line bg-slate-800/90 text-muted backdrop-blur transition-colors hover:text-err focus-visible:outline-none focus-visible:shadow-focus"
+                    >
+                      <Trash2 size={14} strokeWidth={1.5} />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -395,7 +415,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
       </Card>
 
       <CredentialModal open={credModal} editing={editingCred} onClose={() => { setCredModal(false); setEditingCred(null) }} onSave={saveCred} />
-      <MediaModal open={mediaModal} onClose={() => setMediaModal(false)} onSave={saveMedia} />
+      <MediaModal open={mediaModal} editing={editingMedia} onClose={() => { setMediaModal(false); setEditingMedia(null) }} onSave={saveMedia} />
     </div>
   )
 }
