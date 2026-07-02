@@ -9,6 +9,7 @@ import {
   ListChecks,
   BarChart3,
   Megaphone,
+  Contact,
   MessagesSquare,
   Tags,
   Settings2,
@@ -56,11 +57,27 @@ const NAV: { group: string; items: NavLink[] }[] = [
     group: 'Operação',
     items: [
       { to: '/app', label: 'Visão geral', icon: <LayoutGrid size={18} strokeWidth={1.5} /> },
-      { to: '/app/editorial', label: 'Editorial', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
       { to: '/app/tarefas', label: 'Tarefas', icon: <ListChecks size={18} strokeWidth={1.5} /> },
       { to: '/app/agenda', label: 'Agenda', icon: <CalendarDays size={18} strokeWidth={1.5} /> },
-      { to: '/app/trafego-pago', label: 'Tráfego Pago', icon: <Megaphone size={18} strokeWidth={1.5} /> },
-      { to: '/app/relatorios', label: 'Relatórios', icon: <BarChart3 size={18} strokeWidth={1.5} />, managerOnly: true },
+      { to: '/app/relatorios', label: 'Resultados do Time', icon: <BarChart3 size={18} strokeWidth={1.5} />, managerOnly: true },
+    ],
+  },
+  {
+    group: 'Editorial',
+    items: [
+      { to: '/app/editorial', label: 'Calendário de Conteúdos', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
+    ],
+  },
+  {
+    group: 'Tráfego Pago',
+    items: [
+      { to: '/app/trafego-pago', label: 'Relatórios', icon: <Megaphone size={18} strokeWidth={1.5} /> },
+    ],
+  },
+  {
+    group: 'Comercial',
+    items: [
+      { to: '/app/crm', label: 'CRM', icon: <Contact size={18} strokeWidth={1.5} /> },
     ],
   },
   {

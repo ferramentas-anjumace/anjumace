@@ -7,6 +7,9 @@ export interface ComboboxOption {
   value: string
   label: string
   disabled?: boolean
+  /** Adorno opcional à esquerda (ex.: avatar, ícone). Aparece na lista e no
+      campo quando a opção está selecionada. */
+  icon?: React.ReactNode
 }
 
 export interface ComboboxProps {
@@ -131,6 +134,8 @@ export function Combobox({
   }
 
   const showClear = clearable && !!selected && !disabled
+  // Adorno da opção selecionada, mostrado à esquerda quando a lista está fechada.
+  const leading = !open && selected?.icon ? selected.icon : null
 
   return (
     <FieldShell
@@ -142,6 +147,9 @@ export function Combobox({
       className={className}
     >
       <div ref={rootRef} className="relative">
+        {leading && (
+          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center">{leading}</span>
+        )}
         <input
           ref={inputRef}
           id={fieldId}
@@ -162,10 +170,9 @@ export function Combobox({
             if (!open) setOpen(true)
             setActive(0)
           }}
-          onFocus={openList}
           onClick={openList}
           onKeyDown={onKeyDown}
-          className={cn(controlClasses(!!error, 'h-10 pl-3 pr-16'))}
+          className={cn(controlClasses(!!error, cn('h-10 pr-16', leading ? 'pl-9' : 'pl-3')))}
         />
 
         {/* Ações à direita: limpar + chevron */}
@@ -226,7 +233,10 @@ export function Combobox({
                           : 'text-fg',
                     )}
                   >
-                    <span className="truncate">{opt.label}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+                      <span className="truncate">{opt.label}</span>
+                    </span>
                     {isSelected && (
                       <Check size={15} strokeWidth={2} className="shrink-0 text-steel-300" aria-hidden />
                     )}

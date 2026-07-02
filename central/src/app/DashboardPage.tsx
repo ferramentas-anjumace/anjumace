@@ -28,7 +28,7 @@ import { usePresence } from '@/lib/presence'
 /* -------------------------------------------------- ecossistema (atalhos) */
 
 const ECOSYSTEM: { to: string; label: string; hint: string; icon: React.ReactNode }[] = [
-  { to: '/app/editorial', label: 'Editorial', hint: 'Calendário de criativos', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
+  { to: '/app/editorial', label: 'Calendário de Conteúdos', hint: 'Calendário de criativos', icon: <CalendarRange size={18} strokeWidth={1.5} /> },
   { to: '/app/acessos', label: 'Acessos', hint: 'Credenciais das plataformas', icon: <KeyRound size={18} strokeWidth={1.5} /> },
 ]
 

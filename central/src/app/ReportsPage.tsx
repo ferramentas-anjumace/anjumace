@@ -243,9 +243,9 @@ export function ReportsPage() {
         <div>
           <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
             <BarChart3 size={14} strokeWidth={1.5} aria-hidden />
-            Visão executiva
+            Operação
           </div>
-          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Relatórios</h1>
+          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Resultados do Time</h1>
         </div>
 
         {/* Seletor de período (segmentado) */}

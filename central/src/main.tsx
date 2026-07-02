@@ -32,6 +32,7 @@ import { ProfilesProvider } from './app/profiles'
 import { AgendaProvider } from './app/agenda'
 import { CatalogsProvider } from './app/catalogs'
 import { PaidTrafficProvider } from './app/paidTraffic'
+import { CrmProvider } from './app/crm'
 import { ChatProvider } from './app/chat'
 import { StyleguidePage } from './pages/Styleguide'
 import { AppShell } from './app/AppShell'
@@ -43,6 +44,7 @@ import { AgendaPage } from './app/AgendaPage'
 import { TasksPage } from './app/TasksPage'
 import { ReportsPage } from './app/ReportsPage'
 import { PaidTrafficPage } from './app/PaidTrafficPage'
+import { CrmPage } from './app/CrmPage'
 import { AccessPage } from './app/AccessPage'
 import { EditorialPage } from './app/EditorialPage'
 import { ChatPage } from './app/ChatPage'
@@ -66,6 +68,7 @@ const router = createBrowserRouter([
       { path: 'agenda', element: <AgendaPage /> },
       { path: 'relatorios', element: <ReportsPage /> },
       { path: 'trafego-pago', element: <PaidTrafficPage /> },
+      { path: 'crm', element: <CrmPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
       { path: 'catalogos', element: <CatalogsPage /> },
@@ -84,6 +87,7 @@ createRoot(document.getElementById('root')!).render(
         <ClientsProvider>
           <CatalogsProvider>
           <PaidTrafficProvider>
+          <CrmProvider>
           <EditorialProvider>
             <ProfilesProvider>
               <TasksProvider>
@@ -101,6 +105,7 @@ createRoot(document.getElementById('root')!).render(
               </TasksProvider>
             </ProfilesProvider>
           </EditorialProvider>
+          </CrmProvider>
           </PaidTrafficProvider>
           </CatalogsProvider>
         </ClientsProvider>

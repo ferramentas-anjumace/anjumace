@@ -263,9 +263,9 @@ export function PaidTrafficPage() {
         <div>
           <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
             <Megaphone size={14} strokeWidth={1.5} aria-hidden />
-            Mídia paga
+            Tráfego Pago
           </div>
-          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Tráfego Pago</h1>
+          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Relatórios</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Segmented options={PLATFORM_FILTERS} value={platform} onChange={setPlatform} />

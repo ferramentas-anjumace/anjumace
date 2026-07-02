@@ -112,6 +112,48 @@ export const CATALOGS = {
     help: 'Tipos de criativo no calendário editorial (carrossel, reels, imagem...).',
     usage: { table: 'editorial_posts', column: 'format' },
   },
+  crm_status: {
+    label: 'CRM · Status do lead',
+    singular: 'status',
+    help: 'Colunas do pipeline comercial (kanban). Mantenha "Ganho"/"Perdido"/"Inativo" no nome — os KPIs do painel dependem disso.',
+    usage: { table: 'crm_leads', column: 'status' },
+  },
+  crm_origin: {
+    label: 'CRM · Origem do lead',
+    singular: 'origem',
+    help: 'De onde o lead veio (Instagram, WhatsApp, indicação, anúncios...).',
+    usage: { table: 'crm_leads', column: 'origin' },
+  },
+  crm_product: {
+    label: 'CRM · Produto/Serviço',
+    singular: 'produto',
+    help: 'Produto ou plano de interesse do lead (Templo, Singular...).',
+    usage: { table: 'crm_leads', column: 'product' },
+  },
+  crm_funnel_stage: {
+    label: 'CRM · Etapa do funil',
+    singular: 'etapa',
+    help: 'Jornada de consciência do lead (Conscientização → Compra).',
+    usage: { table: 'crm_leads', column: 'funnel_stage' },
+  },
+  crm_channel: {
+    label: 'CRM · Canal de contato',
+    singular: 'canal',
+    help: 'Meio usado no contato com o lead (DM, WhatsApp, ligação...).',
+    usage: { table: 'crm_leads', column: 'contact_channel' },
+  },
+  crm_interest: {
+    label: 'CRM · Nível de interesse',
+    singular: 'nível',
+    help: 'Temperatura do lead (Alto / Médio / Baixo).',
+    usage: { table: 'crm_leads', column: 'interest' },
+  },
+  crm_interaction_type: {
+    label: 'CRM · Tipo de interação',
+    singular: 'tipo',
+    help: 'Classificação de cada contato no histórico (primeiro contato, follow-up...).',
+    usage: { table: 'crm_interactions', column: 'type' },
+  },
 } as const
 
 export type CatalogKey = keyof typeof CATALOGS
