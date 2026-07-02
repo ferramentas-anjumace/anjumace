@@ -18,7 +18,7 @@ import { supabase } from './supabase'
                 usado para "Minhas tarefas". Sem ele, o id é o uuid do Supabase.
 ---------------------------------------------------------------------------- */
 
-export type Role = 'admin' | 'lideranca' | 'time' | 'comercial' | 'social'
+export type Role = 'admin' | 'lideranca' | 'comercial' | 'social' | 'design'
 
 /** Rótulo exibido para cada papel. */
 export const ROLE_LABEL: Record<Role, string> = {
@@ -26,7 +26,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   lideranca: 'Liderança',
   comercial: 'Comercial',
   social: 'Social Media',
-  time: 'Time',
+  design: 'Design',
 }
 
 /** Gestores (acesso administrativo): Administrador e Liderança. */
@@ -51,7 +51,7 @@ const EMPTY_PROFILE: Profile = { id: '', userId: '', name: '', email: '', roleLa
 
 function profileFromSession(session: Session | null): { profile: Profile; role: Role } {
   const u = session?.user
-  if (!u) return { profile: EMPTY_PROFILE, role: 'time' }
+  if (!u) return { profile: EMPTY_PROFILE, role: 'design' }
   const meta = (u.user_metadata ?? {}) as { role?: string; name?: string; member_id?: string }
   // Mapeia o valor cru do metadata (tolerando o antigo 'colaborador' → 'time').
   const role: Role =
@@ -59,7 +59,7 @@ function profileFromSession(session: Session | null): { profile: Profile; role: 
     : meta.role === 'lideranca' ? 'lideranca'
     : meta.role === 'comercial' ? 'comercial'
     : meta.role === 'social' ? 'social'
-    : 'time'
+    : 'design' // fallback de menor privilégio (cobre 'design' e o legado 'time')
   const email = u.email ?? ''
   return {
     profile: {
@@ -131,7 +131,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             : r === 'lideranca' ? 'lideranca'
             : r === 'comercial' ? 'comercial'
             : r === 'social' ? 'social'
-            : r === 'time' ? 'time'
+            : r === 'design' ? 'design'
             : null,
           )
         })

@@ -35,10 +35,10 @@ const DEFAULT_MATRIX: PermissionMatrix = {
   lideranca: { ...ALL_TRUE },
   // Comercial: executa tarefas como o Time, porém com acesso ao CRM.
   comercial: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: true, manage_social: false },
-  // Social Media: tarefas como o Time, gerindo o Editorial/Social e os catálogos.
+  // Social Media: tarefas como base, gerindo o Editorial/Social e os catálogos.
   social: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: true, manage_crm: false, manage_social: true },
-  // Time: sem CRM, Social nem catálogos (exclusivos dos papéis dedicados + gestores).
-  time: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: false, manage_social: false },
+  // Design: base de menor privilégio (só mover tarefas). Ajustável na tela de Permissões.
+  design: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: false, manage_social: false },
 }
 
 interface PermissionRow {

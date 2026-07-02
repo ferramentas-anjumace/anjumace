@@ -36,7 +36,7 @@ const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral' | 'sand' | '
   lideranca: 'success',
   comercial: 'sand',
   social: 'warning',
-  time: 'neutral',
+  design: 'neutral',
 }
 /** Administrador e Liderança são gestores — recebem o ponto de destaque. */
 const MANAGER_ROLES: MemberRole[] = ['admin', 'lideranca']
@@ -51,19 +51,17 @@ function EditMemberModal({
 }: {
   member: Member | null
   onClose: () => void
-  onSave: (id: string, patch: { name: string; role: MemberRole; team: string; status: MemberStatus }) => void
+  onSave: (id: string, patch: { name: string; role: MemberRole; status: MemberStatus }) => void
   onAvatarChange: (id: string, avatar: string | null) => void | Promise<void>
   onAvatarError: (message: string) => void
 }) {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<MemberRole>('time')
-  const [team, setTeam] = useState('')
+  const [role, setRole] = useState<MemberRole>('design')
 
   useMemo(() => {
     if (member) {
       setName(member.name)
       setRole(member.role)
-      setTeam(member.team ?? '')
     }
   }, [member])
 
@@ -77,7 +75,7 @@ function EditMemberModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(member.id, { name, role, team, status: member.status })}>Salvar</Button>
+          <Button onClick={() => onSave(member.id, { name, role, status: member.status })}>Salvar</Button>
         </>
       }
     >
@@ -90,13 +88,12 @@ function EditMemberModal({
         />
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
         <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-          <option value="time">Time</option>
+          <option value="design">Design</option>
           <option value="comercial">Comercial</option>
           <option value="social">Social Media</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
         </Select>
-        <Input label="Time" optional value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Ex.: Conteúdo" />
       </div>
     </Modal>
   )
@@ -111,17 +108,17 @@ function CreateUserModal({
 }: {
   open: boolean
   onClose: () => void
-  onCreate: (input: { email: string; password: string; name: string; role: MemberRole; team: string }) => void
+  onCreate: (input: { email: string; password: string; name: string; role: MemberRole }) => void
   creating: boolean
 }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<MemberRole>('time')
-  const [team, setTeam] = useState('')
+  // Sem papel padrão: obriga a escolher explicitamente.
+  const [role, setRole] = useState<MemberRole | ''>('')
 
   useMemo(() => {
-    if (open) { setName(''); setEmail(''); setPassword(''); setRole('time'); setTeam('') }
+    if (open) { setName(''); setEmail(''); setPassword(''); setRole('') }
   }, [open])
 
   return (
@@ -133,7 +130,7 @@ function CreateUserModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button loading={creating} onClick={() => onCreate({ email, password, name, role, team })}>
+          <Button loading={creating} disabled={!role} onClick={() => role && onCreate({ email, password, name, role })}>
             Criar usuário
           </Button>
         </>
@@ -143,14 +140,13 @@ function CreateUserModal({
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da pessoa" autoFocus />
         <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@empresa.com" />
         <Input label="Senha provisória" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" helperText="A pessoa pode trocar depois." />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            <option value="time">Time</option>
-            <option value="lideranca">Liderança</option>
-            <option value="admin">Administrador</option>
-          </Select>
-          <Input label="Time" optional value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Ex.: Suporte" />
-        </div>
+        <Select label="Papel" placeholder="Selecione o papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
+          <option value="design">Design</option>
+          <option value="comercial">Comercial</option>
+          <option value="social">Social Media</option>
+          <option value="lideranca">Liderança</option>
+          <option value="admin">Administrador</option>
+        </Select>
       </div>
     </Modal>
   )
@@ -187,11 +183,11 @@ export function UsersPage() {
     lideranca: members.filter((u) => u.role === 'lideranca').length,
     comercial: members.filter((u) => u.role === 'comercial').length,
     social: members.filter((u) => u.role === 'social').length,
-    time: members.filter((u) => u.role === 'time').length,
+    design: members.filter((u) => u.role === 'design').length,
   }
 
-  const save = async (id: string, patch: { name: string; role: MemberRole; team: string; status: MemberStatus }) => {
-    const { error } = await updateMember(id, { ...patch, team: patch.team.trim() || null })
+  const save = async (id: string, patch: { name: string; role: MemberRole; status: MemberStatus }) => {
+    const { error } = await updateMember(id, patch)
     if (error) toast.error('Falha ao salvar', error)
     else toast.success('Usuário atualizado', patch.name)
     setEditing(null)
@@ -214,7 +210,7 @@ export function UsersPage() {
     }
   }
 
-  const create = async (input: { email: string; password: string; name: string; role: MemberRole; team: string }) => {
+  const create = async (input: { email: string; password: string; name: string; role: MemberRole }) => {
     if (!input.email.trim() || !input.password) {
       toast.error('Informe e-mail e senha')
       return
@@ -225,7 +221,6 @@ export function UsersPage() {
       password: input.password,
       name: input.name.trim(),
       role: input.role,
-      team: input.team.trim() || undefined,
     })
     setCreating(false)
     if (error) toast.error('Não foi possível criar', error)
@@ -258,7 +253,7 @@ export function UsersPage() {
           <Tab value="lideranca" badge={<Badge tone="success">{counts.lideranca}</Badge>}>Liderança</Tab>
           <Tab value="comercial" badge={<Badge tone="sand">{counts.comercial}</Badge>}>Comercial</Tab>
           <Tab value="social" badge={<Badge tone="warning">{counts.social}</Badge>}>Social Media</Tab>
-          <Tab value="time" badge={<Badge tone="neutral">{counts.time}</Badge>}>Time</Tab>
+          <Tab value="design" badge={<Badge tone="neutral">{counts.design}</Badge>}>Design</Tab>
         </TabList>
       </Tabs>
 
