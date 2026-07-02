@@ -31,10 +31,11 @@ import { usePermissions } from '@/lib/permissions'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
 
-const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral' | 'sand' | 'warning'> = {
+const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral' | 'sand' | 'warning' | 'danger'> = {
   admin: 'steel',
   lideranca: 'success',
   comercial: 'sand',
+  crm: 'danger',
   social: 'warning',
   design: 'neutral',
 }
@@ -90,6 +91,7 @@ function EditMemberModal({
         <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
           <option value="design">Design</option>
           <option value="comercial">Comercial</option>
+          <option value="crm">CRM</option>
           <option value="social">Social Media</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
@@ -143,6 +145,7 @@ function CreateUserModal({
         <Select label="Papel" placeholder="Selecione o papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
           <option value="design">Design</option>
           <option value="comercial">Comercial</option>
+          <option value="crm">CRM</option>
           <option value="social">Social Media</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
@@ -182,6 +185,7 @@ export function UsersPage() {
     admin: members.filter((u) => u.role === 'admin').length,
     lideranca: members.filter((u) => u.role === 'lideranca').length,
     comercial: members.filter((u) => u.role === 'comercial').length,
+    crm: members.filter((u) => u.role === 'crm').length,
     social: members.filter((u) => u.role === 'social').length,
     design: members.filter((u) => u.role === 'design').length,
   }
@@ -252,6 +256,7 @@ export function UsersPage() {
           <Tab value="admin" badge={<Badge tone="steel">{counts.admin}</Badge>}>Administradores</Tab>
           <Tab value="lideranca" badge={<Badge tone="success">{counts.lideranca}</Badge>}>Liderança</Tab>
           <Tab value="comercial" badge={<Badge tone="sand">{counts.comercial}</Badge>}>Comercial</Tab>
+          <Tab value="crm" badge={<Badge tone="danger">{counts.crm}</Badge>}>CRM</Tab>
           <Tab value="social" badge={<Badge tone="warning">{counts.social}</Badge>}>Social Media</Tab>
           <Tab value="design" badge={<Badge tone="neutral">{counts.design}</Badge>}>Design</Tab>
         </TabList>

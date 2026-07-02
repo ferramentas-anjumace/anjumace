@@ -33,8 +33,10 @@ const ALL_TRUE: RoleCaps = { create_task: true, move_task: true, manage_users: t
 const DEFAULT_MATRIX: PermissionMatrix = {
   admin: { ...ALL_TRUE },
   lideranca: { ...ALL_TRUE },
-  // Comercial: executa tarefas como o Time, porém com acesso ao CRM.
+  // Comercial: executa tarefas como base, porém com acesso ao CRM (relação 1:1).
   comercial: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: true, manage_social: false },
+  // CRM: mesmo acesso do Comercial (gerência da base / disparos). Só o rótulo muda.
+  crm: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: true, manage_social: false },
   // Social Media: tarefas como base, gerindo o Editorial/Social e os catálogos.
   social: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: true, manage_crm: false, manage_social: true },
   // Design: base de menor privilégio (só mover tarefas). Ajustável na tela de Permissões.

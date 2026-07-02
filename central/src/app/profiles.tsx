@@ -9,7 +9,7 @@ import { useSession } from '@/lib/session'
    e a futura tela de Usuários. Atualiza quando a sessão fica autenticada.
 ---------------------------------------------------------------------------- */
 
-export type MemberRole = 'admin' | 'lideranca' | 'comercial' | 'social' | 'design'
+export type MemberRole = 'admin' | 'lideranca' | 'comercial' | 'crm' | 'social' | 'design'
 export type MemberStatus = 'ativo' | 'convidado' | 'suspenso'
 
 export interface Member {

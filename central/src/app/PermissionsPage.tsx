@@ -17,8 +17,8 @@ import { ROLE_LABEL, type Role } from '@/lib/session'
 import { usePermissions, CAPABILITIES, type Capability } from '@/lib/permissions'
 
 /* Papéis configuráveis na matriz (Admin é fixo em tudo e não aparece editável). */
-const EDITABLE_ROLES: Role[] = ['lideranca', 'comercial', 'social', 'design']
-const COLUMNS: Role[] = ['design', 'comercial', 'social', 'lideranca', 'admin']
+const EDITABLE_ROLES: Role[] = ['lideranca', 'comercial', 'crm', 'social', 'design']
+const COLUMNS: Role[] = ['design', 'comercial', 'crm', 'social', 'lideranca', 'admin']
 
 export function PermissionsPage() {
   const toast = useToast()
