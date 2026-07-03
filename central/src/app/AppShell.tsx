@@ -30,9 +30,11 @@ import {
   MenuSeparator,
   Modal,
   Button,
+  Input,
   useToast,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
+import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
 import { usePermissions, type Capability } from '@/lib/permissions'
 import { useProfiles } from './profiles'
@@ -226,7 +228,7 @@ export function AppShell() {
         open={accountOpen}
         onClose={() => setAccountOpen(false)}
         title="Sua conta"
-        description="Atualize sua foto de perfil."
+        description="Atualize sua foto de perfil e sua senha."
         footer={<Button onClick={() => setAccountOpen(false)}>Fechar</Button>}
       >
         <div className="flex flex-col gap-5">
@@ -240,8 +242,58 @@ export function AppShell() {
             <span className="text-strong">{user.name}</span>
             <span className="font-mono text-[11px] text-faint">{user.email} · {user.roleLabel}</span>
           </div>
+          <ChangePassword />
         </div>
       </Modal>
     </div>
+  )
+}
+
+/** Troca a própria senha (usuário logado). Não exige a senha atual — o Supabase
+ *  já usa a sessão autenticada. Cada membro define a senha que quiser. */
+function ChangePassword() {
+  const toast = useToast()
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pw.length < 6) { toast.error('Senha muito curta', 'Use pelo menos 6 caracteres.'); return }
+    if (pw !== pw2) { toast.error('As senhas não conferem'); return }
+    setSaving(true)
+    const { error } = await supabase.auth.updateUser({ password: pw })
+    setSaving(false)
+    if (error) { toast.error('Não foi possível trocar a senha', error.message); return }
+    setPw('')
+    setPw2('')
+    toast.success('Senha alterada', 'Já vale no próximo login.')
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3 border-t border-line pt-4">
+      <div className="flex items-center gap-2">
+        <KeyRound size={16} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+        <span className="text-body-s font-medium text-strong">Alterar senha</span>
+      </div>
+      <Input
+        type="password"
+        label="Nova senha"
+        value={pw}
+        onChange={(e) => setPw(e.target.value)}
+        placeholder="Mínimo 6 caracteres"
+        autoComplete="new-password"
+      />
+      <Input
+        type="password"
+        label="Confirmar nova senha"
+        value={pw2}
+        onChange={(e) => setPw2(e.target.value)}
+        autoComplete="new-password"
+      />
+      <Button type="submit" loading={saving} disabled={!pw || !pw2} className="self-start">
+        Salvar nova senha
+      </Button>
+    </form>
   )
 }
