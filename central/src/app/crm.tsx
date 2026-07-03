@@ -86,10 +86,25 @@ export function fmtDateBR(iso?: string | null): string {
  */
 export function waHref(whatsapp?: string | null): string | null {
   if (!whatsapp) return null
+  const hasCountryCode = whatsapp.includes('+') // já veio internacional (+55, +1…)
   let digits = whatsapp.replace(/\D/g, '')
   if (digits.length < 8) return null
-  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`
+  // Só assume Brasil quando NÃO há '+' e parece número local (DDD + número).
+  if (!hasCountryCode && (digits.length === 10 || digits.length === 11)) digits = `55${digits}`
   return `https://wa.me/${digits}`
+}
+
+/**
+ * Limpa um número vindo de exportações (ex.: Google Contatos: "Mobile: +55…").
+ * Tira o rótulo do começo ("Mobile:", "Celular:", "Casa:") e, se houver vários
+ * números no campo, fica com o primeiro. Também corrige o erro comum "+55+".
+ */
+export function cleanPhone(raw: string): string {
+  const first = raw.split(/ ::: |\n|,/)[0].trim()
+  return first
+    .replace(/^[^:+\d]*:\s*/, '') // remove rótulo tipo "Mobile: "
+    .replace(/\+55\+/, '+')       // "+55+16312998064" → "+16312998064"
+    .trim()
 }
 
 /* ------------------------------------------------------- mapeadores do banco */
@@ -536,6 +551,13 @@ const HEADER_MAP: Record<string, keyof LeadInput | 'ownerName'> = {
   nome: 'name',
   whatsapp: 'whatsapp',
   telefone: 'whatsapp',
+  // Exportação do Google Contatos / agendas
+  'numeros de telefone': 'whatsapp',
+  'numero de telefone': 'whatsapp',
+  celular: 'whatsapp',
+  'telefone celular': 'whatsapp',
+  phone: 'whatsapp',
+  mobile: 'whatsapp',
   'e-mail': 'email',
   email: 'email',
   origem: 'origin',
@@ -588,11 +610,15 @@ function cleanLeadName(raw: string): string {
  * (migration 0036). Valores desconhecidos passam intactos.
  */
 const STATUS_ALIASES: Record<string, string> = {
+  // Nomes antigos que não existem mais como etapa → mapeiam para a atual
   'em andamento': 'Conexão',
+  'aguardando resposta': 'Negociação',
+  'proposta enviada': 'Fechamento',
+  'proposta / negociacao': 'Fechamento',
+  // Normaliza acentuação de etapas válidas (ex.: CSV digitado sem acento)
   conexao: 'Conexão',
-  'proposta enviada': 'Proposta / Negociação',
-  negociacao: 'Proposta / Negociação',
-  'proposta / negociacao': 'Proposta / Negociação',
+  negociacao: 'Negociação',
+  fechamento: 'Fechamento',
   'primeira mensagem enviada': 'Primeira mensagem enviada',
 }
 
@@ -619,6 +645,7 @@ export function parseLeadsCsv(text: string, members: { id: string; name: string 
       if (!raw) return
       switch (field) {
         case 'name': lead.name = cleanLeadName(raw); break
+        case 'whatsapp': lead.whatsapp = cleanPhone(raw); break
         case 'status': lead.status = STATUS_ALIASES[norm(raw)] ?? raw; break
         case 'potentialValue': lead.potentialValue = parseMoney(raw); break
         case 'firstContactAt': lead.firstContactAt = parseDateBR(raw); break
