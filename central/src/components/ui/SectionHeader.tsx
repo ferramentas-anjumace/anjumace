@@ -11,30 +11,35 @@ export interface SectionHeaderProps
   description?: React.ReactNode
   /** Ações à direita (botões, filtros). */
   actions?: React.ReactNode
+  /** Azulejo de ícone colorido à esquerda do título (use <CardIcon />). */
+  icon?: React.ReactNode
 }
 
 /**
  * Cabeçalho de seção — eyebrow em mono + título em display. Slot de ações
- * alinhado à direita.
+ * alinhado à direita e slot opcional de ícone (azulejo colorido) à esquerda.
  */
 export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
-  ({ className, eyebrow, title, description, actions, ...props }, ref) => {
+  ({ className, eyebrow, title, description, actions, icon, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn('flex items-start justify-between gap-4', className)}
         {...props}
       >
-        <div className="min-w-0">
-          {eyebrow && (
-            <div className="mb-2 font-mono text-mono-label uppercase text-steel-400">
-              {eyebrow}
-            </div>
-          )}
-          <h2 className="font-display text-h2 font-semibold text-strong">{title}</h2>
-          {description && (
-            <p className="mt-1.5 text-body-s text-muted max-w-prose">{description}</p>
-          )}
+        <div className="flex min-w-0 items-start gap-3">
+          {icon && <div className="mt-0.5">{icon}</div>}
+          <div className="min-w-0">
+            {eyebrow && (
+              <div className="mb-2 font-mono text-mono-label uppercase text-steel-400">
+                {eyebrow}
+              </div>
+            )}
+            <h2 className="font-display text-h2 font-semibold text-strong">{title}</h2>
+            {description && (
+              <p className="mt-1.5 text-body-s text-muted max-w-prose">{description}</p>
+            )}
+          </div>
         </div>
         {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>

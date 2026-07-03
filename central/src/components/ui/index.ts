@@ -16,6 +16,7 @@ export { ChartFrame, type ChartFrameProps } from './ChartFrame'
 // Superfícies
 export {
   Card,
+  CardIcon,
   CardHeader,
   CardTitle,
   CardFooter,

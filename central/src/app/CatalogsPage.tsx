@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronUp, ChevronDown, Tags } from 'lucide-react'
 import {
   Card,
+  CardIcon,
   Button,
   Input,
   Select,
@@ -227,6 +228,7 @@ export function CatalogsPage() {
             ? 'Listas que alimentam o app. Adicione, renomeie, recoloque a cor e a ordem — sem precisar de código.'
             : 'Listas que alimentam o app. Você pode consultar; a edição é restrita a quem gere catálogos.'
         }
+        icon={<CardIcon tone="gold"><Tags size={18} strokeWidth={1.5} aria-hidden /></CardIcon>}
         className="mb-8"
       />
 

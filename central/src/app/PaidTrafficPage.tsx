@@ -11,11 +11,14 @@ import {
   Eye,
   Trophy,
   Banknote,
+  TrendingUp,
+  PieChart,
 } from 'lucide-react'
 import {
   Card,
   CardHeader,
   CardTitle,
+  CardIcon,
   StatCard,
   Table,
   TableHead,
@@ -260,12 +263,15 @@ export function PaidTrafficPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       {/* Cabeçalho + filtros */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
-            <Megaphone size={14} strokeWidth={1.5} aria-hidden />
-            Tráfego Pago
+        <div className="flex items-start gap-3">
+          <CardIcon tone="gold" className="mt-0.5"><Megaphone size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <div>
+            <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
+              <Megaphone size={14} strokeWidth={1.5} aria-hidden />
+              Tráfego Pago
+            </div>
+            <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Relatórios</h1>
           </div>
-          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Relatórios</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Segmented options={PLATFORM_FILTERS} value={platform} onChange={setPlatform} />
@@ -304,7 +310,10 @@ export function PaidTrafficPage() {
           {/* Gasto no tempo */}
           <Card>
             <CardHeader>
-              <CardTitle>Investimento ao longo do tempo</CardTitle>
+              <div className="flex items-center gap-2.5">
+                <CardIcon tone="gold"><TrendingUp size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                <CardTitle>Investimento ao longo do tempo</CardTitle>
+              </div>
               <span className="font-mono text-mono-label uppercase text-faint">
                 {model.daily ? `últimos ${model.windowDays} dias` : `por semana · ${periodLabel.toLowerCase()}`}
               </span>
@@ -331,7 +340,10 @@ export function PaidTrafficPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Investimento por plataforma</CardTitle>
+                <div className="flex items-center gap-2.5">
+                  <CardIcon tone="gold"><PieChart size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                  <CardTitle>Investimento por plataforma</CardTitle>
+                </div>
               </CardHeader>
               {model.byPlatform.length === 0 ? (
                 <p className="py-3 text-body-s text-faint">Sem investimento no período.</p>
@@ -353,7 +365,10 @@ export function PaidTrafficPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Investimento por campanha</CardTitle>
+                <div className="flex items-center gap-2.5">
+                  <CardIcon tone="gold"><Target size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                  <CardTitle>Investimento por campanha</CardTitle>
+                </div>
                 <span className="font-mono text-mono-label uppercase text-faint">top {Math.min(6, model.byCampaign.length)}</span>
               </CardHeader>
               {model.byCampaign.length === 0 ? (
@@ -378,7 +393,10 @@ export function PaidTrafficPage() {
           {/* Custos ao longo do tempo (CPL / CPC / CPA) */}
           <Card>
             <CardHeader>
-              <CardTitle>Custos ao longo do tempo</CardTitle>
+              <div className="flex items-center gap-2.5">
+                <CardIcon tone="gold"><Banknote size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                <CardTitle>Custos ao longo do tempo</CardTitle>
+              </div>
               <span className="font-mono text-mono-label uppercase text-faint">{model.daily ? 'por dia' : 'por semana'}</span>
             </CardHeader>
             <div className="grid gap-5 sm:grid-cols-3">

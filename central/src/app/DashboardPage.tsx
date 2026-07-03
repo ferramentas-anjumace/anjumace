@@ -6,10 +6,13 @@ import {
   CalendarRange,
   KeyRound,
   ListTodo,
+  Compass,
+  Users as UsersIcon,
 } from 'lucide-react'
 import {
   Button,
   Card,
+  CardIcon,
   CardHeader,
   CardTitle,
   StatCard,
@@ -19,11 +22,13 @@ import {
   ProgressBar,
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
+import { usePermissions } from '@/lib/permissions'
 import { useTasks } from './tasks'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
 import { useCatalogs, CatalogBadge } from './catalogs'
 import { usePresence } from '@/lib/presence'
+import { FollowupsCard } from './CrmFollowups'
 
 /* -------------------------------------------------- ecossistema (atalhos) */
 
@@ -36,9 +41,12 @@ const ECOSYSTEM: { to: string; label: string; hint: string; icon: React.ReactNod
 function EcossistemaCard() {
   const navigate = useNavigate()
   return (
-    <Card>
+    <Card className="border-steel-500/30 bg-steel-300/45">
       <CardHeader>
-        <CardTitle>Ecossistema Anju</CardTitle>
+        <div className="flex items-center gap-2.5">
+          <CardIcon tone="sage"><Compass size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <CardTitle>Ecossistema Anju</CardTitle>
+        </div>
       </CardHeader>
       <ul className="flex flex-col gap-1">
         {ECOSYSTEM.map((it) => (
@@ -188,6 +196,7 @@ function WelcomeBanner({
 function AdminDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
+  const { can } = usePermissions()
   const { members: team } = useProfiles()
   const { isOnline } = usePresence()
   const { tasks } = useTasks()
@@ -225,7 +234,10 @@ function AdminDashboard() {
           {/* Agenda do time */}
           <Card>
             <CardHeader>
-              <CardTitle>Agenda do time</CardTitle>
+              <div className="flex items-center gap-2.5">
+                <CardIcon tone="gold"><CalendarDays size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                <CardTitle>Agenda do time</CardTitle>
+              </div>
               <Button
                 size="sm"
                 variant="ghost"
@@ -248,10 +260,16 @@ function AdminDashboard() {
 
         {/* Coluna lateral */}
         <div className="flex flex-col gap-4">
+          {/* Follow-ups do CRM (só para quem opera o comercial) */}
+          {can('manage_crm') && <FollowupsCard />}
+
           {/* Integrantes do time */}
-          <Card>
+          <Card className="border-steel-500/30 bg-steel-300/45">
             <CardHeader>
-              <CardTitle>Time</CardTitle>
+              <div className="flex items-center gap-2.5">
+                <CardIcon tone="sage"><UsersIcon size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                <CardTitle>Time</CardTitle>
+              </div>
               <button
                 onClick={() => navigate('/app/usuarios')}
                 className="font-mono text-mono-data text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
@@ -308,6 +326,7 @@ function AdminDashboard() {
 function CollaboratorDashboard() {
   const navigate = useNavigate()
   const { user } = useSession()
+  const { can } = usePermissions()
   const { tasks: allTasks } = useTasks()
   const { tone: catTone, label: catLabel } = useCatalogs()
   const firstName = user.name.split(' ')[0]
@@ -347,7 +366,7 @@ function CollaboratorDashboard() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2.5">
-                <ListTodo size={18} strokeWidth={1.5} className="text-steel-300" aria-hidden />
+                <CardIcon tone="sage"><ListTodo size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
                 <CardTitle>Minhas tarefas de hoje</CardTitle>
               </div>
               <span className="font-mono text-mono-data text-muted tabular-nums">
@@ -403,7 +422,10 @@ function CollaboratorDashboard() {
           {/* Reuniões de hoje */}
           <Card>
             <CardHeader>
-              <CardTitle>Reuniões de hoje</CardTitle>
+              <div className="flex items-center gap-2.5">
+                <CardIcon tone="gold"><CalendarDays size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+                <CardTitle>Reuniões de hoje</CardTitle>
+              </div>
               <Button
                 size="sm"
                 variant="ghost"
@@ -426,6 +448,9 @@ function CollaboratorDashboard() {
 
         {/* Coluna lateral */}
         <div className="flex flex-col gap-4">
+          {/* Follow-ups do CRM (só para quem opera o comercial) */}
+          {can('manage_crm') && <FollowupsCard />}
+
           {/* Ecossistema Anju — atalhos */}
           <EcossistemaCard />
         </div>

@@ -33,6 +33,37 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 )
 Card.displayName = 'Card'
 
+/* --------------------------------------------------------------- CardIcon */
+
+/**
+ * Azulejo de ícone para cabeçalhos de card/seção — dá cor e identidade a cada
+ * card. Tons da marca: `sage` (Sálvia) e `gold` (Dourado). Padrão do sistema
+ * introduzido no checkpoint 2026-07-03.
+ */
+export function CardIcon({
+  tone = 'sage',
+  className,
+  children,
+}: {
+  tone?: 'sage' | 'gold'
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        'grid size-9 shrink-0 place-items-center rounded-md border',
+        tone === 'gold'
+          ? 'border-sand-300 bg-sand-300/60 text-warn'
+          : 'border-steel-500/35 bg-steel-300/60 text-steel-700',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
 export const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div

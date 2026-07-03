@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { BarChart3 } from 'lucide-react'
+import {
+  BarChart3, CalendarCheck, ListChecks, Flag, Tags, Layers, BadgeCheck, Users,
+} from 'lucide-react'
 import {
   Card,
   CardHeader,
   CardTitle,
+  CardIcon,
   StatCard,
   Table,
   TableHead,
@@ -97,10 +100,12 @@ function DistBar({ label, value, total, tone, color }: { label: string; value: n
 /** Card com um título e uma lista de barras de distribuição. */
 function DistCard({
   title,
+  icon,
   rows,
   empty,
 }: {
   title: string
+  icon: React.ReactNode
   rows: { label: string; value: number; tone: Tone; color?: string }[]
   empty: string
 }) {
@@ -108,7 +113,10 @@ function DistCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <div className="flex items-center gap-2.5">
+          <CardIcon tone="gold">{icon}</CardIcon>
+          <CardTitle>{title}</CardTitle>
+        </div>
       </CardHeader>
       {total === 0 ? (
         <p className="py-3 text-body-s text-faint">{empty}</p>
@@ -240,12 +248,15 @@ export function ReportsPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
-            <BarChart3 size={14} strokeWidth={1.5} aria-hidden />
-            Operação
+        <div className="flex items-start gap-3">
+          <CardIcon tone="gold" className="mt-0.5"><BarChart3 size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <div>
+            <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
+              <BarChart3 size={14} strokeWidth={1.5} aria-hidden />
+              Operação
+            </div>
+            <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Resultados do Time</h1>
           </div>
-          <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Resultados do Time</h1>
         </div>
 
         {/* Seletor de período (segmentado) */}
@@ -276,7 +287,10 @@ export function ReportsPage() {
       {/* Throughput semanal */}
       <Card>
         <CardHeader>
-          <CardTitle>Tarefas concluídas por semana</CardTitle>
+          <div className="flex items-center gap-2.5">
+            <CardIcon tone="gold"><CalendarCheck size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+            <CardTitle>Tarefas concluídas por semana</CardTitle>
+          </div>
           <span className="font-mono text-mono-label uppercase text-faint">últimas 8 semanas</span>
         </CardHeader>
         <div className="flex items-end gap-2" style={{ height: 160 }}>
@@ -304,16 +318,19 @@ export function ReportsPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <DistCard
           title="Tarefas por status"
+          icon={<ListChecks size={18} strokeWidth={1.5} aria-hidden />}
           rows={metrics.byStatus}
           empty="Nenhuma tarefa ainda."
         />
         <DistCard
           title="Abertas por prioridade"
+          icon={<Flag size={18} strokeWidth={1.5} aria-hidden />}
           rows={metrics.byPriority}
           empty="Nenhuma tarefa aberta."
         />
         <DistCard
           title="Tarefas por categoria"
+          icon={<Tags size={18} strokeWidth={1.5} aria-hidden />}
           rows={metrics.byTag}
           empty="Sem categorias atribuídas."
         />
@@ -323,11 +340,13 @@ export function ReportsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <DistCard
           title="Editorial por etapa"
+          icon={<Layers size={18} strokeWidth={1.5} aria-hidden />}
           rows={metrics.byStage}
           empty="Nenhum post no calendário."
         />
         <DistCard
           title="Editorial por aprovação"
+          icon={<BadgeCheck size={18} strokeWidth={1.5} aria-hidden />}
           rows={metrics.byApproval}
           empty="Nenhum post no calendário."
         />
@@ -336,7 +355,10 @@ export function ReportsPage() {
       {/* Carga do time */}
       <Card>
         <CardHeader>
-          <CardTitle>Carga do time</CardTitle>
+          <div className="flex items-center gap-2.5">
+            <CardIcon tone="gold"><Users size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+            <CardTitle>Carga do time</CardTitle>
+          </div>
           <span className="font-mono text-mono-label uppercase text-faint">tarefas por pessoa</span>
         </CardHeader>
         <Table>

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Plus, MoreHorizontal, Pencil, UserX, Loader2, Trash2 } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, UserX, Loader2, Trash2, Users } from 'lucide-react'
 import {
   SectionHeader,
+  CardIcon,
   Button,
   SearchField,
   Tabs,
@@ -240,6 +241,7 @@ export function UsersPage() {
         eyebrow="Operação"
         title="Usuários"
         description="Gerencie o time, papéis e status de acesso."
+        icon={<CardIcon tone="sage"><Users size={18} strokeWidth={1.5} aria-hidden /></CardIcon>}
         className="mb-6"
         actions={
           isAdmin ? (

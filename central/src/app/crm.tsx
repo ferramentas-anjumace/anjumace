@@ -79,6 +79,19 @@ export function fmtDateBR(iso?: string | null): string {
   return `${d}/${m}/${y}`
 }
 
+/**
+ * Monta o link wa.me a partir de um número em qualquer formato. Remove tudo que
+ * não é dígito; quando vem só com DDD + número (10 ou 11 dígitos), assume Brasil
+ * e prefixa 55. Retorna null se não houver dígitos suficientes.
+ */
+export function waHref(whatsapp?: string | null): string | null {
+  if (!whatsapp) return null
+  let digits = whatsapp.replace(/\D/g, '')
+  if (digits.length < 8) return null
+  if (digits.length === 10 || digits.length === 11) digits = `55${digits}`
+  return `https://wa.me/${digits}`
+}
+
 /* ------------------------------------------------------- mapeadores do banco */
 
 interface LeadRow {
@@ -555,6 +568,35 @@ const HEADER_MAP: Record<string, keyof LeadInput | 'ownerName'> = {
 }
 
 /**
+ * Limpa rótulos genéricos da planilha do Everfit/consultoria ("Cliente",
+ * "Mobile", "Cliente Mobile") que poluem o nome no import — pedido do Gabriel
+ * (checkpoint 2026-07-03) para a base não virar "cliente, cliente, cliente".
+ * Se sobrar vazio (a linha só tinha o rótulo), devolve o nome original para não
+ * descartar um lead que ainda tem telefone.
+ */
+function cleanLeadName(raw: string): string {
+  const cleaned = raw
+    .replace(/\b(cliente|mobile)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,;-]+|[\s,;-]+$/g, '')
+    .trim()
+  return cleaned || raw.trim()
+}
+
+/**
+ * Mapeia status antigos da planilha para as etapas novas do pipeline
+ * (migration 0036). Valores desconhecidos passam intactos.
+ */
+const STATUS_ALIASES: Record<string, string> = {
+  'em andamento': 'Conexão',
+  conexao: 'Conexão',
+  'proposta enviada': 'Proposta / Negociação',
+  negociacao: 'Proposta / Negociação',
+  'proposta / negociacao': 'Proposta / Negociação',
+  'primeira mensagem enviada': 'Primeira mensagem enviada',
+}
+
+/**
  * Converte o texto de um CSV em leads. Resolve "Responsável" para o id do
  * membro pelo nome (quando bate). Colunas desconhecidas são ignoradas; a coluna
  * Nome é obrigatória (linhas sem nome são descartadas).
@@ -576,6 +618,8 @@ export function parseLeadsCsv(text: string, members: { id: string; name: string 
       const raw = (cells[ci] ?? '').trim()
       if (!raw) return
       switch (field) {
+        case 'name': lead.name = cleanLeadName(raw); break
+        case 'status': lead.status = STATUS_ALIASES[norm(raw)] ?? raw; break
         case 'potentialValue': lead.potentialValue = parseMoney(raw); break
         case 'firstContactAt': lead.firstContactAt = parseDateBR(raw); break
         case 'nextFollowupAt': lead.nextFollowupAt = parseDateBR(raw); break

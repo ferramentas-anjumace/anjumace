@@ -1,6 +1,7 @@
 import { ShieldCheck, Lock } from 'lucide-react'
 import {
   SectionHeader,
+  CardIcon,
   Card,
   Switch,
   Badge,
@@ -36,6 +37,7 @@ export function PermissionsPage() {
         eyebrow="Sistema"
         title="Funções & permissões"
         description="Controle o que cada papel pode fazer. O Administrador tem acesso total e não pode ser limitado."
+        icon={<CardIcon tone="sage"><ShieldCheck size={18} strokeWidth={1.5} aria-hidden /></CardIcon>}
         className="mb-6"
       />
 

@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { Plus, CalendarDays, Clock, MapPin, Video, Users, ExternalLink, Pencil, Trash2, Loader2 } from 'lucide-react'
 import {
   SectionHeader,
+  CardIcon,
   Button,
   AgendaRow,
   Avatar,
@@ -20,9 +21,11 @@ import {
   EmptyState,
   useToast,
 } from '@/components/ui'
+import { useNavigate } from 'react-router-dom'
 import { usePermissions } from '@/lib/permissions'
 import { useAgenda, type AgendaEvent, type AgendaCategory, type AgendaInput } from './agenda'
 import { useProfiles } from './profiles'
+import { useMyFollowupEvents, isFollowupEventId, followupLeadId } from './CrmFollowups'
 
 /* ----------------------------------------------------------------- helpers */
 const weekdayFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' })
@@ -425,10 +428,14 @@ function AgendaFormModal({
 /* ============================================================== página ===== */
 export function AgendaPage() {
   const toast = useToast()
+  const navigate = useNavigate()
   const { can } = usePermissions()
   const { events, loading, addEvent, addEvents, updateEvent, removeEvent } = useAgenda()
   const { getMember } = useProfiles()
   const canManage = can('manage_resources')
+
+  // Follow-ups do CRM entram como eventos (virtuais) da agenda — ver useMyFollowupEvents.
+  const followupEvents = useMyFollowupEvents()
 
   const [scope, setScope] = useState('todos')
   const [openEvent, setOpenEvent] = useState<AgendaEvent | null>(null)
@@ -437,9 +444,16 @@ export function AgendaPage() {
 
   const today = todayIso()
   const groups = useMemo(() => {
-    const filtered = scope === 'hoje' ? events.filter((e) => e.date === today) : events.filter((e) => e.date >= today)
+    const all = [...events, ...followupEvents]
+    const filtered = scope === 'hoje' ? all.filter((e) => e.date === today) : all.filter((e) => e.date >= today)
     return groupByDay(filtered)
-  }, [events, scope, today])
+  }, [events, followupEvents, scope, today])
+
+  // Clique num evento: follow-up abre a ficha do lead; compromisso abre o detalhe.
+  const openAgendaItem = (ev: AgendaEvent) => {
+    if (isFollowupEventId(ev.id)) navigate(`/app/crm?lead=${followupLeadId(ev.id)}`)
+    else setOpenEvent(ev)
+  }
 
   const submit = async (draft: Draft) => {
     if (!draft.title.trim()) { toast.error('Informe um título'); return }
@@ -484,6 +498,7 @@ export function AgendaPage() {
         eyebrow="Operação"
         title="Agenda do time"
         description="Compromissos, prazos e cerimônias da equipe."
+        icon={<CardIcon tone="gold"><CalendarDays size={18} strokeWidth={1.5} aria-hidden /></CardIcon>}
         className="mb-6"
         actions={
           canManage ? (
@@ -540,7 +555,7 @@ export function AgendaPage() {
                       meta={ev.meta ?? ''}
                       category={ev.category}
                       interactive
-                      onClick={() => setOpenEvent(ev)}
+                      onClick={() => openAgendaItem(ev)}
                       trailing={
                         ev.people.length > 0 ? (
                           <AvatarGroup max={4}>

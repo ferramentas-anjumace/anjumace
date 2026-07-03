@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Upload, Download, Trash2, CalendarClock, MessageSquarePlus, FileDown, Maximize2,
+  Contact, ListChecks, Radar, Users, MessageCircle,
 } from 'lucide-react'
 import {
-  Card, CardHeader, CardTitle, StatCard, Button, IconButton, Input, Textarea, Select,
+  Card, CardHeader, CardTitle, CardIcon, StatCard, Button, IconButton, Input, Textarea, Select,
   Combobox, DatePicker, Drawer, Modal, EmptyState, SearchField, Avatar,
   Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell,
   Tabs, TabList, Tab, TabPanel, useToast,
@@ -14,7 +16,7 @@ import { usePermissions } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import {
-  useCrm, fmtBRL, fmtDateBR, isActiveLead, isWon, isLost, isInactive,
+  useCrm, fmtBRL, fmtDateBR, waHref, isActiveLead, isWon, isLost, isInactive,
   buildKpis, breakdownBy, ownerStats,
   parseLeadsCsv, leadsToCsv, leadsCsvTemplate, downloadText,
   type Lead, type LeadInteraction,
@@ -83,6 +85,29 @@ function CatBadge({ catalog, value, size = 'sm' }: { catalog: CatalogKey; value?
   return <CatalogBadge tone={tone(catalog, value)} size={size}>{label(catalog, value)}</CatalogBadge>
 }
 
+/** Ícone-link que abre o WhatsApp da pessoa (wa.me). Nulo se não houver número. */
+function WaLink({ whatsapp, size = 16, className }: { whatsapp?: string | null; size?: number; className?: string }) {
+  const href = waHref(whatsapp)
+  if (!href) return null
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      draggable={false}
+      onClick={(e) => e.stopPropagation()}
+      title="Abrir no WhatsApp"
+      aria-label="Abrir no WhatsApp"
+      className={cn(
+        'inline-flex shrink-0 items-center text-ok transition-colors hover:text-ok/70 focus-visible:outline-none focus-visible:shadow-focus',
+        className,
+      )}
+    >
+      <MessageCircle size={size} strokeWidth={1.5} aria-hidden />
+    </a>
+  )
+}
+
 /* =========================================================================== */
 
 type OwnerFilter = 'all' | 'me' | string
@@ -103,6 +128,16 @@ export function CrmPage() {
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+
+  // Deep-link vindo do widget "Meus follow-ups" da Home: /app/crm?lead=<id>.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const leadParam = searchParams.get('lead')
+  useEffect(() => {
+    if (!leadParam) return
+    setOpenId(leadParam)
+    searchParams.delete('lead')
+    setSearchParams(searchParams, { replace: true })
+  }, [leadParam, searchParams, setSearchParams])
 
   const memberName = (id?: string | null) => (id ? getMember(id)?.name ?? '—' : '—')
 
@@ -137,11 +172,14 @@ export function CrmPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6 px-6 py-8">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-h1 font-semibold text-strong">Comercial · CRM</h1>
-          <p className="mt-1 text-body-s text-muted">
-            Pipeline de vendas, leads e histórico de contatos — tudo num só lugar.
-          </p>
+        <div className="flex items-start gap-3">
+          <CardIcon tone="gold" className="mt-0.5"><Contact size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <div>
+            <h1 className="font-display text-h1 font-semibold text-strong">Comercial · CRM</h1>
+            <p className="mt-1 text-body-s text-muted">
+              Pipeline de vendas, leads e histórico de contatos — tudo num só lugar.
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canManage && (
@@ -266,8 +304,42 @@ function PipelineBoard({
   onQuickAdd: (status: string, name: string) => void
 } & CardHelpers) {
   const [over, setOver] = useState<string | null>(null)
+
+  // Arrastar-para-navegar (pan) horizontal do quadro. Usa refs para não
+  // re-renderizar a cada mousemove. Ignora cliques em cards (role=button/
+  // draggable) e controles, para não atrapalhar o arraste de card nem inputs.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pan = useRef<{ x: number; left: number } | null>(null)
+
+  function onPanDown(e: React.MouseEvent) {
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('input, textarea, button, a, [role="button"], [draggable="true"]')) return
+    const c = scrollRef.current
+    if (!c) return
+    pan.current = { x: e.pageX, left: c.scrollLeft }
+    c.classList.add('cursor-grabbing', 'select-none')
+  }
+  function onPanMove(e: React.MouseEvent) {
+    const c = scrollRef.current
+    if (!pan.current || !c) return
+    e.preventDefault()
+    c.scrollLeft = pan.current.left - (e.pageX - pan.current.x)
+  }
+  function endPan() {
+    if (!pan.current) return
+    pan.current = null
+    scrollRef.current?.classList.remove('cursor-grabbing', 'select-none')
+  }
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div
+      ref={scrollRef}
+      onMouseDown={onPanDown}
+      onMouseMove={onPanMove}
+      onMouseUp={endPan}
+      onMouseLeave={endPan}
+      className="flex cursor-grab gap-4 overflow-x-auto pb-2"
+    >
       {columns.map((col) => {
         const items = leads.filter((l) => l.status === col.value)
         const total = items.reduce((s, l) => s + (l.potentialValue || 0), 0)
@@ -294,17 +366,20 @@ function PipelineBoard({
             {total > 0 && (
               <div className="px-1 font-mono text-[11px] text-faint tabular-nums">{fmtBRL(total)} em potencial</div>
             )}
-            {items.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                canDrag={canManage}
-                onOpen={() => onOpen(lead.id)}
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', lead.id)}
-                {...helpers}
-              />
-            ))}
-            {items.length === 0 && <p className="px-1 py-4 text-center text-body-s text-faint">Vazio.</p>}
+            {/* Lista de cards: altura limitada, rola por dentro (não estica a coluna). */}
+            <div className="-mr-1 flex max-h-[calc(100vh-360px)] min-h-[80px] flex-col gap-2.5 overflow-y-auto pr-1">
+              {items.map((lead) => (
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  canDrag={canManage}
+                  onOpen={() => onOpen(lead.id)}
+                  onDragStart={(e) => e.dataTransfer.setData('text/plain', lead.id)}
+                  {...helpers}
+                />
+              ))}
+              {items.length === 0 && <p className="px-1 py-4 text-center text-body-s text-faint">Vazio.</p>}
+            </div>
             {canManage && <QuickAddLead onAdd={(name) => onQuickAdd(col.value, name)} />}
           </div>
         )
@@ -354,6 +429,7 @@ function LeadCard({
           {nInteractions > 0 && (
             <span className="font-mono text-[11px] tabular-nums">{nInteractions}×</span>
           )}
+          <WaLink whatsapp={lead.whatsapp} size={14} />
         </div>
         {lead.nextFollowupAt && (
           <span className={cn('inline-flex items-center gap-1 font-mono text-[11px] tabular-nums', followupOverdue ? 'text-err' : 'text-faint')}>
@@ -416,7 +492,12 @@ function LeadsTable({
         <TableBody>
           {leads.map((l) => (
             <TableRow key={l.id} className="cursor-pointer" onClick={() => onOpen(l.id)}>
-              <TableCell className="font-medium text-strong">{l.name}</TableCell>
+              <TableCell className="font-medium text-strong">
+                <span className="inline-flex items-center gap-2">
+                  {l.name}
+                  <WaLink whatsapp={l.whatsapp} size={15} />
+                </span>
+              </TableCell>
               <TableCell><CatBadge catalog="crm_status" value={l.status} /></TableCell>
               <TableCell><CatBadge catalog="crm_origin" value={l.origin} /></TableCell>
               <TableCell className="text-muted">{l.product ?? '—'}</TableCell>
@@ -538,7 +619,12 @@ function SpreadsheetView({ leads, canManage, isManager, onOpen }: { leads: Lead[
                 <td className={cn(td, 'min-w-[180px] border-r-line')}>
                   <GridText value={l.name} disabled={ro} onChange={(v) => set({ name: v })} />
                 </td>
-                <td className={cn(td, 'min-w-[130px]')}><GridText value={l.whatsapp ?? ''} disabled={ro} onChange={(v) => set({ whatsapp: v })} /></td>
+                <td className={cn(td, 'min-w-[150px]')}>
+                  <div className="flex items-center gap-1">
+                    <GridText value={l.whatsapp ?? ''} disabled={ro} onChange={(v) => set({ whatsapp: v })} />
+                    <WaLink whatsapp={l.whatsapp} size={14} className="pr-1" />
+                  </div>
+                </td>
                 <td className={cn(td, 'min-w-[180px]')}><GridText type="email" value={l.email ?? ''} disabled={ro} onChange={(v) => set({ email: v })} /></td>
                 <td className={cn(td, 'min-w-[120px]')}><GridCatSelect catalog="crm_origin" value={l.origin} disabled={ro} onChange={(v) => set({ origin: v })} /></td>
                 <td className={cn(td, 'min-w-[130px]')}><GridCatSelect catalog="crm_product" value={l.product} disabled={ro} onChange={(v) => set({ product: v })} /></td>
@@ -639,7 +725,12 @@ function Dashboard({ leads, memberName }: { leads: Lead[]; memberName: (id?: str
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-h3">Leads por status</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center gap-2.5">
+              <CardIcon tone="gold"><ListChecks size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+              <CardTitle className="text-h3">Leads por status</CardTitle>
+            </div>
+          </CardHeader>
           <div className="flex flex-col gap-3">
             {items('crm_status').map((s) => {
               const b = byStatus[s.value] ?? { count: 0, value: 0 }
@@ -649,7 +740,12 @@ function Dashboard({ leads, memberName }: { leads: Lead[]; memberName: (id?: str
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-h3">Leads por origem</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center gap-2.5">
+              <CardIcon tone="gold"><Radar size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+              <CardTitle className="text-h3">Leads por origem</CardTitle>
+            </div>
+          </CardHeader>
           <div className="flex flex-col gap-3">
             {items('crm_origin').map((o) => {
               const b = byOrigin[o.value] ?? { count: 0, value: 0 }
@@ -661,7 +757,12 @@ function Dashboard({ leads, memberName }: { leads: Lead[]; memberName: (id?: str
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-h3">Desempenho por responsável</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center gap-2.5">
+            <CardIcon tone="gold"><Users size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+            <CardTitle className="text-h3">Desempenho por responsável</CardTitle>
+          </div>
+        </CardHeader>
         <Table>
           <TableHead>
             <TableRow>
@@ -726,7 +827,14 @@ function LeadDrawer({ leadId, onClose, canManage, canDelete }: { leadId: string;
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="WhatsApp">
-            <Input value={lead.whatsapp ?? ''} disabled={ro} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="+55…" />
+            <div className="flex items-center gap-2">
+              <Input value={lead.whatsapp ?? ''} disabled={ro} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="+55…" className="flex-1" />
+              <WaLink
+                whatsapp={lead.whatsapp}
+                size={18}
+                className="grid size-10 place-items-center rounded-xs border border-line hover:border-strong hover:bg-slate-800"
+              />
+            </div>
           </Field>
           <Field label="E-mail">
             <Input value={lead.email ?? ''} disabled={ro} onChange={(e) => set({ email: e.target.value })} placeholder="email@…" />

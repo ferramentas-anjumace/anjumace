@@ -15,6 +15,8 @@ import {
   Save,
   History,
   ListChecks,
+  ListTodo,
+  Users,
   Loader2,
 } from 'lucide-react'
 import {
@@ -23,6 +25,7 @@ import {
   Card,
   CardHeader,
   CardTitle,
+  CardIcon,
   StatCard,
   Badge,
   Avatar,
@@ -583,7 +586,10 @@ function PeopleProgress({ tasks }: { tasks: Task[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Avanço por pessoa</CardTitle>
+        <div className="flex items-center gap-2.5">
+          <CardIcon tone="sage"><Users size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <CardTitle>Avanço por pessoa</CardTitle>
+        </div>
       </CardHeader>
       <div className="flex flex-col gap-3">
         {perPerson.length === 0 && <p className="text-body-s text-faint">Nenhuma tarefa atribuída.</p>}
@@ -1169,9 +1175,12 @@ export function TasksPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-5 px-6 py-8">
       {/* Cabeçalho */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <span className="font-mono text-mono-label uppercase text-steel-400">Operação</span>
-          <h1 className="mt-1 font-display text-h1 font-semibold text-strong">Tarefas</h1>
+        <div className="flex items-center gap-3">
+          <CardIcon tone="sage"><ListTodo size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <div>
+            <span className="font-mono text-mono-label uppercase text-steel-400">Operação</span>
+            <h1 className="mt-1 font-display text-h1 font-semibold text-strong">Tarefas</h1>
+          </div>
         </div>
         {canManage && (
           <Button

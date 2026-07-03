@@ -223,7 +223,10 @@ export function Combobox({
                     data-index={i}
                     onMouseEnter={() => setActive(i)}
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => select(opt)}
+                    // preventDefault evita que, quando o Combobox está dentro de
+                    // um <label>, o clique na opção seja reencaminhado ao input
+                    // (o que reabriria a lista via onClick={openList}).
+                    onClick={(e) => { e.preventDefault(); select(opt) }}
                     className={cn(
                       'flex cursor-pointer items-center justify-between gap-2 rounded-sm px-2.5 py-2 text-body-s',
                       opt.disabled
