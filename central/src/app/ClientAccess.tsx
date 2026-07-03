@@ -31,6 +31,7 @@ import {
   useToast,
 } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/cn'
 
 type MediaKind = 'imagens' | 'videos' | 'marca' | 'conteudos'
 interface MediaLink { id: string; label: string; kind: MediaKind; url: string | null; hint: string | null }
@@ -57,13 +58,22 @@ function prettyUrl(url: string) {
 function CopyField({ label, value, secret }: { label: string; value: string; secret?: boolean }) {
   const [show, setShow] = useState(false)
   const toast = useToast()
-  const display = secret && !show ? '•'.repeat(12) : value
+  // "Não definida": campo vazio ou só placeholder de bolinhas (seed inicial).
+  const unset = !value.trim() || /^[•·]+$/.test(value.trim())
+  const display = unset ? 'não definida' : secret && !show ? '•'.repeat(12) : value
   return (
     <div className="rounded-md border border-line bg-slate-800 px-2.5 py-1.5">
       <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{label}</div>
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate font-mono text-mono-data text-strong">{display}</span>
-        {secret && (
+        <span
+          className={cn(
+            'min-w-0 flex-1 truncate font-mono text-mono-data',
+            unset ? 'italic text-faint' : 'text-strong',
+          )}
+        >
+          {display}
+        </span>
+        {secret && !unset && (
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
@@ -73,17 +83,19 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
             {show ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard?.writeText(value)
-            toast.success('Copiado', label)
-          }}
-          aria-label={`Copiar ${label.toLowerCase()}`}
-          className="shrink-0 text-muted transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
-        >
-          <Copy size={14} strokeWidth={1.5} />
-        </button>
+        {!unset && (
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard?.writeText(value)
+              toast.success('Copiado', label)
+            }}
+            aria-label={`Copiar ${label.toLowerCase()}`}
+            className="shrink-0 text-muted transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            <Copy size={14} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
     </div>
   )
