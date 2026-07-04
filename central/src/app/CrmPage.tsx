@@ -113,7 +113,7 @@ function WaLink({ whatsapp, size = 16, className }: { whatsapp?: string | null; 
 type OwnerFilter = 'all' | 'me' | string
 
 export function CrmPage() {
-  const { user, isManager } = useSession()
+  const { user } = useSession()
   const { can } = usePermissions()
   const { members, getMember } = useProfiles()
   const { items } = useCatalogs()
@@ -257,7 +257,7 @@ export function CrmPage() {
         </TabPanel>
 
         <TabPanel value="planilha">
-          <SpreadsheetView leads={filtered} canManage={canManage} isManager={isManager} onOpen={setOpenId} />
+          <SpreadsheetView leads={filtered} canManage={canManage} onOpen={setOpenId} />
         </TabPanel>
 
         <TabPanel value="dashboard">
@@ -266,7 +266,7 @@ export function CrmPage() {
       </Tabs>
 
       {openId && (
-        <LeadDrawer leadId={openId} onClose={() => setOpenId(null)} canManage={canManage} canDelete={isManager} />
+        <LeadDrawer leadId={openId} onClose={() => setOpenId(null)} canManage={canManage} canDelete={canManage} />
       )}
 
       {importOpen && (
@@ -561,7 +561,7 @@ function GridCatSelect({ catalog, value, onChange, disabled }: { catalog: Catalo
   )
 }
 
-function SpreadsheetView({ leads, canManage, isManager, onOpen }: { leads: Lead[]; canManage: boolean; isManager: boolean; onOpen: (id: string) => void }) {
+function SpreadsheetView({ leads, canManage, onOpen }: { leads: Lead[]; canManage: boolean; onOpen: (id: string) => void }) {
   const { updateLead, setLeadStatus, removeLead, lastContactAt, interactionCount } = useCrm()
   const ro = !canManage
   const { members } = useProfiles()
@@ -658,7 +658,7 @@ function SpreadsheetView({ leads, canManage, isManager, onOpen }: { leads: Lead[
                     <IconButton aria-label="Abrir ficha" size="sm" onClick={() => onOpen(l.id)}>
                       <Maximize2 size={14} strokeWidth={1.5} aria-hidden />
                     </IconButton>
-                    {isManager && (
+                    {canManage && (
                       <IconButton aria-label="Excluir lead" size="sm" onClick={() => { if (confirm(`Excluir "${l.name}"?`)) removeLead(l.id) }}>
                         <Trash2 size={14} strokeWidth={1.5} aria-hidden />
                       </IconButton>
