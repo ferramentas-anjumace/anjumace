@@ -125,6 +125,7 @@ export function CrmPage() {
 
   const [tab, setTab] = useState('pipeline')
   const [owner, setOwner] = useState<OwnerFilter>('all')
+  const [origin, setOrigin] = useState('all')
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -143,13 +144,25 @@ export function CrmPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
+    // Busca por telefone ignora formatação: compara só os dígitos, com e sem o 55 do país.
+    const qDigits = q.replace(/\D/g, '')
     return leads.filter((l) => {
       if (owner === 'me' && l.ownerId !== user.id) return false
       if (owner !== 'all' && owner !== 'me' && l.ownerId !== owner) return false
-      if (q && !(`${l.name} ${l.whatsapp ?? ''} ${l.email ?? ''}`.toLowerCase().includes(q))) return false
+      if (origin !== 'all' && l.origin !== origin) return false
+      if (q) {
+        const matchText = `${l.name} ${l.whatsapp ?? ''} ${l.email ?? ''}`.toLowerCase().includes(q)
+        const leadDigits = (l.whatsapp ?? '').replace(/\D/g, '')
+        const matchPhone = qDigits.length >= 2 && leadDigits.length > 0 && (
+          leadDigits.includes(qDigits) ||
+          (qDigits.startsWith('55') && leadDigits.includes(qDigits.slice(2))) ||
+          `55${leadDigits}`.includes(qDigits)
+        )
+        if (!matchText && !matchPhone) return false
+      }
       return true
     })
-  }, [leads, owner, query, user.id])
+  }, [leads, owner, origin, query, user.id])
 
   // Todos veem o CRM; só quem tem `manage_crm` edita (o resto é só-leitura).
   const canManage = can('manage_crm')
@@ -211,6 +224,12 @@ export function CrmPage() {
           <option value="me">Meus leads</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </Select>
+        <Select value={origin} onChange={(e) => setOrigin(e.target.value)} className="w-48">
+          <option value="all">Todas as origens</option>
+          {items('crm_origin').map((o) => (
+            <option key={o.id} value={o.value}>{o.label}</option>
           ))}
         </Select>
         <span className="ml-auto font-mono text-mono-data text-faint tabular-nums">
