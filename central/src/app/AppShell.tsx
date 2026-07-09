@@ -10,6 +10,7 @@ import {
   BarChart3,
   Megaphone,
   Contact,
+  HeartHandshake,
   Hourglass,
   MessagesSquare,
   Tags,
@@ -82,6 +83,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
     items: [
       { to: '/app/crm', label: 'CRM', icon: <Contact size={18} strokeWidth={1.5} /> },
       { to: '/app/lista-de-espera', label: 'Lista de Espera', icon: <Hourglass size={18} strokeWidth={1.5} /> },
+      { to: '/app/cs', label: 'CS', icon: <HeartHandshake size={18} strokeWidth={1.5} /> },
     ],
   },
   {

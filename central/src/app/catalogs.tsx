@@ -154,6 +154,12 @@ export const CATALOGS = {
     help: 'Classificação de cada contato no histórico (primeiro contato, follow-up...).',
     usage: { table: 'crm_interactions', column: 'type' },
   },
+  cs_status: {
+    label: 'CS · Etapa do caso',
+    singular: 'etapa',
+    help: 'Colunas do pipeline de CS (pós-venda). Mantenha "Encerrado" no nome — os KPIs dependem disso.',
+    usage: { table: 'cs_cases', column: 'status' },
+  },
 } as const
 
 export type CatalogKey = keyof typeof CATALOGS
