@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/obrigado-singular", "destination": "/obrigado-singular.html" },
+    { "source": "/obrigado-templo", "destination": "/obrigado-templo.html" },
+    { "source": "/obrigado", "destination": "/obrigado-templo.html" },
+    { "source": "/singular", "destination": "/singular.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
