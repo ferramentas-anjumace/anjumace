@@ -6,6 +6,24 @@
  *  existem para casos pontuais e para o showcase.
  *  ========================================================================= */
 
+/**
+ * Torna um token var(--x) compatível com o modificador de opacidade do
+ * Tailwind (ex.: bg-accent/30). Sem isso, o v3 descarta a declaração
+ * silenciosamente, porque não consegue aplicar alpha num hex escondido
+ * numa CSS variable. Com <alpha-value> = 1 (sem modificador) o color-mix
+ * devolve a cor original.
+ */
+const withAlpha = (value) =>
+  `color-mix(in srgb, ${value} calc(<alpha-value> * 100%), transparent)`
+
+const alphaColors = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [
+      k,
+      typeof v === 'string' ? withAlpha(v) : alphaColors(v),
+    ]),
+  )
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class', '[data-theme="dark"]'],
@@ -35,7 +53,7 @@ export default {
       },
     },
     extend: {
-      colors: {
+      colors: alphaColors({
         /* ----- SEMÂNTICOS (preferir em componentes) ----- */
         surface: {
           DEFAULT: 'var(--surface)',
@@ -108,7 +126,7 @@ export default {
         },
         taupe: { 100: 'var(--taupe-100)', 300: 'var(--taupe-300)', 500: 'var(--taupe-500)', 700: 'var(--taupe-700)' },
         slate: { 200: 'var(--slate-200)', 300: 'var(--slate-300)', 400: 'var(--slate-400)', 500: 'var(--slate-500)', 600: 'var(--slate-600)' },
-      },
+      }),
 
       fontFamily: {
         display: 'var(--font-display)',
@@ -220,11 +238,45 @@ export default {
           to: { opacity: '1', transform: 'scale(1)' },
         },
         shimmer: { '100%': { transform: 'translateX(100%)' } },
+        /* Landing / marketing — decorativos longos (fora da UI de app) */
+        marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-16px)' },
+        },
+        'ken-burns': { from: { transform: 'scale(1)' }, to: { transform: 'scale(1.1)' } },
+        /* Zoom que vai e volta — pulsação lenta de foto de fundo. */
+        breathe: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.08)' },
+        },
+        cue: {
+          '0%, 100%': { transform: 'translateY(0)', opacity: '0.9' },
+          '50%': { transform: 'translateY(8px)', opacity: '0.35' },
+        },
+        shine: {
+          from: { transform: 'translateX(-160%) skewX(-18deg)' },
+          to: { transform: 'translateX(260%) skewX(-18deg)' },
+        },
+        drift: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(3rem, -2.5rem) scale(1.1)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in var(--duration-moderate) var(--ease-out) both',
         'fade-in-up': 'fade-in-up var(--duration-slow) var(--ease-out) both',
         'scale-in': 'scale-in var(--duration-base) var(--ease-spring) both',
+        marquee: 'marquee 38s linear infinite',
+        float: 'float 7s var(--ease-in-out) infinite',
+        'float-slow': 'float 11s var(--ease-in-out) infinite',
+        'ken-burns': 'ken-burns 18s var(--ease-out) both',
+        breathe: 'breathe 18s var(--ease-in-out) infinite',
+        cue: 'cue 2.2s var(--ease-in-out) infinite',
+        shine: 'shine 7s var(--ease-in-out) infinite',
+        'spin-slow': 'spin 48s linear infinite',
+        drift: 'drift 9s var(--ease-in-out) infinite',
+        'drift-slow': 'drift 14s var(--ease-in-out) infinite reverse',
       },
     },
   },

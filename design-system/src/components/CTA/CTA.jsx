@@ -35,7 +35,19 @@ export function CTABlock({
     >
       <div className={cn('flex flex-col gap-5', align === 'center' && 'items-center')}>
         {eyebrow && <Eyebrow className={tone !== 'surface' ? 'text-current/80' : undefined}>{eyebrow}</Eyebrow>}
-        {title && <h2 className="text-h1 max-w-3xl">{title}</h2>}
+        {/* h2 recebe cor do base (--text-primary); nos tons escuros é preciso
+            sobrepor explicitamente, senão fica grafite sobre grafite.
+            Concatenação simples: o twMerge confunde .text-h1 (classe custom
+            de tipografia) com utilitário de cor e descartaria uma das duas. */}
+        {title && (
+          <h2
+            className={`text-h1 max-w-3xl ${
+              tone === 'inverse' ? 'text-content-inverse' : tone === 'accent' ? 'text-accent-on' : ''
+            }`}
+          >
+            {title}
+          </h2>
+        )}
         {description && (
           <p className={cn('text-body-lg max-w-xl', tone === 'surface' ? 'text-content-secondary' : 'text-current/80')}>
             {description}
