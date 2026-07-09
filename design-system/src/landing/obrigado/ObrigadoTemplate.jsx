@@ -36,23 +36,25 @@ const gradient =
 function ConfirmacaoHero({ hero, bg }) {
   return (
     <section className="relative overflow-hidden bg-graphite-900 text-white">
-      {/* Foto só no desktop: Anju à direita, zoom que vai e volta (pulsação lenta). */}
-      <img
-        src={bg.desktop}
-        alt=""
-        className="absolute inset-0 hidden size-full animate-breathe object-cover object-[0%_25%] md:block"
-      />
-      {/* Véu escuro sobre a foto para manter o texto legível. */}
+      {/* Uma foto por dispositivo via <picture> — o navegador baixa SÓ a do
+          formato atual (dois <img> com display:none baixavam os dois arquivos).
+          Desktop: Anju à direita, enquadre 0%/25%, pulsação lenta (18s).
+          Mobile: foto vertical, Anju no topo, pulsação mais rápida (10s) —
+          em tela pequena o ciclo de 18s parece parado. */}
+      <picture>
+        <source media="(min-width: 768px)" srcSet={bg.desktop} />
+        <img
+          src={bg.mobile}
+          alt=""
+          fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 size-full animate-[breathe_10s_ease-in-out_infinite] object-cover object-top md:animate-breathe md:object-[0%_25%]"
+        />
+      </picture>
+      {/* Véu escuro sobre a foto para manter o texto legível (só desktop). */}
       <div
         className="absolute inset-0 hidden bg-gradient-to-r from-graphite-950/90 via-graphite-950/55 to-graphite-950/25 md:block"
         aria-hidden
-      />
-      {/* Mobile: foto vertical, Anju no topo, sem véu. Pulsação mais rápida
-          que no desktop (10s) — em tela pequena o ciclo de 18s parece parado. */}
-      <img
-        src={bg.mobile}
-        alt=""
-        className="absolute inset-0 size-full animate-[breathe_10s_ease-in-out_infinite] object-cover object-top md:hidden"
       />
 
       {/* Orbes de luz — profundidade e movimento contínuo sutil. */}
@@ -253,7 +255,7 @@ export function ObrigadoTemplate({
   aviso,
   fechamento,
   /* Fotos do hero — Templo por padrão; a página passa as suas se diferir. */
-  bg = { desktop: '/bg1-desktop-obrigado.png', mobile: '/bg1-mobile-obrigado.png' },
+  bg = { desktop: '/bg1-desktop-obrigado.webp', mobile: '/bg1-mobile-obrigado.webp' },
 }) {
   useEffect(() => {
     document.title = docTitle
