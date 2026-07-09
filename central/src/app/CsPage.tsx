@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  HeartHandshake, CalendarClock, Trash2, ExternalLink, MessageCircle, Import,
+  HeartHandshake, CalendarClock, Trash2, ExternalLink, MessageCircle, Import, Copy, Flame,
 } from 'lucide-react'
 import {
   CardIcon, StatCard, Button, Select, Textarea, DatePicker, Drawer, Modal,
@@ -14,6 +14,7 @@ import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import { useCrm, fmtBRL, fmtDateBR, waHref, isWon, type Lead } from './crm'
 import { useCs, isCsClosed, type CsCase } from './cs'
+import { CS_MONITORED, planOf, templateFor, daysInCs } from './csPlaybook'
 
 /* ----------------------------------------------------------------------------
    Comercial · CS (pós-venda) — kanban dos clientes ganhos
@@ -345,6 +346,7 @@ function CsCard({
         <div className="flex items-center gap-2 text-faint">
           {owner && <Avatar size="xs" name={owner.name} src={owner.avatar ?? undefined} />}
           <WaLink whatsapp={lead?.whatsapp} size={14} />
+          <DayChip csCase={csCase} />
         </div>
         {csCase.nextActionAt && (
           <span className={cn('inline-flex items-center gap-1 font-mono text-[11px] tabular-nums', actionOverdue ? 'text-err' : 'text-faint')}>
@@ -354,6 +356,36 @@ function CsCard({
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Dias no CS (D0 = dia do acesso) + regra de escalonamento do playbook:
+ * depois do D7 com 2+ itens do monitoramento pendentes (avaliação, perfil,
+ * aplicativo), o contato precisa ficar ainda mais pessoal.
+ */
+function DayChip({ csCase }: { csCase: CsCase }) {
+  const { checksFor } = useCs()
+  if (isCsClosed(csCase.status)) return null
+  const days = daysInCs(csCase.createdAt)
+  const doneItems = new Set(checksFor(csCase.id).map((k) => k.item))
+  const pendingMonitored = CS_MONITORED.filter((i) => !doneItems.has(i)).length
+  const escalate = days >= 7 && pendingMonitored >= 2
+  if (escalate) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 font-mono text-[11px] text-warn tabular-nums"
+        title={`D${days} com ${pendingMonitored} itens do monitoramento pendentes — escalonar: contato pessoal (playbook, ponto 9)`}
+      >
+        <Flame size={12} strokeWidth={1.5} aria-hidden />
+        D{days} · escalonar
+      </span>
+    )
+  }
+  return (
+    <span className="font-mono text-[11px] text-faint tabular-nums" title={`Dia ${days} desde a entrada no CS`}>
+      D{days}
+    </span>
   )
 }
 
@@ -454,8 +486,8 @@ function CsDrawer({
           </div>
         </div>
 
-        {/* Checklist do onboarding — o script da Circle virou catálogo editável. */}
-        <OnboardingChecklist csCase={csCase} canManage={canManage} />
+        {/* Checklist do onboarding — os marcos do playbook viraram catálogo editável. */}
+        <OnboardingChecklist csCase={csCase} lead={lead} canManage={canManage} />
 
         <Field label="Etapa">
           <Select value={csCase.status} disabled={ro} onChange={(e) => set({ status: e.target.value })}>
@@ -503,8 +535,14 @@ function CsDrawer({
   )
 }
 
-/** Checklist do onboarding dentro do drawer — marca quem fez e quando. */
-function OnboardingChecklist({ csCase, canManage }: { csCase: CsCase; canManage: boolean }) {
+/**
+ * Checklist do onboarding dentro do drawer — marca quem fez e quando.
+ * Passo pendente com mensagem no playbook ganha o botão de copiar: o texto
+ * sai com o [nome] da cliente preenchido, na versão Templo ou Singular
+ * conforme o produto do lead.
+ */
+function OnboardingChecklist({ csCase, lead, canManage }: { csCase: CsCase; lead?: Lead; canManage: boolean }) {
+  const { toast } = useToast()
   const { items } = useCatalogs()
   const { getMember } = useProfiles()
   const { checksFor, toggleCheck } = useCs()
@@ -514,11 +552,25 @@ function OnboardingChecklist({ csCase, canManage }: { csCase: CsCase; canManage:
   const checks = checksFor(csCase.id)
   const byItem = new Map(checks.map((k) => [k.item, k]))
   const done = steps.filter((s) => byItem.has(s.value)).length
+  const plan = planOf(lead?.product)
+
+  const copyTemplate = async (item: string) => {
+    const text = templateFor(item, plan, lead?.name)
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({ title: 'Mensagem copiada', description: 'Confira os [links] e o [seu nome] antes de enviar.', tone: 'success' })
+    } catch {
+      toast({ title: 'Não foi possível copiar', tone: 'error' })
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-line bg-slate-900 p-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-mono-label uppercase text-muted">Onboarding</span>
+        <span className="font-mono text-mono-label uppercase text-muted">
+          Onboarding · {plan === 'singular' ? 'Templo Singular' : 'Templo'}
+        </span>
         <span className={cn('font-mono text-mono-data tabular-nums', done >= steps.length ? 'text-ok' : 'text-faint')}>
           {done}/{steps.length}
         </span>
@@ -527,22 +579,40 @@ function OnboardingChecklist({ csCase, canManage }: { csCase: CsCase; canManage:
         {steps.map((s) => {
           const check = byItem.get(s.value)
           const who = check?.doneBy ? getMember(check.doneBy)?.name : undefined
+          const hasTemplate = !check && templateFor(s.value, plan) !== null
           return (
-            <Checkbox
-              key={s.id}
-              label={s.label}
-              description={
-                check
-                  ? `${who ?? 'alguém'} · ${new Date(check.doneAt).toLocaleDateString('pt-BR')}`
-                  : undefined
-              }
-              checked={Boolean(check)}
-              disabled={!canManage}
-              onChange={(e) => toggleCheck(csCase.id, s.value, e.target.checked)}
-            />
+            <div key={s.id} className="flex items-start justify-between gap-2">
+              <Checkbox
+                label={s.label}
+                description={
+                  check
+                    ? `${who ?? 'alguém'} · ${new Date(check.doneAt).toLocaleDateString('pt-BR')}`
+                    : undefined
+                }
+                checked={Boolean(check)}
+                disabled={!canManage}
+                onChange={(e) => toggleCheck(csCase.id, s.value, e.target.checked)}
+              />
+              {hasTemplate && (
+                <button
+                  type="button"
+                  onClick={() => copyTemplate(s.value)}
+                  title="Copiar a mensagem do playbook com o nome preenchido"
+                  aria-label={`Copiar mensagem: ${s.label}`}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[11px] text-steel-300 transition-colors hover:bg-steel-tint hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                  mensagem
+                </button>
+              )}
+            </div>
           )
         })}
       </div>
+      {/* Linha do tempo do playbook — referência rápida do ritmo do soft open. */}
+      <p className="border-t border-line pt-2.5 font-mono text-[10px] leading-relaxed text-faint">
+        D0 boas-vindas (marcos 1-2) · D2-D3 checar avaliação, perfil e app · D5 prazo da avaliação (Singular) · D7 nova checagem; 2+ pendentes → contato pessoal
+      </p>
     </div>
   )
 }
