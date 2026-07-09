@@ -160,6 +160,12 @@ export const CATALOGS = {
     help: 'Colunas do pipeline de CS (pós-venda). Mantenha "Encerrado" no nome — os KPIs dependem disso.',
     usage: { table: 'cs_cases', column: 'status' },
   },
+  cs_checklist: {
+    label: 'CS · Checklist de onboarding',
+    singular: 'passo',
+    help: 'Passos do onboarding na Circle (acolhimento, formulário, primeira missão...). O progresso aparece no card do caso.',
+    usage: { table: 'cs_case_checks', column: 'item' },
+  },
 } as const
 
 export type CatalogKey = keyof typeof CATALOGS

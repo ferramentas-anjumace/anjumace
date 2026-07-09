@@ -27,6 +27,15 @@ export interface CsCase {
 
 export type CsCasePatch = Partial<Omit<CsCase, 'id' | 'leadId' | 'createdAt'>>
 
+/** Passo do checklist de onboarding concluído num caso. */
+export interface CsCheck {
+  id: string
+  caseId: string
+  item: string // valor do catálogo cs_checklist
+  doneBy?: string | null
+  doneAt: string
+}
+
 /** Caso "encerrado" — identificado pelo texto (o catálogo é renomeável). */
 export const isCsClosed = (status?: string) => /encerrad/i.test(status ?? '')
 
@@ -54,6 +63,18 @@ function rowToCase(r: CsRow): CsCase {
   }
 }
 
+interface CheckRow {
+  id: string
+  case_id: string
+  item: string
+  done_by: string | null
+  done_at: string
+}
+
+function rowToCheck(r: CheckRow): CsCheck {
+  return { id: r.id, caseId: r.case_id, item: r.item, doneBy: r.done_by, doneAt: r.done_at }
+}
+
 function patchToRow(patch: CsCasePatch): Record<string, unknown> {
   const row: Record<string, unknown> = {}
   if (patch.status !== undefined) row.status = patch.status
@@ -66,12 +87,17 @@ function patchToRow(patch: CsCasePatch): Record<string, unknown> {
 
 interface CsCtx {
   cases: CsCase[]
+  checks: CsCheck[]
   loading: boolean
   updateCase: (id: string, patch: CsCasePatch) => void
   setCaseStatus: (id: string, status: string) => Promise<void>
   removeCase: (id: string) => Promise<void>
   /** Cria casos para leads ganhos que ainda não têm (backfill manual). */
   addCasesForLeads: (leadIds: string[]) => Promise<{ count: number; error: string | null }>
+  /** Passos concluídos de um caso. */
+  checksFor: (caseId: string) => CsCheck[]
+  /** Marca/desmarca um passo do onboarding. */
+  toggleCheck: (caseId: string, item: string, done: boolean) => Promise<void>
 }
 
 const Context = createContext<CsCtx | null>(null)
@@ -79,20 +105,21 @@ const Context = createContext<CsCtx | null>(null)
 const DEBOUNCE_MS = 450
 
 export function CsProvider({ children }: { children: React.ReactNode }) {
-  const { status } = useSession()
+  const { status, user } = useSession()
   const [cases, setCases] = useState<CsCase[]>([])
+  const [checks, setChecks] = useState<CsCheck[]>([])
   const [loading, setLoading] = useState(true)
 
   const pending = useRef<Record<string, CsCasePatch>>({})
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchAll = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('cs_cases')
-      .select('*')
-      .order('sort', { ascending: true })
-      .order('created_at', { ascending: true })
-    if (!error && data) setCases((data as CsRow[]).map(rowToCase))
+    const [c, k] = await Promise.all([
+      supabase.from('cs_cases').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true }),
+      supabase.from('cs_case_checks').select('*'),
+    ])
+    if (!c.error && c.data) setCases((c.data as CsRow[]).map(rowToCase))
+    if (!k.error && k.data) setChecks((k.data as CheckRow[]).map(rowToCheck))
     setLoading(false)
   }, [])
 
@@ -105,12 +132,14 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_cases' }, () => {
           if (Object.keys(timers.current).length === 0) fetchAll()
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_case_checks' }, () => fetchAll())
         .subscribe()
       return () => {
         supabase.removeChannel(channel)
       }
     } else if (status === 'anon') {
       setCases([])
+      setChecks([])
       setLoading(false)
     }
   }, [status, fetchAll])
@@ -162,9 +191,37 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
     return { count: created.length, error: null }
   }, [])
 
+  const checksFor = useCallback(
+    (caseId: string) => checks.filter((k) => k.caseId === caseId),
+    [checks],
+  )
+
+  const toggleCheck = useCallback(
+    async (caseId: string, item: string, done: boolean) => {
+      if (done) {
+        // Otimista com id provisório; o realtime traz a linha definitiva.
+        const temp: CsCheck = {
+          id: `temp-${caseId}-${item}`,
+          caseId,
+          item,
+          doneBy: user?.userId ?? null,
+          doneAt: new Date().toISOString(),
+        }
+        setChecks((ks) => [...ks.filter((k) => !(k.caseId === caseId && k.item === item)), temp])
+        await supabase
+          .from('cs_case_checks')
+          .upsert({ case_id: caseId, item, done_by: user?.userId ?? null }, { onConflict: 'case_id,item' })
+      } else {
+        setChecks((ks) => ks.filter((k) => !(k.caseId === caseId && k.item === item)))
+        await supabase.from('cs_case_checks').delete().eq('case_id', caseId).eq('item', item)
+      }
+    },
+    [user?.userId],
+  )
+
   const value = useMemo<CsCtx>(
-    () => ({ cases, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads }),
-    [cases, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads],
+    () => ({ cases, checks, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck }),
+    [cases, checks, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

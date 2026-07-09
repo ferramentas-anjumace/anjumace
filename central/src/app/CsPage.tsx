@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import {
   CardIcon, StatCard, Button, Select, Textarea, DatePicker, Drawer, Modal,
-  SearchField, Avatar, useToast,
+  SearchField, Avatar, Checkbox, useToast,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/lib/session'
@@ -340,6 +340,7 @@ function CsCard({
           <CatBadge catalog="crm_product" value={lead.product} />
         </div>
       )}
+      <OnboardingProgress csCase={csCase} />
       <div className="flex items-center justify-between gap-2 pt-0.5">
         <div className="flex items-center gap-2 text-faint">
           {owner && <Avatar size="xs" name={owner.name} src={owner.avatar ?? undefined} />}
@@ -352,6 +353,29 @@ function CsCard({
           </span>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Barra fina com o avanço do onboarding (passos do catálogo cs_checklist). */
+function OnboardingProgress({ csCase }: { csCase: CsCase }) {
+  const { items } = useCatalogs()
+  const { checksFor } = useCs()
+  const steps = items('cs_checklist')
+  if (steps.length === 0 || isCsClosed(csCase.status)) return null
+  const done = checksFor(csCase.id).filter((k) => steps.some((s) => s.value === k.item)).length
+  const complete = done >= steps.length
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1 flex-1 overflow-hidden rounded-full bg-slate-700">
+        <div
+          className={cn('h-full rounded-full transition-[width]', complete ? 'bg-ok' : 'bg-steel-400')}
+          style={{ width: `${(done / steps.length) * 100}%` }}
+        />
+      </div>
+      <span className={cn('font-mono text-[10px] tabular-nums', complete ? 'text-ok' : 'text-faint')}>
+        {done}/{steps.length}
+      </span>
     </div>
   )
 }
@@ -430,6 +454,9 @@ function CsDrawer({
           </div>
         </div>
 
+        {/* Checklist do onboarding — o script da Circle virou catálogo editável. */}
+        <OnboardingChecklist csCase={csCase} canManage={canManage} />
+
         <Field label="Etapa">
           <Select value={csCase.status} disabled={ro} onChange={(e) => set({ status: e.target.value })}>
             {items('cs_status').map((s) => (
@@ -466,18 +493,81 @@ function CsDrawer({
         </span>
       </div>
 
-      <Modal
+      <ConfirmDeleteModal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Excluir caso de CS"
-        description={`Excluir o caso de "${lead?.name ?? 'cliente'}"? O lead continua no CRM; só a tratativa de CS é removida.`}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
-            <Button variant="danger" onClick={handleDelete}>Excluir</Button>
-          </>
-        }
+        leadName={lead?.name}
+        onConfirm={handleDelete}
       />
     </Drawer>
+  )
+}
+
+/** Checklist do onboarding dentro do drawer — marca quem fez e quando. */
+function OnboardingChecklist({ csCase, canManage }: { csCase: CsCase; canManage: boolean }) {
+  const { items } = useCatalogs()
+  const { getMember } = useProfiles()
+  const { checksFor, toggleCheck } = useCs()
+  const steps = items('cs_checklist')
+  if (steps.length === 0) return null
+
+  const checks = checksFor(csCase.id)
+  const byItem = new Map(checks.map((k) => [k.item, k]))
+  const done = steps.filter((s) => byItem.has(s.value)).length
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-line bg-slate-900 p-4">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-mono-label uppercase text-muted">Onboarding</span>
+        <span className={cn('font-mono text-mono-data tabular-nums', done >= steps.length ? 'text-ok' : 'text-faint')}>
+          {done}/{steps.length}
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {steps.map((s) => {
+          const check = byItem.get(s.value)
+          const who = check?.doneBy ? getMember(check.doneBy)?.name : undefined
+          return (
+            <Checkbox
+              key={s.id}
+              label={s.label}
+              description={
+                check
+                  ? `${who ?? 'alguém'} · ${new Date(check.doneAt).toLocaleDateString('pt-BR')}`
+                  : undefined
+              }
+              checked={Boolean(check)}
+              disabled={!canManage}
+              onChange={(e) => toggleCheck(csCase.id, s.value, e.target.checked)}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** Modal de confirmação da exclusão do caso. */
+function ConfirmDeleteModal({
+  open, onClose, leadName, onConfirm,
+}: {
+  open: boolean
+  onClose: () => void
+  leadName?: string
+  onConfirm: () => void
+}) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Excluir caso de CS"
+      description={`Excluir o caso de "${leadName ?? 'cliente'}"? O lead continua no CRM; só a tratativa de CS é removida.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button variant="danger" onClick={onConfirm}>Excluir</Button>
+        </>
+      }
+    />
   )
 }
