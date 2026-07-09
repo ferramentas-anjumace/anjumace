@@ -6,9 +6,8 @@
 /* App do Circle nas lojas (mesmos links do Templo). */
 export const CIRCLE_ANDROID_URL = 'https://play.google.com/store/apps/details?id=so.circle.circle'
 export const CIRCLE_IOS_URL = 'https://apps.apple.com/us/app/circle-communities/id1509651625'
-/* Espaço "Comece por Aqui" dentro da comunidade no Circle.
-   TODO: confirmar a URL do espaço do Singular (usando a do Templo por ora). */
-export const COMECE_POR_AQUI_URL = 'https://anju-mace.circle.so/c/primeiro-passos-templo'
+/* Espaço "Comece por Aqui" (Primeiros Passos do Singular) no Circle. */
+export const COMECE_POR_AQUI_URL = 'https://anju-mace.circle.so/c/primeiros-passos-singular-303182'
 
 export const HERO = {
   eyebrow: 'ACESSO À ALIANÇA CONFIRMADO',
