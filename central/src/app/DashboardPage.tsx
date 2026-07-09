@@ -29,6 +29,7 @@ import { useAgenda, type AgendaEvent } from './agenda'
 import { useCatalogs, CatalogBadge } from './catalogs'
 import { usePresence } from '@/lib/presence'
 import { FollowupsCard } from './CrmFollowups'
+import { CsHomeCard } from './CsHome'
 
 /* -------------------------------------------------- ecossistema (atalhos) */
 
@@ -263,6 +264,9 @@ function AdminDashboard() {
           {/* Follow-ups do CRM (só para quem opera o comercial) */}
           {can('manage_crm') && <FollowupsCard />}
 
+          {/* Pendências do CS (mesma capacidade do comercial) */}
+          {can('manage_crm') && <CsHomeCard />}
+
           {/* Integrantes do time */}
           <Card className="border-steel-500/30 bg-steel-300/45">
             <CardHeader>
@@ -450,6 +454,9 @@ function CollaboratorDashboard() {
         <div className="flex flex-col gap-4">
           {/* Follow-ups do CRM (só para quem opera o comercial) */}
           {can('manage_crm') && <FollowupsCard />}
+
+          {/* Pendências do CS (mesma capacidade do comercial) */}
+          {can('manage_crm') && <CsHomeCard />}
 
           {/* Ecossistema Anju — atalhos */}
           <EcossistemaCard />

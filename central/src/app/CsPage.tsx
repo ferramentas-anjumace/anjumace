@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   HeartHandshake, CalendarClock, Trash2, ExternalLink, MessageCircle, Import, Copy, Flame,
 } from 'lucide-react'
@@ -92,6 +92,16 @@ export function CsPage() {
   const [owner, setOwner] = useState<OwnerFilter>('all')
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+
+  // Deep-link vindo do widget da Home: /app/cs?case=<id>.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const caseParam = searchParams.get('case')
+  useEffect(() => {
+    if (!caseParam) return
+    setOpenId(caseParam)
+    searchParams.delete('case')
+    setSearchParams(searchParams, { replace: true })
+  }, [caseParam, searchParams, setSearchParams])
 
   const canManage = can('manage_crm')
 
