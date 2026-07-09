@@ -33,12 +33,12 @@ const gradient =
  * Hero de confirmação — selo com check, entrada escalonada do conteúdo,
  * orbes de luz flutuando e cue apontando para os passos.
  */
-function ConfirmacaoHero({ hero }) {
+function ConfirmacaoHero({ hero, bg }) {
   return (
     <section className="relative overflow-hidden bg-graphite-900 text-white">
       {/* Foto só no desktop: Anju à direita, zoom que vai e volta (pulsação lenta). */}
       <img
-        src="/bg1-desktop-obrigado.png"
+        src={bg.desktop}
         alt=""
         className="absolute inset-0 hidden size-full animate-breathe object-cover object-[0%_25%] md:block"
       />
@@ -50,7 +50,7 @@ function ConfirmacaoHero({ hero }) {
       {/* Mobile: foto vertical, Anju no topo, sem véu. Pulsação mais rápida
           que no desktop (10s) — em tela pequena o ciclo de 18s parece parado. */}
       <img
-        src="/bg1-mobile-obrigado.png"
+        src={bg.mobile}
         alt=""
         className="absolute inset-0 size-full animate-[breathe_10s_ease-in-out_infinite] object-cover object-top md:hidden"
       />
@@ -244,7 +244,17 @@ function Footer() {
  * passos de onboarding (app do Circle e espaço no Circle). A copy de cada
  * plano vem por props: Templo (./data.js) e Singular (../obrigado-singular).
  */
-export function ObrigadoTemplate({ docTitle, hero, passos, labels, urls, aviso, fechamento }) {
+export function ObrigadoTemplate({
+  docTitle,
+  hero,
+  passos,
+  labels,
+  urls,
+  aviso,
+  fechamento,
+  /* Fotos do hero — Templo por padrão; a página passa as suas se diferir. */
+  bg = { desktop: '/bg1-desktop-obrigado.png', mobile: '/bg1-mobile-obrigado.png' },
+}) {
   useEffect(() => {
     document.title = docTitle
   }, [docTitle])
@@ -252,7 +262,7 @@ export function ObrigadoTemplate({ docTitle, hero, passos, labels, urls, aviso, 
   return (
     <div className="min-h-screen bg-surface-base text-content antialiased">
       <main>
-        <ConfirmacaoHero hero={hero} />
+        <ConfirmacaoHero hero={hero} bg={bg} />
         <PassosSection passos={passos} labels={labels} urls={urls} aviso={aviso} fechamento={fechamento} />
       </main>
       <Footer />

@@ -30,6 +30,7 @@ export function AppObrigadoSingular() {
         ios: CIRCLE_IOS_URL,
         primeirosPassos: COMECE_POR_AQUI_URL,
       }}
+      bg={{ desktop: '/bg1-singular-desktop.png', mobile: '/bg1-singular-mobile.png' }}
     />
   )
 }
