@@ -14,7 +14,7 @@ import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import { useCrm, fmtBRL, fmtDateBR, waHref, isWon, type Lead } from './crm'
 import { useCs, isCsClosed, type CsCase } from './cs'
-import { CS_MONITORED, planOf, templateFor, daysInCs } from './csPlaybook'
+import { CS_MONITORED, CS_PHASES, planOf, templateFor, daysInCs, CS_ITEMS } from './csPlaybook'
 
 /* ----------------------------------------------------------------------------
    Comercial · CS (pós-venda) — kanban dos clientes ganhos
@@ -565,54 +565,112 @@ function OnboardingChecklist({ csCase, lead, canManage }: { csCase: CsCase; lead
     }
   }
 
+  const days = daysInCs(csCase.createdAt)
+
+  // Distribui os passos do catálogo pelos momentos do playbook, preservando
+  // a ordem do catálogo dentro de cada grupo. Passos novos (criados em
+  // Catálogos) caem em "Outros passos".
+  const known = new Set(CS_PHASES.flatMap((p) => p.items))
+  const groups = [
+    ...CS_PHASES.map((p) => ({ ...p, steps: steps.filter((s) => p.items.includes(s.value)) })),
+    { key: 'outros', title: 'Outros passos', hint: 'Adicionados pela equipe em Catálogos.', items: [], steps: steps.filter((s) => !known.has(s.value)) },
+  ].filter((g) => g.steps.length > 0)
+
+  /** Chip de status do grupo conforme os dias do caso e o que falta. */
+  const groupChip = (key: string, pendingCount: number): { label: string; warn?: boolean } | null => {
+    if (pendingCount === 0) return null
+    if (key === 'd0') return days === 0 ? { label: 'hoje' } : { label: 'atrasado', warn: true }
+    if (key === 'd2d3') {
+      if (days >= 7 && pendingCount >= 2) return { label: `D${days} · escalonar`, warn: true }
+      if (days >= 2) return { label: 'agora' }
+    }
+    return null
+  }
+
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-line bg-slate-900 p-4">
+    <div className="flex flex-col gap-4 rounded-lg border border-line bg-slate-900 p-4">
       <div className="flex items-center justify-between">
         <span className="font-mono text-mono-label uppercase text-muted">
-          Onboarding · {plan === 'singular' ? 'Templo Singular' : 'Templo'}
+          Onboarding · {plan === 'singular' ? 'Templo Singular' : 'Templo'} · D{days}
         </span>
         <span className={cn('font-mono text-mono-data tabular-nums', done >= steps.length ? 'text-ok' : 'text-faint')}>
           {done}/{steps.length}
         </span>
       </div>
-      <div className="flex flex-col gap-2.5">
-        {steps.map((s) => {
-          const check = byItem.get(s.value)
-          const who = check?.doneBy ? getMember(check.doneBy)?.name : undefined
-          const hasTemplate = !check && templateFor(s.value, plan) !== null
-          return (
-            <div key={s.id} className="flex items-start justify-between gap-2">
-              <Checkbox
-                label={s.label}
-                description={
-                  check
-                    ? `${who ?? 'alguém'} · ${new Date(check.doneAt).toLocaleDateString('pt-BR')}`
-                    : undefined
-                }
-                checked={Boolean(check)}
-                disabled={!canManage}
-                onChange={(e) => toggleCheck(csCase.id, s.value, e.target.checked)}
-              />
-              {hasTemplate && (
-                <button
-                  type="button"
-                  onClick={() => copyTemplate(s.value)}
-                  title="Copiar a mensagem do playbook com o nome preenchido"
-                  aria-label={`Copiar mensagem: ${s.label}`}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[11px] text-steel-300 transition-colors hover:bg-steel-tint hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+
+      {groups.map((g) => {
+        const pending = g.steps.filter((s) => !byItem.has(s.value)).length
+        const chip = groupChip(g.key, pending)
+        const active = chip !== null
+        return (
+          <div
+            key={g.key}
+            className={cn(
+              'flex flex-col gap-2.5 rounded-md border p-3',
+              active ? 'border-steel-500/40 bg-steel-tint/20' : 'border-subtle',
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={cn('font-mono text-[11px] uppercase tracking-wide', active ? 'text-steel-300' : 'text-faint')}>
+                {g.title}
+              </span>
+              {chip && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px]',
+                    chip.warn ? 'bg-warn-tint text-warn' : 'bg-steel-tint text-steel-300',
+                  )}
                 >
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  mensagem
-                </button>
+                  {chip.warn && <Flame size={10} strokeWidth={1.5} aria-hidden />}
+                  {chip.label}
+                </span>
               )}
             </div>
-          )
-        })}
-      </div>
-      {/* Linha do tempo do playbook — referência rápida do ritmo do soft open. */}
-      <p className="border-t border-line pt-2.5 font-mono text-[10px] leading-relaxed text-faint">
-        D0 boas-vindas (marcos 1-2) · D2-D3 checar avaliação, perfil e app · D5 prazo da avaliação (Singular) · D7 nova checagem; 2+ pendentes → contato pessoal
-      </p>
+
+            {g.steps.map((s) => {
+              const check = byItem.get(s.value)
+              const who = check?.doneBy ? getMember(check.doneBy)?.name : undefined
+              const hasTemplate = !check && templateFor(s.value, plan) !== null
+              // Prazo da avaliação no Singular (D5): sinaliza no próprio item.
+              const singularDeadline = !check && plan === 'singular' && s.value === CS_ITEMS.avaliacao
+              const deadlineText = singularDeadline
+                ? days > 5 ? `prazo D5 vencido (D${days})` : `prazo até D5`
+                : undefined
+              return (
+                <div key={s.id} className="flex items-start justify-between gap-2">
+                  <Checkbox
+                    label={s.label}
+                    description={
+                      check
+                        ? `${who ?? 'alguém'} · ${new Date(check.doneAt).toLocaleDateString('pt-BR')}`
+                        : deadlineText && (
+                            <span className={cn(days > 5 && 'text-err')}>{deadlineText}</span>
+                          )
+                    }
+                    checked={Boolean(check)}
+                    disabled={!canManage}
+                    onChange={(e) => toggleCheck(csCase.id, s.value, e.target.checked)}
+                  />
+                  {hasTemplate && (
+                    <button
+                      type="button"
+                      onClick={() => copyTemplate(s.value)}
+                      title="Copiar a mensagem do playbook com o nome preenchido"
+                      aria-label={`Copiar mensagem: ${s.label}`}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[11px] text-steel-300 transition-colors hover:bg-steel-tint hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                    >
+                      <Copy size={12} strokeWidth={1.5} aria-hidden />
+                      mensagem
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+
+            <p className="font-mono text-[10px] leading-relaxed text-faint">{g.hint}</p>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -25,6 +25,39 @@ export const CS_ITEMS = {
 /** Os três itens do monitoramento da Fase 2 (regra de escalonamento do D7). */
 export const CS_MONITORED: string[] = [CS_ITEMS.avaliacao, CS_ITEMS.perfil, CS_ITEMS.app]
 
+/**
+ * Linha do tempo do playbook — em que momento cada passo é trabalhado.
+ * Passos criados pela equipe em Catálogos que não estejam aqui caem num
+ * grupo "Outros passos" no fim do checklist.
+ */
+export interface CsPhase {
+  key: string
+  title: string
+  hint: string
+  items: string[]
+}
+
+export const CS_PHASES: CsPhase[] = [
+  {
+    key: 'd0',
+    title: 'D0 · Dia do acesso',
+    hint: 'Mensagem única de boas-vindas, se apresentando pelo nome — só os marcos 1 e 2.',
+    items: [CS_ITEMS.boasVindas],
+  },
+  {
+    key: 'd2d3',
+    title: 'D2–D3 · Monitoramento',
+    hint: 'Checar cada item e enviar a mensagem do que estiver pendente. D5: prazo da avaliação (Singular). D7: nova checagem.',
+    items: [CS_ITEMS.login, CS_ITEMS.avaliacao, CS_ITEMS.perfil, CS_ITEMS.app],
+  },
+  {
+    key: 'aberto',
+    title: 'Sem momento definido',
+    hint: 'A comunicação da Primeira Missão está em aberto no playbook (ponto 10).',
+    items: [CS_ITEMS.primeiraMissao],
+  },
+]
+
 export type CsPlan = 'templo' | 'singular'
 
 export function planOf(product?: string): CsPlan {
