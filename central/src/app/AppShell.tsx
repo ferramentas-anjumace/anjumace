@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid,
@@ -38,6 +38,7 @@ import {
 import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/session'
+import { BRAND_LOCKED, THEME_LOCKED } from '@/lib/theme'
 import { usePermissions, type Capability } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useChat } from './chat'
@@ -133,8 +134,26 @@ export function AppShell() {
     navigate(to)
   }
 
+  // Trava a rolagem da janela enquanto o app está montado: o shell ocupa a
+  // tela inteira e cada área rola por conta própria. Sem a trava, qualquer
+  // altura extra no documento (até de extensão do navegador) faz a janela
+  // rolar e arrasta sidebar/topbar junto.
+  useEffect(() => {
+    const html = document.documentElement
+    const prevHtml = html.style.overflow
+    const prevBody = document.body.style.overflow
+    html.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      html.style.overflow = prevHtml
+      document.body.style.overflow = prevBody
+    }
+  }, [])
+
   return (
-    <div className="flex h-screen flex-col bg-ink text-fg">
+    // overflow-hidden: nada pode estourar o shell — sem ele, qualquer
+    // transbordo estica o body e a janela inteira rola, cortando o app.
+    <div className="flex h-screen flex-col overflow-hidden bg-ink text-fg">
       <Topbar
         className="relative z-sticky"
         leading={
@@ -149,8 +168,9 @@ export function AppShell() {
         center={<GlobalSearch />}
         trailing={
           <>
-            <BrandSwitcher />
-            <ThemeToggle />
+            {/* Seletores de marca/tema ocultos enquanto *_LOCKED (lib/theme.tsx). */}
+            {!BRAND_LOCKED && <BrandSwitcher />}
+            {!THEME_LOCKED && <ThemeToggle />}
             <NotificationsBell />
             <DropdownMenu
               align="end"
