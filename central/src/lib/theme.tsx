@@ -20,6 +20,16 @@ export const BRANDS: { value: Brand; label: string }[] = [
 const THEME_KEY = 'anju-theme'
 const BRAND_KEY = 'anju-brand'
 
+/**
+ * Tema travado no claro por decisão de produto (2026-07). O dark mode continua
+ * implementado — para reativar a alternância, basta voltar isto para `false`
+ * (e restaurar o script pré-paint no index.html).
+ */
+export const THEME_LOCKED = true
+
+/** Marca travada na Sálvia (default). Voltar para `false` reativa o seletor. */
+export const BRAND_LOCKED = true
+
 interface ThemeCtx {
   theme: Theme
   brand: Brand
@@ -31,6 +41,7 @@ interface ThemeCtx {
 const Context = createContext<ThemeCtx | null>(null)
 
 function readTheme(): Theme {
+  if (THEME_LOCKED) return 'light'
   if (typeof window === 'undefined') return 'light'
   const saved = localStorage.getItem(THEME_KEY)
   if (saved === 'light' || saved === 'dark') return saved
@@ -38,6 +49,7 @@ function readTheme(): Theme {
 }
 
 function readBrand(): Brand {
+  if (BRAND_LOCKED) return 'default'
   if (typeof window === 'undefined') return 'default'
   return (localStorage.getItem(BRAND_KEY) as Brand) || 'default'
 }
@@ -62,12 +74,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(BRAND_KEY, brand)
   }, [brand])
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), [])
+  const setTheme = useCallback((t: Theme) => {
+    if (THEME_LOCKED) return
+    setThemeState(t)
+  }, [])
   const toggleTheme = useCallback(
-    () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark')),
+    () => {
+      if (THEME_LOCKED) return
+      setThemeState((t) => (t === 'dark' ? 'light' : 'dark'))
+    },
     [],
   )
-  const setBrand = useCallback((b: Brand) => setBrandState(b), [])
+  const setBrand = useCallback((b: Brand) => {
+    if (BRAND_LOCKED) return
+    setBrandState(b)
+  }, [])
 
   const value = useMemo<ThemeCtx>(
     () => ({ theme, brand, setTheme, toggleTheme, setBrand }),

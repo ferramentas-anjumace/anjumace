@@ -6,20 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Anju Mace · Central de operações</title>
     <meta name="description" content="Central de operações Anju Mace — Sálvia & Dourado / Editorial Ops." />
-    <!-- Pré-paint: aplica tema/marca salvos antes do primeiro render (sem FOUC).
-         Padrão = claro (creme); respeita prefers-color-scheme só na primeira visita. -->
+    <!-- Pré-paint: aplica tema/marca antes do primeiro render (sem FOUC).
+         Tema TRAVADO no claro (ver THEME_LOCKED em src/lib/theme.tsx). Para
+         reativar o dark, restaurar a leitura salva:
+           var t = localStorage.getItem('anju-theme')
+           if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    -->
     <script>
       (function () {
         try {
           var root = document.documentElement
-          var t = localStorage.getItem('anju-theme')
-          if (!t) {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-          }
+          var t = 'light'
           root.setAttribute('data-theme', t)
           root.classList.toggle('dark', t === 'dark')
-          var b = localStorage.getItem('anju-brand')
-          if (b && b !== 'default') root.setAttribute('data-brand', b)
+          // Marca travada na Sálvia (BRAND_LOCKED). Para reativar, restaurar:
+          //   var b = localStorage.getItem('anju-brand')
+          //   if (b && b !== 'default') root.setAttribute('data-brand', b)
         } catch (e) {}
       })()
     </script>
