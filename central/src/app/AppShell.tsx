@@ -43,6 +43,7 @@ import { usePermissions, type Capability } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useChat } from './chat'
 import { AvatarUploader } from './AvatarUploader'
+import { ChatNotifications } from './ChatNotifications'
 import { NotificationsBell } from './NotificationsBell'
 import { GlobalSearch } from './GlobalSearch'
 import { Logo } from '@/components/Logo'
@@ -154,6 +155,7 @@ export function AppShell() {
     // overflow-hidden: nada pode estourar o shell — sem ele, qualquer
     // transbordo estica o body e a janela inteira rola, cortando o app.
     <div className="flex h-screen flex-col overflow-hidden bg-ink text-fg">
+      <ChatNotifications />
       <Topbar
         className="relative z-sticky"
         leading={

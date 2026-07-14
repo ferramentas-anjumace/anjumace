@@ -10,6 +10,13 @@ interface ToastItem {
   tone: ToastTone
   title: React.ReactNode
   description?: React.ReactNode
+  /** Torna o toast clicável (ex.: abrir a conversa da mensagem). */
+  onClick?: () => void
+  /** Substitui o ícone padrão do tom (ex.: balão de chat em mensagem nova). */
+  icon?: React.ReactNode
+  /** 'accent' = card de destaque (fundo Sálvia cheio) — usado nos avisos de
+   *  chat, que precisam saltar do fundo claro do app. */
+  variant?: 'default' | 'accent'
 }
 
 interface ToastApi {
@@ -73,29 +80,60 @@ export function ToastProvider({
           role="region"
           aria-label="Notificações"
         >
-          {items.map((t) => (
-            <div
-              key={t.id}
-              role="status"
-              className="pointer-events-auto flex items-start gap-3 rounded-lg border border-strong bg-slate-800 p-3.5 shadow-e3 animate-slide-up"
-            >
-              <span className={cn('mt-0.5 shrink-0', config[t.tone].accent)}>
-                {config[t.tone].icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-body-s font-medium text-strong">{t.title}</p>
-                {t.description && <p className="mt-0.5 text-body-s text-muted">{t.description}</p>}
-              </div>
-              <button
-                type="button"
-                aria-label="Fechar notificação"
-                onClick={() => remove(t.id)}
-                className="-mr-1 -mt-1 grid size-6 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-slate-600 hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+          {items.map((t) => {
+            const accent = t.variant === 'accent'
+            return (
+              <div
+                key={t.id}
+                role="status"
+                className={cn(
+                  'pointer-events-auto flex items-start gap-3 rounded-lg border p-3.5 animate-slide-up',
+                  accent
+                    ? 'border-transparent bg-steel-500 shadow-e3'
+                    : 'border-strong bg-slate-800 shadow-e3',
+                )}
               >
-                <X size={14} strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          ))}
+                <span className={cn('mt-0.5 shrink-0', accent ? 'text-accent-fg' : config[t.tone].accent)}>
+                  {t.icon ?? config[t.tone].icon}
+                </span>
+                {t.onClick ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      t.onClick!()
+                      remove(t.id)
+                    }}
+                    className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:shadow-focus"
+                  >
+                    <p className={cn('text-body-s font-medium', accent ? 'text-accent-fg' : 'text-strong')}>{t.title}</p>
+                    {t.description && (
+                      <p className={cn('mt-0.5 text-body-s', accent ? 'text-accent-fg/80' : 'text-muted')}>{t.description}</p>
+                    )}
+                  </button>
+                ) : (
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-body-s font-medium', accent ? 'text-accent-fg' : 'text-strong')}>{t.title}</p>
+                    {t.description && (
+                      <p className={cn('mt-0.5 text-body-s', accent ? 'text-accent-fg/80' : 'text-muted')}>{t.description}</p>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  aria-label="Fechar notificação"
+                  onClick={() => remove(t.id)}
+                  className={cn(
+                    '-mr-1 -mt-1 grid size-6 shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                    accent
+                      ? 'text-accent-fg/70 hover:bg-accent-fg/15 hover:text-accent-fg'
+                      : 'text-muted hover:bg-slate-600 hover:text-strong',
+                  )}
+                >
+                  <X size={14} strokeWidth={2} aria-hidden />
+                </button>
+              </div>
+            )
+          })}
         </div>
       </Portal>
     </ToastContext.Provider>

@@ -114,6 +114,12 @@ interface ChatCtx {
   totalUnread: number
   activeId: string | null
   setActiveId: (id: string | null) => void
+  /** A ChatPage está montada? Controla auto-leitura e supressão de avisos. */
+  chatOpen: boolean
+  setChatOpen: (open: boolean) => void
+  /** Registra um ouvinte de mensagens novas (de outros usuários, fora do canal
+   *  que o usuário está vendo). Retorna a função de cancelamento. */
+  onIncoming: (cb: (m: ChatMessage) => void) => () => void
   activeChannel: ChatChannel | null
   /** Mensagens de topo do canal ativo (sem as respostas). */
   messages: ChatMessage[]
@@ -154,6 +160,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     activeIdRef.current = activeId
   }, [activeId])
+
+  // A ChatPage avisa quando monta/desmonta: só consideramos uma mensagem "vista"
+  // (auto-lida, sem aviso) se o chat está aberto E a aba está visível.
+  const [chatOpen, setChatOpen] = useState(false)
+  const chatOpenRef = useRef(false)
+  useEffect(() => {
+    chatOpenRef.current = chatOpen
+  }, [chatOpen])
+
+  // Ouvintes de mensagens novas (toasts / notificação do navegador).
+  const incomingRef = useRef(new Set<(m: ChatMessage) => void>())
+  const onIncoming = useCallback((cb: (m: ChatMessage) => void) => {
+    incomingRef.current.add(cb)
+    return () => {
+      incomingRef.current.delete(cb)
+    }
+  }, [])
 
   // ---- Carregamentos --------------------------------------------------------
   const fetchChannels = useCallback(async () => {
@@ -235,8 +258,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
         const m = payload.new as MessageRow
         if (m.author_id === user.userId) return
-        if (m.channel_id === activeIdRef.current) return
+        // "Vendo" = canal ativo + ChatPage montada + aba visível. Fora disso a
+        // mensagem conta como não-lida e dispara os avisos registrados.
+        const seeing = m.channel_id === activeIdRef.current && chatOpenRef.current && !document.hidden
+        if (seeing) return
         setUnread((prev) => ({ ...prev, [m.channel_id]: (prev[m.channel_id] ?? 0) + 1 }))
+        const msg = rowToMessage(m)
+        for (const cb of incomingRef.current) cb(msg)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_channels' }, () => {
         fetchChannels()
@@ -270,8 +298,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setMessagesLoading(false)
       })
 
-    markRead(activeId)
-
     const channel = supabase
       .channel(`chat:messages:${activeId}`)
       .on(
@@ -280,7 +306,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         (payload) => {
           const m = rowToMessage(payload.new as MessageRow)
           setAllMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]))
-          if (m.authorId !== user.userId) markRead(activeId)
+          // Só auto-lê se o usuário está de fato vendo o canal (chat aberto + aba visível).
+          if (m.authorId !== user.userId && chatOpenRef.current && !document.hidden) markRead(activeId)
         },
       )
       .on(
@@ -307,6 +334,24 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(channel)
     }
   }, [status, activeId, user.userId, markRead])
+
+  // ---- Leitura do canal ativo ----------------------------------------------
+  // Marca como lido quando o usuário passa a VER o canal: ao abrir o chat, ao
+  // trocar de canal e ao voltar para a aba (antes, o canal ativo era auto-lido
+  // até com o usuário em outra página ou com a aba em segundo plano).
+  useEffect(() => {
+    if (status !== 'authed' || !chatOpen || !activeId) return
+    const mark = () => {
+      if (!document.hidden) markRead(activeId)
+    }
+    mark()
+    document.addEventListener('visibilitychange', mark)
+    window.addEventListener('focus', mark)
+    return () => {
+      document.removeEventListener('visibilitychange', mark)
+      window.removeEventListener('focus', mark)
+    }
+  }, [status, chatOpen, activeId, markRead])
 
   // ---- Reações do canal ativo ----------------------------------------------
   useEffect(() => {
@@ -537,6 +582,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       totalUnread,
       activeId,
       setActiveId,
+      chatOpen,
+      setChatOpen,
+      onIncoming,
       activeChannel,
       messages,
       messagesLoading,
@@ -561,6 +609,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       unread,
       totalUnread,
       activeId,
+      chatOpen,
+      onIncoming,
       activeChannel,
       messages,
       messagesLoading,

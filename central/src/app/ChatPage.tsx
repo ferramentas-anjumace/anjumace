@@ -966,6 +966,7 @@ export function ChatPage() {
     unread,
     activeId,
     setActiveId,
+    setChatOpen,
     activeChannel,
     messages,
     messagesLoading,
@@ -980,6 +981,16 @@ export function ChatPage() {
   const toast = useToast()
   const [newChannelOpen, setNewChannelOpen] = useState(false)
   const [newDmOpen, setNewDmOpen] = useState(false)
+
+  // Avisa o provider que o chat está visível (controla auto-leitura e avisos)
+  // e aproveita a visita para pedir permissão de notificação do navegador.
+  useEffect(() => {
+    setChatOpen(true)
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+    return () => setChatOpen(false)
+  }, [setChatOpen])
 
   // Deep-link: ?c=<channelId> (vindo do sino de notificações) abre a conversa.
   const [params] = useSearchParams()
@@ -1029,9 +1040,12 @@ export function ChatPage() {
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between px-2 py-1">
               <span className="font-mono text-mono-label uppercase text-steel-400">Canais</span>
-              <IconButton size="sm" aria-label="Novo canal" title="Novo canal" onClick={() => setNewChannelOpen(true)}>
-                <Plus size={16} strokeWidth={1.5} />
-              </IconButton>
+              {/* Criar canal é restrito a gestores (Administrador / Liderança). */}
+              {isManager && (
+                <IconButton size="sm" aria-label="Novo canal" title="Novo canal" onClick={() => setNewChannelOpen(true)}>
+                  <Plus size={16} strokeWidth={1.5} />
+                </IconButton>
+              )}
             </div>
             {loading ? (
               <div className="flex flex-col gap-1.5 px-1">
@@ -1097,9 +1111,11 @@ export function ChatPage() {
                 <IconButton size="sm" aria-label="Nova conversa" onClick={() => setNewDmOpen(true)}>
                   <PenSquare size={15} strokeWidth={1.5} />
                 </IconButton>
-                <IconButton size="sm" aria-label="Novo canal" onClick={() => setNewChannelOpen(true)}>
-                  <Plus size={16} strokeWidth={1.5} />
-                </IconButton>
+                {isManager && (
+                  <IconButton size="sm" aria-label="Novo canal" onClick={() => setNewChannelOpen(true)}>
+                    <Plus size={16} strokeWidth={1.5} />
+                  </IconButton>
+                )}
               </div>
             </header>
 
@@ -1153,11 +1169,17 @@ export function ChatPage() {
             <EmptyState
               icon={<MessagesSquare size={22} strokeWidth={1.5} />}
               title="Nenhum canal ainda"
-              description="Crie o primeiro canal para a equipe começar a conversar."
+              description={
+                isManager
+                  ? 'Crie o primeiro canal para a equipe começar a conversar.'
+                  : 'Peça a um gestor para criar o primeiro canal da equipe.'
+              }
               action={
-                <Button leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => setNewChannelOpen(true)}>
-                  Novo canal
-                </Button>
+                isManager ? (
+                  <Button leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => setNewChannelOpen(true)}>
+                    Novo canal
+                  </Button>
+                ) : undefined
               }
             />
           </div>
