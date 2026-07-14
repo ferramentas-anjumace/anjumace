@@ -53,17 +53,19 @@ function EditMemberModal({
 }: {
   member: Member | null
   onClose: () => void
-  onSave: (id: string, patch: { name: string; role: MemberRole; status: MemberStatus }) => void
+  onSave: (id: string, patch: { name: string; role: MemberRole; status: MemberStatus; team: string | null }) => void
   onAvatarChange: (id: string, avatar: string | null) => void | Promise<void>
   onAvatarError: (message: string) => void
 }) {
   const [name, setName] = useState('')
   const [role, setRole] = useState<MemberRole>('design')
+  const [team, setTeam] = useState('')
 
   useMemo(() => {
     if (member) {
       setName(member.name)
       setRole(member.role)
+      setTeam(member.team ?? '')
     }
   }, [member])
 
@@ -77,7 +79,7 @@ function EditMemberModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(member.id, { name, role, status: member.status })}>Salvar</Button>
+          <Button onClick={() => onSave(member.id, { name, role, status: member.status, team: team.trim() || null })}>Salvar</Button>
         </>
       }
     >
@@ -89,6 +91,13 @@ function EditMemberModal({
           onError={onAvatarError}
         />
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          label="Cargo (opcional)"
+          value={team}
+          onChange={(e) => setTeam(e.target.value)}
+          placeholder="Ex.: Gestora de Projetos"
+          helperText="Aparece ao lado do nome no chat, nas menções e no painel inicial."
+        />
         <Select label="Papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
           <option value="design">Design</option>
           <option value="comercial">Comercial</option>
@@ -111,17 +120,18 @@ function CreateUserModal({
 }: {
   open: boolean
   onClose: () => void
-  onCreate: (input: { email: string; password: string; name: string; role: MemberRole }) => void
+  onCreate: (input: { email: string; password: string; name: string; role: MemberRole; team: string | null }) => void
   creating: boolean
 }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [team, setTeam] = useState('')
   // Sem papel padrão: obriga a escolher explicitamente.
   const [role, setRole] = useState<MemberRole | ''>('')
 
   useMemo(() => {
-    if (open) { setName(''); setEmail(''); setPassword(''); setRole('') }
+    if (open) { setName(''); setEmail(''); setPassword(''); setTeam(''); setRole('') }
   }, [open])
 
   return (
@@ -133,7 +143,7 @@ function CreateUserModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button loading={creating} disabled={!role} onClick={() => role && onCreate({ email, password, name, role })}>
+          <Button loading={creating} disabled={!role} onClick={() => role && onCreate({ email, password, name, role, team: team.trim() || null })}>
             Criar usuário
           </Button>
         </>
@@ -141,6 +151,13 @@ function CreateUserModal({
     >
       <div className="flex flex-col gap-4">
         <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da pessoa" autoFocus />
+        <Input
+          label="Cargo (opcional)"
+          value={team}
+          onChange={(e) => setTeam(e.target.value)}
+          placeholder="Ex.: Gestora de Projetos"
+          helperText="Aparece ao lado do nome no chat, nas menções e no painel inicial."
+        />
         <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@empresa.com" />
         <Input label="Senha provisória" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" helperText="A pessoa pode trocar depois." />
         <Select label="Papel" placeholder="Selecione o papel" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
@@ -191,7 +208,7 @@ export function UsersPage() {
     design: members.filter((u) => u.role === 'design').length,
   }
 
-  const save = async (id: string, patch: { name: string; role: MemberRole; status: MemberStatus }) => {
+  const save = async (id: string, patch: { name: string; role: MemberRole; status: MemberStatus; team: string | null }) => {
     const { error } = await updateMember(id, patch)
     if (error) toast.error('Falha ao salvar', error)
     else toast.success('Usuário atualizado', patch.name)
@@ -215,7 +232,7 @@ export function UsersPage() {
     }
   }
 
-  const create = async (input: { email: string; password: string; name: string; role: MemberRole }) => {
+  const create = async (input: { email: string; password: string; name: string; role: MemberRole; team: string | null }) => {
     if (!input.email.trim() || !input.password) {
       toast.error('Informe e-mail e senha')
       return
@@ -226,6 +243,7 @@ export function UsersPage() {
       password: input.password,
       name: input.name.trim(),
       role: input.role,
+      team: input.team ?? undefined,
     })
     setCreating(false)
     if (error) toast.error('Não foi possível criar', error)
