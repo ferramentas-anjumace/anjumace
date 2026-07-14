@@ -1,4 +1,4 @@
-import { LayoutGrid, Mic, Users, Sparkles } from 'lucide-react'
+import { LayoutGrid, Mic, Users } from 'lucide-react'
 import { Section, SectionHeader } from '../../../components'
 import { ENTREGAVEIS } from '../data'
 import { ConsultoraButton } from './CtaButton'
@@ -7,11 +7,12 @@ import { ImagePlaceholder } from '../ImagePlaceholder'
 
 const extraIcons = [LayoutGrid, Mic, Users]
 
-/* Placeholder de foto de cada card de sustentação (mesma proporção nos 3). */
+/* Foto de cada card de sustentação (mesma proporção 16:10 nos 3).
+   `src: null` ainda mostra o placeholder com o rótulo. */
 const extraImages = [
-  'Arte/print: as aulas dos pilares do método T.E.M.P.L.O.',
-  'Foto: Anju ao vivo — Hot Seat / falando com alunas',
-  'Print: a comunidade Aliança no Circle',
+  { src: '/landing/ometodo-desktop.webp', label: 'Arte/print: as aulas dos pilares do método T.E.M.P.L.O.' },
+  { src: '/landing/hotseat-desktop.webp', label: 'Foto: Anju ao vivo — Hot Seat / falando com alunas' },
+  { src: '/landing/comunidade-desktop.webp', label: 'Print: a comunidade Aliança no Circle' },
 ]
 
 /**
@@ -27,7 +28,6 @@ export function EntregaveisSection() {
       <Reveal>
         <SectionHeader
           align="center"
-          eyebrow={ENTREGAVEIS.eyebrow}
           title={ENTREGAVEIS.title}
           description={ENTREGAVEIS.description}
           className="mb-14 max-w-3xl"
@@ -35,12 +35,15 @@ export function EntregaveisSection() {
       </Reveal>
 
       {/* Etapas da Prescrição Singular — timeline + mockup fixo no desktop */}
-      <div className="mx-auto max-w-5xl">
+      {/* A partir de xl o bloco invade o espaço livre fora do container (-mx)
+          pra dar mais largura à coluna de texto sem encolher as fotos. */}
+      <div className="mx-auto max-w-5xl lg:max-w-none xl:-mx-12 2xl:-mx-20">
         <Reveal>
           <h3 className="mb-8 text-center text-h4 text-content">{ENTREGAVEIS.stepsTitle}</h3>
         </Reveal>
 
-        <div className="grid items-start gap-12 lg:grid-cols-[1fr_320px]">
+        {/* lg: 1 foto estreita · xl+: dupla de fotos em coluna larga */}
+        <div className="grid items-start gap-12 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_660px]">
           <ol ref={lineRef} className="relative flex flex-col">
             <span
               aria-hidden
@@ -67,12 +70,25 @@ export function EntregaveisSection() {
           </ol>
 
           <Reveal variant="right" delay={200} className="lg:sticky lg:top-28">
-            <ImagePlaceholder
-              label="Mockup: a ficha da Prescrição Singular no celular"
-              size="1080 × 1920 px · 9:16 · WebP/PNG"
-              ratio="aspect-[9/16]"
-              className="mx-auto max-w-[280px] lg:max-w-none"
-            />
+            {/* xl+: dupla de imagens lado a lado; antes disso só a primeira. */}
+            <div className="xl:grid xl:grid-cols-2 xl:gap-5">
+              {/* Mobile: versão mais baixa (quase quadrada); desktop: 9:16. */}
+              <img
+                src="/landing/oqrecebe-mobile.webp"
+                alt="A ficha da Prescrição Singular no celular"
+                className="aspect-[1080/1173] w-full rounded-3xl object-cover shadow-lg lg:hidden"
+              />
+              <img
+                src="/landing/oqrecebe-desktop.webp"
+                alt="A ficha da Prescrição Singular no celular"
+                className="hidden aspect-[9/16] w-full rounded-3xl object-cover shadow-lg lg:block"
+              />
+              <img
+                src="/landing/oqrecebe2-desktop.webp"
+                alt="Os entregáveis da Prescrição Singular no celular"
+                className="hidden aspect-[9/16] w-full rounded-3xl object-cover shadow-lg xl:block"
+              />
+            </div>
           </Reveal>
         </div>
       </div>
@@ -93,13 +109,21 @@ export function EntregaveisSection() {
               <h3 className="text-h5 text-content">{extra.title}</h3>
               <p className="text-body-sm text-content-muted leading-relaxed">{extra.text}</p>
               {/* mt-auto ancora as fotos no rodapé — os 3 cards ficam alinhados */}
-              <ImagePlaceholder
-                label={extraImages[i]}
-                size="1200 × 750 px · 16:10 · WebP"
-                ratio="aspect-[16/10]"
-                rounded="rounded-xl"
-                className="mt-auto"
-              />
+              {extraImages[i].src ? (
+                <img
+                  src={extraImages[i].src}
+                  alt={extraImages[i].label}
+                  className="mt-auto aspect-[16/10] w-full rounded-xl object-cover"
+                />
+              ) : (
+                <ImagePlaceholder
+                  label={extraImages[i].label}
+                  size="1200 × 750 px · 16:10 · WebP"
+                  ratio="aspect-[16/10]"
+                  rounded="rounded-xl"
+                  className="mt-auto"
+                />
+              )}
             </Reveal>
           )
         })}
@@ -112,8 +136,8 @@ export function EntregaveisSection() {
             aria-hidden
             className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent"
           />
-          <span className="inline-flex items-center gap-2 text-label text-accent-2-text">
-            <Sparkles className="size-4" strokeWidth={1.5} aria-hidden />
+          {/* Selo em pílula — mesmo padrão do hero, sem ícone. */}
+          <span className="inline-flex items-center rounded-full border border-accent-2/50 bg-white/40 px-4 py-2 text-label text-accent-2-text">
             {ENTREGAVEIS.bonus.kicker}
           </span>
           <h3 className="text-h2 text-content">{ENTREGAVEIS.bonus.title}</h3>

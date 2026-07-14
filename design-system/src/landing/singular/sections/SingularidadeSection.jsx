@@ -1,8 +1,7 @@
-import { Section, Eyebrow } from '../../../components'
+import { Section } from '../../../components'
 import { SINGULARIDADE } from '../data'
 import { CtaButton } from './CtaButton'
 import { Reveal } from '../Reveal'
-import { ImagePlaceholder } from '../ImagePlaceholder'
 
 /**
  * Bloco 1 · A singularidade — hierarquia editorial: cabeçalho (eyebrow →
@@ -12,10 +11,9 @@ import { ImagePlaceholder } from '../ImagePlaceholder'
 export function SingularidadeSection() {
   return (
     <Section id="singularidade" tone="base" padding="lg" className="relative overflow-hidden">
-      <div className="relative flex flex-col gap-8 lg:gap-10">
+      <div className="relative flex flex-col gap-6 lg:gap-12">
         {/* Cabeçalho da seção — sempre primeiro na leitura */}
-        <Reveal className="flex max-w-3xl flex-col gap-6">
-          <Eyebrow>{SINGULARIDADE.eyebrow}</Eyebrow>
+        <Reveal className="flex max-w-3xl flex-col gap-6 md:mx-auto md:items-center md:text-center">
           <h2 className="text-h1 text-content">{SINGULARIDADE.title}</h2>
           <p className="font-display text-2xl font-light leading-snug text-accent-text">
             {SINGULARIDADE.lead}
@@ -36,10 +34,10 @@ export function SingularidadeSection() {
           </div>
 
           <Reveal variant="right" delay={250}>
-            <ImagePlaceholder
-              label="Foto: Anju avaliando uma aluna — a leitura do corpo em ação"
-              size="1200 × 900 px · 4:3 · WebP"
-              ratio="aspect-[4/3]"
+            <img
+              src="/landing/bgdobra2-desktop.webp"
+              alt="Anju avaliando uma aluna — a leitura do corpo em ação"
+              className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lg"
             />
           </Reveal>
         </div>

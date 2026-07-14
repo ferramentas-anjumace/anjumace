@@ -1,5 +1,5 @@
-import { PenLine, Image as ImageIcon } from 'lucide-react'
-import { Section, Eyebrow, Wordmark } from '../../../components'
+import { PenLine } from 'lucide-react'
+import { Section, Wordmark } from '../../../components'
 import { CREDIBILIDADE } from '../data'
 import { ConsultoraButton } from './CtaButton'
 import { Reveal } from '../Reveal'
@@ -12,8 +12,7 @@ export function CredibilidadeSection() {
   return (
     <Section id="quem-prescreve" tone="warm" padding="lg">
       <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
-        {/* ⚠️ Painel-assinatura provisório: trocar por um retrato real de Anju
-            (sem texto de capa) quando a foto for definida. */}
+        {/* Painel-assinatura: retrato oficial com a marca sobreposta na base. */}
         <Reveal variant="left" className="relative">
           {/* Moldura dourada nos cantos */}
           <span
@@ -25,26 +24,17 @@ export function CredibilidadeSection() {
             className="absolute -bottom-3 -right-3 size-16 rounded-br-3xl border-b-2 border-r-2 border-accent-2/70"
           />
 
-          <div className="relative flex aspect-[4/5] flex-col items-center justify-center gap-6 overflow-hidden rounded-3xl border-2 border-dashed border-white/25 bg-graphite-900 p-10 text-center shadow-xl">
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-graphite-950 via-graphite-900 to-sage-900/60"
-              aria-hidden
+          <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-graphite-900 shadow-xl">
+            <img
+              src="/landing/bioanju-desktop.webp"
+              alt="Anju Mace"
+              className="absolute inset-0 size-full object-cover"
             />
-            <div
-              className="pointer-events-none absolute -right-16 top-1/4 size-64 animate-float-slow rounded-full bg-gold-500/10 blur-3xl"
-              aria-hidden
-            />
-            <div className="relative flex flex-col items-center gap-5">
-              <ImageIcon className="size-10 text-white/50" strokeWidth={1.25} aria-hidden />
-              <p className="max-w-[24ch] text-body text-white/80">
-                Retrato oficial de Anju — sem texto gravado na foto
-              </p>
-              <p className="font-mono text-xs tracking-wide text-white/50">
-                1080 × 1350 px · 4:5 · WebP
-              </p>
+            {/* Assinatura sobre a base da foto */}
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-graphite-950/90 via-graphite-950/45 to-transparent px-8 pb-8 pt-24 text-center">
               <span className="h-px w-16 bg-accent-2/60" aria-hidden />
               <Wordmark size="md" tone="inverse" />
-              <p className="text-label text-white/60">
+              <p className="text-label text-white/70">
                 Prescrição assinada individualmente
               </p>
             </div>
@@ -52,9 +42,6 @@ export function CredibilidadeSection() {
         </Reveal>
 
         <div className="flex flex-col gap-5">
-          <Reveal variant="right">
-            <Eyebrow>{CREDIBILIDADE.eyebrow}</Eyebrow>
-          </Reveal>
           <Reveal variant="right" delay={100}>
             <h2 className="text-h1 text-content">{CREDIBILIDADE.title}</h2>
           </Reveal>
@@ -64,15 +51,7 @@ export function CredibilidadeSection() {
             </Reveal>
           ))}
 
-          {/* ⚠️ Espaço reservado: credenciais verificadas de Anju (registro e
-              formação). Substituir este placeholder antes da publicação. */}
           <Reveal variant="right" delay={440}>
-            <div className="rounded-2xl border border-dashed border-strong bg-surface/60 p-6 text-body-sm text-content-subtle">
-              Credenciais verificadas de Anju (registro e formação) — a confirmar antes da publicação.
-            </div>
-          </Reveal>
-
-          <Reveal variant="right" delay={540}>
             <p className="flex items-center gap-3 text-h5 text-content">
               <span className="inline-grid size-10 shrink-0 place-items-center rounded-full bg-accent-subtle text-accent-text">
                 <PenLine className="size-5" strokeWidth={1.5} />

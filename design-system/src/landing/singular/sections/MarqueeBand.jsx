@@ -32,8 +32,15 @@ function Track({ hidden = false }) {
 export function MarqueeBand() {
   return (
     <div className="overflow-hidden border-y border-white/5 bg-graphite-950 py-6">
+      {/* 6 cópias: o keyframe desloca -50% (= 3 trilhos), então a metade que
+          resta (~3.900px) precisa ser mais larga que a tela — cobre até
+          monitores ultrawide de 3440px sem vão no fim do ciclo. */}
       <div className="flex w-max animate-marquee">
         <Track />
+        <Track hidden />
+        <Track hidden />
+        <Track hidden />
+        <Track hidden />
         <Track hidden />
       </div>
     </div>

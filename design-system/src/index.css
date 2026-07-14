@@ -150,6 +150,14 @@
     line-height: var(--leading-normal);
     letter-spacing: var(--tracking-tight);
   }
+  /* Páginas com .page-corpo-16: corpo de 14px sobe pra 16px no desktop
+     (legibilidade). Opt-in por página pra não alterar landings já no ar. */
+  @media (min-width: 768px) {
+    .page-corpo-16 .text-body-sm {
+      font-size: var(--text-base);
+      line-height: var(--leading-relaxed);
+    }
+  }
   .text-caption {
     font-family: var(--font-sans);
     font-size: var(--text-xs);

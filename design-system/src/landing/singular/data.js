@@ -10,8 +10,8 @@ export const CTA_URL = '#planos'
 /* CTA secundário — WhatsApp da consultora. PREENCHER. */
 export const CONSULTORA_URL = '#contato'
 
-export const CTA_LABEL = 'Eu Quero um Treino Singular'
-export const CTA_CONSULTORA_LABEL = 'Fale com Uma Consultora'
+export const CTA_LABEL = 'Eu Quero um Treino Singular!'
+export const CTA_CONSULTORA_LABEL = 'Fale com Uma Consultora!'
 
 export const NAV_LINKS = [
   { label: 'Início', href: '#inicio' },
@@ -26,7 +26,7 @@ export const HERO = {
   title: 'O seu corpo é singular. O seu treino ainda não é.',
   description:
     'Um ciclo de consultoria bimestral. O seu treino desenhado do zero por Anju a partir de uma leitura do seu corpo, e relido a cada ciclo. Esse processo tem um nome: Prescrição Singular.',
-  image: '/landing/Modulo-2.webp',
+  image: '/landing/singular-hero-desktop.webp',
 }
 
 /* Bloco 1 · A singularidade */
@@ -150,6 +150,7 @@ export const CURSOS = {
     {
       letter: 'M',
       name: 'Mentalidade',
+      cover: '/landing/cursomentalidade-desktop.webp',
       status: 'Em breve no ar',
       live: false,
       headline: 'Governe o que molda a sua mente.',
@@ -162,6 +163,7 @@ export const CURSOS = {
     {
       letter: 'P',
       name: 'Propósito',
+      cover: '/landing/cursoproposito-desktop.webp',
       status: 'No ar',
       live: true,
       headline: 'O porquê que te faz voltar nos dias difíceis.',
@@ -171,6 +173,7 @@ export const CURSOS = {
     {
       letter: 'L',
       name: 'Liberdade',
+      cover: '/landing/cursoliberdade-desktop.webp',
       status: 'Em breve no ar',
       live: false,
       headline: 'A coragem de ser quem você é.',
@@ -180,6 +183,7 @@ export const CURSOS = {
     {
       letter: 'O',
       name: 'Ordem',
+      cover: '/landing/cursoordem-desktop.webp',
       status: 'No ar',
       live: true,
       headline: 'O que a sua presença diz antes de você falar.',

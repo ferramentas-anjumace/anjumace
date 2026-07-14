@@ -16,7 +16,6 @@ export function FechamentoSection() {
       <Reveal variant="scale" duration={900} className="relative">
         <CTABlock
           tone="inverse"
-          eyebrow="Prescrição Singular"
           title={FECHAMENTO.title}
           description={FECHAMENTO.description}
           actions={<CtaButton />}

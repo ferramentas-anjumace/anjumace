@@ -33,3 +33,6 @@ Thumbs.db
 /skills/
 /.mcp.json
 /.claude/skills/opensquad/
+
+# Fontes originais das imagens da landing (PNG pesados; os .webp vao no repo)
+design-system/_fontes-imagens/

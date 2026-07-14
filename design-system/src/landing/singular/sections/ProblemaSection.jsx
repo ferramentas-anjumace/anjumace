@@ -13,7 +13,6 @@ export function ProblemaSection() {
       <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.35fr] lg:gap-20">
         <Reveal variant="left" className="lg:sticky lg:top-28">
           <SectionHeader
-            eyebrow={PROBLEMA.eyebrow}
             title={PROBLEMA.title}
             description={PROBLEMA.description}
           />
@@ -43,13 +42,18 @@ export function ProblemaSection() {
         </ol>
       </div>
 
-      <div className="mt-16 flex flex-col items-center gap-8 text-center">
+      <div className="mt-16 flex flex-col items-center gap-14 text-center">
         <Reveal
           from="opacity-0 translate-y-10 after:scale-x-0"
           to="opacity-100 translate-y-0 after:scale-x-100"
-          className="relative max-w-2xl after:absolute after:-bottom-3 after:left-1/2 after:h-px after:w-40 after:-translate-x-1/2 after:origin-center after:bg-accent-2 after:transition-transform after:duration-slow after:delay-300 after:ease-out"
+          className="relative max-w-2xl after:absolute after:-bottom-7 after:left-1/2 after:h-px after:w-72 after:-translate-x-1/2 after:origin-center after:bg-accent-2 after:transition-transform after:duration-slow after:delay-300 after:ease-out"
         >
-          <p className="text-h4 text-content">{PROBLEMA.closing}</p>
+          {/* No desktop, quebra depois do dois-pontos (pedido de copy). */}
+          <p className="text-h4 text-content">
+            {PROBLEMA.closing.split(': ')[0]}:
+            <br className="hidden md:block" />{' '}
+            {PROBLEMA.closing.split(': ')[1]}
+          </p>
         </Reveal>
         <Reveal delay={200}>
           <CtaButton />

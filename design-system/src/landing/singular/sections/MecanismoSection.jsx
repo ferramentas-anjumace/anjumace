@@ -1,4 +1,4 @@
-import { Section, Eyebrow } from '../../../components'
+import { Section } from '../../../components'
 import { MECANISMO } from '../data'
 import { CtaButton } from './CtaButton'
 import { Reveal } from '../Reveal'
@@ -27,9 +27,6 @@ export function MecanismoSection() {
       />
 
       <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
-        <Reveal>
-          <Eyebrow>{MECANISMO.eyebrow}</Eyebrow>
-        </Reveal>
         <Reveal delay={100}>
           <h2 className="text-h1 text-content">{MECANISMO.title}</h2>
         </Reveal>
@@ -49,13 +46,13 @@ export function MecanismoSection() {
           from="opacity-0 translate-y-10 after:scale-x-0"
           to="opacity-100 translate-y-0 after:scale-x-100"
           delay={200}
-          className="relative after:absolute after:-bottom-3 after:left-1/2 after:h-px after:w-48 after:-translate-x-1/2 after:origin-center after:bg-accent-2 after:transition-transform after:duration-slow after:delay-500 after:ease-out"
+          className="relative after:absolute after:-bottom-7 after:left-1/2 after:h-px after:w-72 after:-translate-x-1/2 after:origin-center after:bg-accent-2 after:transition-transform after:duration-slow after:delay-500 after:ease-out"
         >
           <p className="text-h4 text-content">
             {MECANISMO.paragraphs[MECANISMO.paragraphs.length - 1]}
           </p>
         </Reveal>
-        <Reveal delay={300} className="pt-4">
+        <Reveal delay={300} className="pt-10">
           <CtaButton />
         </Reveal>
       </div>

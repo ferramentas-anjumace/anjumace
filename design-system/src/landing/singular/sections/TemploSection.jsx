@@ -15,7 +15,6 @@ export function TemploSection() {
       <Reveal>
         <SectionHeader
           align="center"
-          eyebrow={TEMPLO.eyebrow}
           title={TEMPLO.title}
           description={TEMPLO.description}
           className="mb-6 max-w-3xl"

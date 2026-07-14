@@ -11,7 +11,7 @@ import { CursosSection } from './sections/CursosSection'
 import { EntregaveisSection } from './sections/EntregaveisSection'
 import { CredibilidadeSection } from './sections/CredibilidadeSection'
 import { FechamentoSection } from './sections/FechamentoSection'
-import { FooterSection } from '../sections/FooterSection'
+import { Footer } from '../obrigado/ObrigadoTemplate'
 
 /**
  * Landing "Plano Templo Singular" — consultoria de treino individualizada.
@@ -23,7 +23,8 @@ export function AppTemploSingular() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-surface-base text-content antialiased">
+    // .page-corpo-16: no desktop, corpo de texto de 14px sobe pra 16px (ver index.css).
+    <div className="page-corpo-16 min-h-screen bg-surface-base text-content antialiased">
       <Nav />
       <main>
         <HeroSection />
@@ -38,7 +39,7 @@ export function AppTemploSingular() {
         <CredibilidadeSection />
         <FechamentoSection />
       </main>
-      <FooterSection />
+      <Footer />
     </div>
   )
 }

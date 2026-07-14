@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Button, Wordmark } from '../../../components'
 import { NAV_LINKS, CTA_URL, CTA_LABEL } from '../data'
+import { ctaGradient } from './CtaButton'
 
 /** Barra de progresso de leitura — linha sálvia→dourado na base do header. */
 function ScrollProgress() {
@@ -41,7 +42,8 @@ function ScrollProgress() {
 export function Nav() {
   return (
     <header className="sticky top-0 z-sticky border-b border-subtle/60 glass">
-      <div className="container flex h-16 items-center justify-between gap-6">
+      {/* Mobile: só a logo, centralizada. Tablet+: logo à esquerda, CTA à direita. */}
+      <div className="container flex h-16 items-center justify-center gap-6 md:justify-between">
         <a href="#inicio" className="shrink-0" aria-label="Anju Mace — início">
           <Wordmark size="md" />
         </a>
@@ -58,7 +60,9 @@ export function Nav() {
           ))}
         </nav>
 
-        <Button as="a" href={CTA_URL} size="sm" className="shrink-0 uppercase tracking-wide">
+        {/* Só no desktop: no mobile o rótulo não cabe ao lado da logo, e o CTA
+            do hero aparece logo abaixo. */}
+        <Button as="a" href={CTA_URL} size="sm" className={`hidden shrink-0 uppercase tracking-wide md:inline-flex ${ctaGradient}`}>
           {CTA_LABEL}
         </Button>
       </div>

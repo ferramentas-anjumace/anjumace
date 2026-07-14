@@ -227,8 +227,8 @@ function PassosSection({ passos, labels, urls, aviso, fechamento }) {
   )
 }
 
-/** Rodapé simples — só o logo e o copyright. */
-function Footer() {
+/** Rodapé simples — só o logo e o copyright. Também usado na landing /singular. */
+export function Footer() {
   return (
     <footer className="border-t border-white/10 bg-surface-inverse text-content-inverse">
       <div className="container flex flex-col items-center justify-between gap-4 py-8 text-center md:flex-row md:text-left">
