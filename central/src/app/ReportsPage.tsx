@@ -32,11 +32,12 @@ import {
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   STAGE_META,
-  APPROVAL_META,
+  POST_APPROVAL_META,
+  postApprovalState,
   taskExecutors,
   type TaskStatus,
   type EditorialStage,
-  type EditorialApproval,
+  type PostApprovalState,
 } from './data'
 
 /* ----------------------------------------------------------------------------
@@ -189,13 +190,14 @@ export function ReportsPage() {
       value: posts.filter((p) => p.stage === s).length,
       tone: STAGE_META[s].tone as Tone,
     }))
-    const approvals = Object.keys(APPROVAL_META) as EditorialApproval[]
+    const approvals = Object.keys(POST_APPROVAL_META) as PostApprovalState[]
     const byApproval = approvals.map((a) => ({
-      label: APPROVAL_META[a].label,
-      value: posts.filter((p) => p.approval === a).length,
-      tone: APPROVAL_META[a].tone as Tone,
+      label: POST_APPROVAL_META[a].label,
+      value: posts.filter((p) => postApprovalState(p) === a).length,
+      tone: POST_APPROVAL_META[a].tone as Tone,
     }))
-    const awaitingAnju = posts.filter((p) => p.approval === 'em-revisao').length
+    // "Aguardando Anju" = a bola está com ela (etapa do fluxo), não o status de aprovação.
+    const awaitingAnju = posts.filter((p) => p.stage === 'para-anju').length
 
     // Carga por membro (tarefas atribuídas). Em revisão conta para o executor.
     const workload = members

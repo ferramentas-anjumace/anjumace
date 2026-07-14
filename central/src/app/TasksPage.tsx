@@ -56,13 +56,14 @@ import {
   TASK_STATUS_META,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
-  APPROVAL_META,
+  POST_APPROVAL_META,
+  postApprovalState,
   taskExecutors,
   type ChecklistItem,
   type Task,
   type TaskStatus,
   type TaskPriority,
-  type EditorialApproval,
+  type PostApprovalState,
 } from './data'
 
 /* ----------------------------------------------------------------- helpers */
@@ -777,7 +778,6 @@ function TaskFormModal({
                   <Checkbox checked={draft.assignees.includes(u.id)} onChange={() => toggleAssignee(u.id)} />
                   <Avatar size="xs" name={u.name} src={u.avatar ?? undefined} />
                   <span className="min-w-0 flex-1 truncate text-body-s text-strong">{u.name}</span>
-                  {u.team && <span className="font-mono text-[10px] uppercase text-faint">{u.team}</span>}
                 </label>
               ))}
             </div>
@@ -873,8 +873,8 @@ function TaskDetailModal({
   /** Se a origem permite concluir pelo popup (lista/calendário — onde não há
    *  arrastar). No quadro fica false: concluir é só arrastando. */
   allowComplete: boolean
-  /** Status do Editorial, quando a tarefa veio de uma postagem vinculada. */
-  editorialApproval?: EditorialApproval
+  /** Status do Editorial (derivado das etapas copy/arte), quando a tarefa veio de uma postagem vinculada. */
+  editorialApproval?: PostApprovalState
   onClose: () => void
   onMove: (status: TaskStatus) => void
   onEdit: () => void
@@ -984,7 +984,7 @@ function TaskDetailModal({
           {editorialApproval && (
             <div>
               <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status no Editorial</div>
-              <Badge tone={APPROVAL_META[editorialApproval].tone}>{APPROVAL_META[editorialApproval].label}</Badge>
+              <Badge tone={POST_APPROVAL_META[editorialApproval].tone}>{POST_APPROVAL_META[editorialApproval].label}</Badge>
             </div>
           )}
 
@@ -1019,7 +1019,7 @@ function TaskDetailModal({
                     <li key={id} className="flex items-center gap-2.5">
                       <Avatar size="sm" name={u?.name ?? '?'} src={u?.avatar ?? undefined} />
                       <span className="text-body-s text-strong">{u?.name ?? 'Desconhecido'}</span>
-                      {u && <span className="font-mono text-[11px] text-faint">{ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}</span>}
+                      {u && <span className="font-mono text-[11px] text-faint">{ROLE_LABEL[u.role]}</span>}
                     </li>
                   )
                 })}
@@ -1068,8 +1068,8 @@ export function TasksPage() {
   // Mapa tarefa→status do editorial (para postagens vinculadas).
   const { getPosts } = useEditorial()
   const approvalByTask = useMemo(() => {
-    const map: Record<string, EditorialApproval> = {}
-    for (const p of getPosts(ANJU_ID)) if (p.taskId) map[p.taskId] = p.approval
+    const map: Record<string, PostApprovalState> = {}
+    for (const p of getPosts(ANJU_ID)) if (p.taskId) map[p.taskId] = postApprovalState(p)
     return map
   }, [getPosts])
   // Permissões configuráveis (matriz por papel). canManage = criar/editar/excluir.

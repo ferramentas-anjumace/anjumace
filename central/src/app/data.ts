@@ -235,11 +235,23 @@ export const STAGE_META: Record<EditorialStage, { label: string; tone: Tone }> =
   concluido: { label: 'Concluído', tone: 'success' },
 }
 
-export const APPROVAL_META: Record<EditorialApproval, { label: string; tone: Tone }> = {
-  'em-producao': { label: 'Em produção', tone: 'warning' },
-  'em-revisao': { label: 'Em revisão', tone: 'steel' },
+/** Estado consolidado da aprovação, derivado das duas etapas (copy + arte/vídeo).
+ *  Substitui o antigo status manual ("Aprovação Anju"): qualquer etapa em ajuste
+ *  → "ajuste"; ambas aprovadas → "aprovado"; senão → "aguardando". */
+export type PostApprovalState = 'aguardando' | 'ajuste' | 'aprovado'
+
+export const POST_APPROVAL_META: Record<PostApprovalState, { label: string; tone: Tone }> = {
+  aguardando: { label: 'Aguardando aprovação', tone: 'neutral' },
+  ajuste: { label: 'Em ajuste', tone: 'danger' },
   aprovado: { label: 'Aprovado', tone: 'success' },
-  reprovado: { label: 'Reprovado', tone: 'danger' },
+}
+
+export function postApprovalState(post: { copyStatus?: TrackStatus; artStatus?: TrackStatus }): PostApprovalState {
+  const copy = post.copyStatus ?? 'pendente'
+  const art = post.artStatus ?? 'pendente'
+  if (copy === 'ajuste' || art === 'ajuste') return 'ajuste'
+  if (copy === 'aprovado' && art === 'aprovado') return 'aprovado'
+  return 'aguardando'
 }
 
 export const ASSET_META: Record<EditorialAsset, { label: string }> = {
@@ -250,6 +262,27 @@ export const ASSET_META: Record<EditorialAsset, { label: string }> = {
   roteiro: { label: 'Roteiro' },
   cta: { label: 'CTA' },
 }
+
+/** Automação do formato: parâmetros pré-preenchidos ao criar uma demanda.
+ *  Chaveado pelo `value` do catálogo `editorial_format`; formatos fora do
+ *  mapa caem no fallback (Design / Instagram / checklist vazio). */
+export interface FormatDefaults {
+  stage: EditorialStage
+  channels: EditorialChannel[]
+  /** Vai direto pro "Falta o quê?" da demanda recém-criada. */
+  pending: EditorialAsset[]
+}
+
+const FORMAT_DEFAULTS_FALLBACK: FormatDefaults = { stage: 'para-designer', channels: ['instagram'], pending: [] }
+
+const FORMAT_DEFAULTS: Record<string, FormatDefaults> = {
+  carrossel: { stage: 'para-designer', channels: ['instagram'], pending: ['copy', 'legenda', 'imagens'] },
+  reels: { stage: 'para-edicao', channels: ['instagram'], pending: ['roteiro', 'legenda', 'edicao'] },
+  corte: { stage: 'para-edicao', channels: ['instagram'], pending: ['edicao', 'legenda'] },
+  imagem: { stage: 'para-designer', channels: ['instagram'], pending: ['copy', 'legenda', 'imagens'] },
+}
+
+export const formatDefaults = (format: string): FormatDefaults => FORMAT_DEFAULTS[format] ?? FORMAT_DEFAULTS_FALLBACK
 
 /** Um card do criativo (slide do carrossel / bloco de roteiro). */
 export interface EditorialCard {
@@ -268,7 +301,8 @@ export interface EditorialPost {
   channels: EditorialChannel[]
   /** "Enviar" — etapa atual do fluxo. */
   stage: EditorialStage
-  /** "Aprovação Anju". */
+  /** LEGADO — status manual de aprovação. A UI usa `postApprovalState()` (derivado
+   *  de copyStatus/artStatus); o campo segue no banco por compatibilidade. */
   approval: EditorialApproval
   /** Copy do post — texto do criativo que a Anju revisa. */
   copy?: string

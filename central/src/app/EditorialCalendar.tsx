@@ -45,23 +45,26 @@ import {
   Avatar,
   DropdownMenu,
   MenuItem,
+  MenuSeparator,
   useToast,
 } from '@/components/ui'
 import {
-  APPROVAL_META,
   ASSET_META,
   CHANNEL_META,
+  POST_APPROVAL_META,
   STAGE_META,
   TRACK_META,
   TRACK_STATUS_META,
   type ApprovalEvent,
   type ApprovalTrack,
-  type EditorialApproval,
   type EditorialAsset,
   type EditorialChannel,
   type EditorialPost,
   type EditorialStage,
+  type PostApprovalState,
   type TrackStatus,
+  formatDefaults,
+  postApprovalState,
 } from './data'
 import { useEditorial } from './editorial'
 import { useTasks } from './tasks'
@@ -70,6 +73,7 @@ import { useCatalogs, CatalogBadge } from './catalogs'
 import { CommentThread } from './CommentThread'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
+import { Portal } from '@/lib/Portal'
 
 /* ---- Datas (ISO local, sem dependências) ------------------------------- */
 
@@ -137,22 +141,33 @@ const STAGE_SHORT: Record<EditorialStage, string> = {
   concluido: 'Concluído',
 }
 
+/** Labels curtos do estado de aprovação — versão de célula do calendário. */
+const APPROVAL_SHORT: Record<PostApprovalState, string> = {
+  aguardando: 'Aguardando',
+  ajuste: 'Ajuste',
+  aprovado: 'Aprovado',
+}
+
 function PostChip({
   post,
   onOpen,
+  onContextMenu,
   draggable,
   onDragStart,
 }: {
   post: EditorialPost
   onOpen: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
   draggable?: boolean
   onDragStart?: (e: React.DragEvent) => void
 }) {
   const stage = STAGE_META[post.stage]
+  const approval = postApprovalState(post)
   return (
     <button
       type="button"
       onClick={onOpen}
+      onContextMenu={onContextMenu}
       draggable={draggable}
       onDragStart={onDragStart}
       className={`group/chip flex w-full flex-col gap-1.5 overflow-hidden rounded-md border border-line bg-slate-800 p-2 text-left transition-colors hover:border-strong hover:bg-slate-700 focus-visible:outline-none focus-visible:shadow-focus ${
@@ -163,9 +178,18 @@ function PostChip({
         <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{formatIcon(post.format)}</span>
         <span className="line-clamp-2 text-body-s font-medium leading-snug text-strong">{post.title || 'Sem título'}</span>
       </span>
+      {/* Situação num relance: formato · mídia · etapa · aprovação. */}
       <span className="flex min-w-0 flex-wrap items-center gap-1">
         <FormatBadge format={post.format} />
+        {post.channels.map((ch) => (
+          <Badge key={ch} tone={CHANNEL_META[ch].tone} size="sm" className="max-w-full">
+            {CHANNEL_META[ch].label}
+          </Badge>
+        ))}
         <Badge tone={stage.tone} size="sm" className="max-w-full">{STAGE_SHORT[post.stage]}</Badge>
+        <Badge tone={POST_APPROVAL_META[approval].tone} size="sm" dot className="max-w-full">
+          {APPROVAL_SHORT[approval]}
+        </Badge>
       </span>
     </button>
   )
@@ -180,6 +204,7 @@ function MonthGrid({
   onOpen,
   onAdd,
   onMove,
+  onContext,
 }: {
   view: Date
   byDay: Map<string, EditorialPost[]>
@@ -187,6 +212,7 @@ function MonthGrid({
   onOpen: (id: string) => void
   onAdd: (iso: string) => void
   onMove: (id: string, iso: string) => void
+  onContext?: (post: EditorialPost, e: React.MouseEvent) => void
 }) {
   const days = buildGrid(view)
   const [dragOver, setDragOver] = useState<string | null>(null)
@@ -252,6 +278,7 @@ function MonthGrid({
                       key={p.id}
                       post={p}
                       onOpen={() => onOpen(p.id)}
+                      onContextMenu={onContext ? (e) => onContext(p, e) : undefined}
                       draggable={canManage}
                       onDragStart={(e) => {
                         e.dataTransfer.setData('text/plain', p.id)
@@ -266,6 +293,90 @@ function MonthGrid({
         </div>
       </div>
     </div>
+  )
+}
+
+/* ---- Menu de contexto do card (botão direito) --------------------------- */
+
+function PostContextMenu({
+  menu,
+  canManage,
+  onOpen,
+  onDuplicate,
+  onDelete,
+  onClose,
+}: {
+  menu: { post: EditorialPost; x: number; y: number } | null
+  canManage: boolean
+  onOpen: () => void
+  onDuplicate: () => void
+  onDelete: () => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    if (!menu) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menu, onClose])
+
+  if (!menu) return null
+  // Mantém o menu dentro da janela mesmo com clique perto das bordas.
+  const left = Math.min(menu.x, window.innerWidth - 210)
+  const top = Math.min(menu.y, window.innerHeight - (canManage ? 150 : 60))
+  return (
+    <Portal>
+      <div
+        className="fixed inset-0 z-dropdown"
+        onClick={onClose}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onClose()
+        }}
+      >
+        <div
+          style={{ left, top }}
+          className="absolute min-w-48 rounded-md border border-strong bg-slate-700 p-1 shadow-e2 animate-slide-up"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MenuItem
+            icon={<ExternalLink size={16} strokeWidth={1.5} />}
+            onClick={() => {
+              onOpen()
+              onClose()
+            }}
+          >
+            Abrir
+          </MenuItem>
+          {canManage && (
+            <>
+              <MenuItem
+                icon={<CopyIcon size={16} strokeWidth={1.5} />}
+                onClick={() => {
+                  onDuplicate()
+                  onClose()
+                }}
+              >
+                Duplicar
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem
+                destructive
+                icon={<Trash2 size={16} strokeWidth={1.5} />}
+                onClick={() => {
+                  onDelete()
+                  onClose()
+                }}
+              >
+                Excluir demanda
+              </MenuItem>
+            </>
+          )}
+        </div>
+      </div>
+    </Portal>
   )
 }
 
@@ -287,6 +398,7 @@ function PostList({ posts, onOpen }: { posts: EditorialPost[]; onOpen: (id: stri
       {sorted.map((p) => {
         const d = parseISO(p.date)
         const stage = STAGE_META[p.stage]
+        const approval = postApprovalState(p)
         return (
           <button
             key={p.id}
@@ -307,7 +419,12 @@ function PostList({ posts, onOpen }: { posts: EditorialPost[]; onOpen: (id: stri
                 ))}
               </div>
             </div>
-            <Badge tone={stage.tone}>{stage.label}</Badge>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <Badge tone={stage.tone}>{stage.label}</Badge>
+              <Badge tone={POST_APPROVAL_META[approval].tone} size="sm" dot>
+                {POST_APPROVAL_META[approval].label}
+              </Badge>
+            </div>
           </button>
         )
       })}
@@ -397,45 +514,6 @@ function ChipSelect<T extends string>({
   )
 }
 
-/** Seleção única em BADGES COLORIDOS (cada opção na sua cor). Selecionado fica
- *  destacado; os demais ficam esmaecidos. Usado no Status. */
-function ToneChipSelect<T extends string>({
-  options,
-  value,
-  onChange,
-  canManage,
-}: {
-  options: { value: T; label: string; tone: React.ComponentProps<typeof Badge>['tone'] }[]
-  value: T
-  onChange: (value: T) => void
-  canManage: boolean
-}) {
-  const current = options.find((o) => o.value === value)
-  if (!canManage) {
-    return <Badge tone={current?.tone} size="sm">{current?.label ?? value}</Badge>
-  }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((o) => {
-        const selected = o.value === value
-        return (
-          <button
-            key={o.value}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onChange(o.value)}
-            className={`rounded-md transition focus-visible:outline-none focus-visible:shadow-focus ${
-              selected ? '' : 'opacity-35 hover:opacity-75'
-            }`}
-          >
-            <Badge tone={o.tone} size="sm">{o.label}</Badge>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 /** Seletor de responsável COM AVATAR. Substitui o <select> nativo (que não
  *  renderiza imagem): o gatilho e cada item mostram a foto + nome · time. */
 function ResponsavelSelect({
@@ -450,7 +528,7 @@ function ResponsavelSelect({
   const current = members.find((m) => m.id === value)
   return (
     <DropdownMenu
-      className="max-h-72 overflow-y-auto"
+      className="max-h-72 min-w-56 overflow-y-auto"
       trigger={
         <button
           type="button"
@@ -459,7 +537,7 @@ function ResponsavelSelect({
           {current ? (
             <>
               <Avatar size="xs" name={current.name} src={current.avatar ?? undefined} />
-              <span>{current.name}{current.team ? ` · ${current.team}` : ''}</span>
+              <span>{current.name}</span>
             </>
           ) : (
             <span className="pl-1 text-faint">— Selecionar —</span>
@@ -474,11 +552,12 @@ function ResponsavelSelect({
       {members.map((m) => (
         <MenuItem
           key={m.id}
+          className="whitespace-nowrap"
           icon={<Avatar size="xs" name={m.name} src={m.avatar ?? undefined} />}
           shortcut={m.id === value ? '✓' : undefined}
           onClick={() => onChange(m.id)}
         >
-          {m.name}{m.team ? ` · ${m.team}` : ''}
+          {m.name}
         </MenuItem>
       ))}
     </DropdownMenu>
@@ -674,7 +753,6 @@ function ApprovalHistory({ log, members }: { log: ApprovalEvent[]; members: Memb
 const STAGE_OPTS = Object.entries(STAGE_META)
   .filter(([value]) => value !== 'concluido')
   .map(([value, m]) => ({ value: value as EditorialStage, label: m.label }))
-const APPROVAL_OPTS = Object.entries(APPROVAL_META).map(([value, m]) => ({ value: value as EditorialApproval, label: m.label, tone: m.tone }))
 const CHANNEL_OPTS = Object.entries(CHANNEL_META).map(([value, m]) => ({ value: value as EditorialChannel, label: m.label }))
 const ASSET_OPTS = Object.entries(ASSET_META).map(([value, m]) => ({ value: value as EditorialAsset, label: m.label }))
 
@@ -741,10 +819,24 @@ function PostDrawer({
     toast.success('Responsável definido', who ? `Tarefa enviada para ${who}` : undefined)
   }
 
-  const toggleIn = (key: 'channels' | 'pending' | 'ready', value: string) => {
+  const toggleIn = (key: 'channels', value: string) => {
     const list = post[key] as string[]
     const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
     set({ [key]: next } as Partial<EditorialPost>)
+  }
+
+  /** "Falta o quê?" e "O que está pronto" são mutuamente exclusivos: marcar um
+   *  item numa lista tira o mesmo item da outra (pronto ⇒ não falta mais). */
+  const toggleAsset = (key: 'pending' | 'ready', value: EditorialAsset) => {
+    const other = key === 'pending' ? 'ready' : 'pending'
+    const adding = !post[key].includes(value)
+    const patch: Partial<EditorialPost> = {
+      [key]: adding ? [...post[key], value] : post[key].filter((v) => v !== value),
+    }
+    if (adding && post[other].includes(value)) {
+      patch[other] = post[other].filter((v) => v !== value)
+    }
+    set(patch)
   }
 
   /* Aprovação em etapas: registra o evento no histórico, move o status da etapa
@@ -785,6 +877,7 @@ function PostDrawer({
   }
 
   const stage = STAGE_META[post.stage]
+  const approvalState = postApprovalState(post)
 
   return (
     <Modal open onClose={onClose} size="lg" className="max-w-3xl">
@@ -860,7 +953,7 @@ function PostDrawer({
             return who ? (
               <span className="inline-flex items-center gap-2">
                 <Avatar size="xs" name={who.name} src={who.avatar ?? undefined} />
-                <span className="text-body-s text-strong">{who.name}{who.team ? ` · ${who.team}` : ''}</span>
+                <span className="text-body-s text-strong">{who.name}</span>
               </span>
             ) : (
               <Badge tone="steel">—</Badge>
@@ -868,13 +961,11 @@ function PostDrawer({
           })()}
         </PropertyRow>
 
+        {/* Status derivado das etapas de aprovação (copy + arte/vídeo) — não é editável. */}
         <PropertyRow icon={<BadgeCheck size={16} strokeWidth={1.5} />} label="Status">
-          <ToneChipSelect
-            options={APPROVAL_OPTS}
-            value={post.approval}
-            onChange={(v) => set({ approval: v })}
-            canManage={canManage}
-          />
+          <Badge tone={POST_APPROVAL_META[approvalState].tone} size="sm" dot>
+            {POST_APPROVAL_META[approvalState].label}
+          </Badge>
         </PropertyRow>
 
         <PropertyRow icon={<MessageSquare size={16} strokeWidth={1.5} />} label="Comentários">
@@ -965,7 +1056,7 @@ function PostDrawer({
           <ChipToggle
             options={ASSET_OPTS}
             selected={post.pending}
-            onToggle={(v) => toggleIn('pending', v)}
+            onToggle={(v) => toggleAsset('pending', v as EditorialAsset)}
             canManage={canManage}
             emptyTone="danger"
           />
@@ -975,7 +1066,7 @@ function PostDrawer({
           <ChipToggle
             options={ASSET_OPTS}
             selected={post.ready}
-            onToggle={(v) => toggleIn('ready', v)}
+            onToggle={(v) => toggleAsset('ready', v as EditorialAsset)}
             canManage={canManage}
             emptyTone="success"
           />
@@ -1044,6 +1135,17 @@ function PostDrawer({
       )}
     </Modal>
   )
+}
+
+/** Prévia da automação do formato: mostra o que será pré-preenchido na demanda. */
+function FormatDefaultsHint({ format }: { format: string }) {
+  const d = formatDefaults(format)
+  const parts = [
+    `Tipo: ${STAGE_META[d.stage].label}`,
+    d.channels.map((ch) => CHANNEL_META[ch].label).join(', '),
+    d.pending.length > 0 ? `Falta: ${d.pending.map((a) => ASSET_META[a].label.toLowerCase()).join(', ')}` : null,
+  ].filter(Boolean)
+  return <span className="text-body-s text-muted">Já preenche — {parts.join(' · ')}</span>
 }
 
 /** Modal de criação de demanda — coleta título, data e formato e só persiste
@@ -1131,6 +1233,7 @@ function NewPostModal({
                 </Tag>
               ))}
             </div>
+            <FormatDefaultsHint format={format} />
           </div>
         )}
       </div>
@@ -1140,20 +1243,7 @@ function NewPostModal({
 
 /* ---- Filtro por estado de aprovação ------------------------------------ */
 
-type ApprovalState = 'aguardando' | 'ajuste' | 'aprovado'
-
-/** Estado consolidado do post a partir das duas etapas (copy + arte/vídeo):
- *  qualquer etapa em ajuste → "ajuste"; ambas aprovadas → "aprovado"; senão
- *  ainda "aguardando aprovação". */
-function postApprovalState(post: EditorialPost): ApprovalState {
-  const copy = post.copyStatus ?? 'pendente'
-  const art = post.artStatus ?? 'pendente'
-  if (copy === 'ajuste' || art === 'ajuste') return 'ajuste'
-  if (copy === 'aprovado' && art === 'aprovado') return 'aprovado'
-  return 'aguardando'
-}
-
-const APPROVAL_FILTERS: { value: ApprovalState | 'todos'; label: string }[] = [
+const APPROVAL_FILTERS: { value: PostApprovalState | 'todos'; label: string }[] = [
   { value: 'todos', label: 'Todos' },
   { value: 'aguardando', label: 'Aguardando aprovação' },
   { value: 'ajuste', label: 'Em ajuste' },
@@ -1168,11 +1258,11 @@ function ApprovalFilterBar({
   onChange,
 }: {
   posts: EditorialPost[]
-  value: ApprovalState | 'todos'
-  onChange: (v: ApprovalState | 'todos') => void
+  value: PostApprovalState | 'todos'
+  onChange: (v: PostApprovalState | 'todos') => void
 }) {
   const counts = useMemo(() => {
-    const c: Record<ApprovalState | 'todos', number> = { todos: posts.length, aguardando: 0, ajuste: 0, aprovado: 0 }
+    const c: Record<PostApprovalState | 'todos', number> = { todos: posts.length, aguardando: 0, ajuste: 0, aprovado: 0 }
     for (const p of posts) c[postApprovalState(p)]++
     return c
   }, [posts])
@@ -1204,8 +1294,9 @@ function ApprovalFilterBar({
 /* ---- Componente principal ---------------------------------------------- */
 
 export function EditorialCalendar({ clientId, canManage }: { clientId: string; canManage: boolean }) {
-  const { getPosts, addPost, updatePost } = useEditorial()
-  const { editTask } = useTasks()
+  const { getPosts, addPost, updatePost, removePost } = useEditorial()
+  const { editTask, removeTask } = useTasks()
+  const toast = useToast()
   const posts = getPosts(clientId)
 
   /* Arrastar um card para outra data: muda a data de publicação do post e, se
@@ -1226,7 +1317,7 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
   /** Data da demanda em criação (null = modal fechado). */
   const [newDate, setNewDate] = useState<string | null>(null)
   /** Filtro por estado de aprovação (copy+arte). */
-  const [approvalFilter, setApprovalFilter] = useState<ApprovalState | 'todos'>('todos')
+  const [approvalFilter, setApprovalFilter] = useState<PostApprovalState | 'todos'>('todos')
   const { items: catItems } = useCatalogs()
   const formatOpts = catItems('editorial_format').map((c) => ({ value: c.value, label: c.label }))
 
@@ -1247,19 +1338,57 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
 
   const openPost = openId ? posts.find((p) => p.id === openId) ?? null : null
 
+  /** Menu de contexto (botão direito) sobre um card do calendário. */
+  const [ctxMenu, setCtxMenu] = useState<{ post: EditorialPost; x: number; y: number } | null>(null)
+  const openContext = (post: EditorialPost, e: React.MouseEvent) => {
+    e.preventDefault()
+    setCtxMenu({ post, x: e.clientX, y: e.clientY })
+  }
+
+  /** Duplica a demanda no mesmo dia — copia o conteúdo, zera aprovações/vínculos. */
+  const duplicatePost = async (p: EditorialPost) => {
+    const id = await addPost(clientId, {
+      date: p.date,
+      title: `${p.title || 'Sem título'} (cópia)`,
+      format: p.format,
+      channels: p.channels,
+      stage: p.stage,
+      approval: 'em-producao',
+      description: p.description,
+      copy: p.copy,
+      caption: p.caption,
+      cta: p.cta,
+      pending: p.pending,
+      ready: p.ready,
+      cards: p.cards.map((c) => ({ ...c, id: crypto.randomUUID() })),
+    })
+    if (id) toast.success('Demanda duplicada', `${p.title || 'Sem título'} (cópia)`)
+    else toast.error('Não foi possível duplicar')
+  }
+
+  /** Exclui a demanda e a tarefa vinculada (mesmo comportamento do drawer). */
+  const deletePost = async (p: EditorialPost) => {
+    if (p.taskId) await removeTask(p.taskId)
+    await removePost(clientId, p.id)
+    if (openId === p.id) setOpenId(null)
+    toast.success('Demanda excluída', p.title || 'Sem título')
+  }
+
   /** Abre o modal de criação (não cria nada ainda). */
   const openNew = (iso: string) => setNewDate(iso)
 
-  /** Cria de fato a demanda — chamado pelo botão "Criar" do modal. */
+  /** Cria de fato a demanda — chamado pelo botão "Criar" do modal.
+   *  O formato escolhido pré-preenche Tipo, Mídia social e "Falta o quê?". */
   const createPost = async (draft: { title: string; date: string; format: string }) => {
+    const defaults = formatDefaults(draft.format)
     const id = await addPost(clientId, {
       date: draft.date,
       title: draft.title,
       format: draft.format,
-      channels: ['instagram'],
-      stage: 'para-designer',
+      channels: defaults.channels,
+      stage: defaults.stage,
       approval: 'em-producao',
-      pending: [],
+      pending: defaults.pending,
       ready: [],
       cards: [],
     })
@@ -1316,7 +1445,15 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
         <ApprovalFilterBar posts={posts} value={approvalFilter} onChange={setApprovalFilter} />
 
         {tab === 'calendario' ? (
-          <MonthGrid view={view} byDay={byDay} canManage={canManage} onOpen={setOpenId} onAdd={openNew} onMove={movePost} />
+          <MonthGrid
+            view={view}
+            byDay={byDay}
+            canManage={canManage}
+            onOpen={setOpenId}
+            onAdd={openNew}
+            onMove={movePost}
+            onContext={openContext}
+          />
         ) : (
           <PostList posts={visiblePosts} onOpen={setOpenId} />
         )}
@@ -1343,6 +1480,15 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
         formatOpts={formatOpts}
         onCancel={() => setNewDate(null)}
         onCreate={createPost}
+      />
+
+      <PostContextMenu
+        menu={ctxMenu}
+        canManage={canManage}
+        onOpen={() => ctxMenu && setOpenId(ctxMenu.post.id)}
+        onDuplicate={() => ctxMenu && duplicatePost(ctxMenu.post)}
+        onDelete={() => ctxMenu && deletePost(ctxMenu.post)}
+        onClose={() => setCtxMenu(null)}
       />
     </div>
   )
