@@ -34,6 +34,7 @@ import { CatalogsProvider } from './app/catalogs'
 import { PaidTrafficProvider } from './app/paidTraffic'
 import { CrmProvider } from './app/crm'
 import { WaitlistProvider } from './app/waitlist'
+import { FunnelProvider } from './app/funnel'
 import { CsProvider } from './app/cs'
 import { ChatProvider } from './app/chat'
 import { StyleguidePage } from './pages/Styleguide'
@@ -48,6 +49,7 @@ import { ReportsPage } from './app/ReportsPage'
 import { PaidTrafficPage } from './app/PaidTrafficPage'
 import { CrmPage } from './app/CrmPage'
 import { WaitlistPage } from './app/WaitlistPage'
+import { FunnelPage } from './app/FunnelPage'
 import { CsPage } from './app/CsPage'
 import { AccessPage } from './app/AccessPage'
 import { EditorialPage } from './app/EditorialPage'
@@ -74,6 +76,7 @@ const router = createBrowserRouter([
       { path: 'trafego-pago', element: <PaidTrafficPage /> },
       { path: 'crm', element: <CrmPage /> },
       { path: 'lista-de-espera', element: <WaitlistPage /> },
+      { path: 'guia', element: <FunnelPage /> },
       { path: 'cs', element: <CsPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
@@ -95,6 +98,7 @@ createRoot(document.getElementById('root')!).render(
           <PaidTrafficProvider>
           <CrmProvider>
           <WaitlistProvider>
+          <FunnelProvider>
           <CsProvider>
           <EditorialProvider>
             <ProfilesProvider>
@@ -114,6 +118,7 @@ createRoot(document.getElementById('root')!).render(
             </ProfilesProvider>
           </EditorialProvider>
           </CsProvider>
+          </FunnelProvider>
           </WaitlistProvider>
           </CrmProvider>
           </PaidTrafficProvider>

@@ -12,6 +12,7 @@ import {
   Contact,
   HeartHandshake,
   Hourglass,
+  BookOpen,
   MessagesSquare,
   Tags,
   Settings2,
@@ -85,6 +86,7 @@ const NAV: { group: string; items: NavLink[] }[] = [
     items: [
       { to: '/app/crm', label: 'CRM', icon: <Contact size={18} strokeWidth={1.5} /> },
       { to: '/app/lista-de-espera', label: 'Lista de Espera', icon: <Hourglass size={18} strokeWidth={1.5} /> },
+      { to: '/app/guia', label: 'Leads do Guia', icon: <BookOpen size={18} strokeWidth={1.5} /> },
       { to: '/app/cs', label: 'CS', icon: <HeartHandshake size={18} strokeWidth={1.5} /> },
     ],
   },
