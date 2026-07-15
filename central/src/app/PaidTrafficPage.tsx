@@ -177,7 +177,7 @@ function Sparkbars({ data, hex, height = 40 }: { data: number[]; hex: string; he
 /* =========================================================================== */
 
 export function PaidTrafficPage() {
-  const { campaigns, metrics, creatives, pages, loading, usingMock } = usePaidTraffic()
+  const { campaigns, metrics, creatives, pages, loading } = usePaidTraffic()
   const [period, setPeriod] = useState<number>(30)
   const [platform, setPlatform] = useState<PlatformFilter>('all')
   const [view, setView] = useState<View>('overview')
@@ -259,6 +259,30 @@ export function PaidTrafficPage() {
     )
   }
 
+  // Sem dados reais ainda (tabelas paid_* vazias ou ausentes): estado de espera
+  // no lugar de relatórios com números fictícios.
+  if (campaigns.length === 0 && metrics.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-screen-2xl flex-col gap-6 px-6 py-8">
+        <div className="flex items-start gap-3">
+          <CardIcon tone="gold" className="mt-0.5"><Megaphone size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <div>
+            <div className="flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
+              <Megaphone size={14} strokeWidth={1.5} aria-hidden />
+              Tráfego Pago
+            </div>
+            <h1 className="mt-1.5 font-display text-display-l font-semibold leading-tight text-strong">Relatórios</h1>
+          </div>
+        </div>
+        <EmptyState
+          icon={<Megaphone size={22} strokeWidth={1.5} />}
+          title="Aguardando os dados reais"
+          description="Os relatórios ativam sozinhos quando as campanhas começarem a alimentar as tabelas paid_* — pela integração com Meta/Google Ads ou por entrada manual. Nada de números fictícios por aqui."
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-6 py-8">
       {/* Cabeçalho + filtros */}
@@ -278,14 +302,6 @@ export function PaidTrafficPage() {
           <Segmented options={PERIODS} value={period} onChange={setPeriod} />
         </div>
       </div>
-
-      {usingMock && (
-        <div className="flex items-center gap-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-body-s text-fg">
-          <Badge tone="warning" size="sm">Demo</Badge>
-          Exibindo dados de demonstração. Conecte a API do Meta/Google ou insira os números nas tabelas{' '}
-          <code className="font-mono text-[12px] text-muted">paid_*</code> para ver os dados reais.
-        </div>
-      )}
 
       {/* Navegação de seções */}
       <Segmented options={VIEWS} value={view} onChange={setView} size="sm" />
