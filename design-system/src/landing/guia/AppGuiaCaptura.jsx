@@ -72,7 +72,7 @@ function CtaPill({ label, onClick, type = 'button', loading = false }) {
       type={type}
       onClick={onClick}
       disabled={loading}
-      className={`group inline-flex h-16 items-center gap-3 rounded-full py-2 pl-6 pr-2 font-medium uppercase tracking-wide disabled:pointer-events-none disabled:opacity-60 md:gap-4 md:pl-8 ${gradient}`}
+      className={`group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal disabled:pointer-events-none disabled:opacity-60 sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
     >
       <span className="flex-1 whitespace-nowrap text-center text-xs sm:text-sm md:text-base">{loading ? 'Enviando…' : label}</span>
       <span className="inline-grid size-12 shrink-0 place-items-center rounded-full bg-cream-100/80 text-graphite-900 transition-transform duration-moderate ease-spring group-hover:translate-x-0.5">
