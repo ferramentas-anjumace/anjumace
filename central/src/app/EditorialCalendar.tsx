@@ -27,6 +27,8 @@ import {
   History,
   FileText,
   AlignLeft,
+  Archive,
+  Clock,
 } from 'lucide-react'
 import {
   Card,
@@ -71,6 +73,7 @@ import { useTasks } from './tasks'
 import { useProfiles, type Member } from './profiles'
 import { useCatalogs, CatalogBadge } from './catalogs'
 import { CommentThread } from './CommentThread'
+import { EditorialGaveta } from './EditorialGaveta'
 import { useSession } from '@/lib/session'
 import { supabase } from '@/lib/supabase'
 import { Portal } from '@/lib/Portal'
@@ -101,6 +104,20 @@ const dayMonthFmt = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 's
 
 /** "Hoje" real do navegador (ISO local), recalculado a cada carga. */
 const TODAY_ISO = toISO(new Date())
+
+/* ---- Horário de publicação ---------------------------------------------
+   Janelas de pico do relatório de desempenho (All Hands 14/07): manhã
+   (7-8h e 11-12h) e noite (20-21h). O drawer sinaliza quando o horário
+   marcado cai fora dessas janelas. */
+const PEAK_WINDOWS: [number, number][] = [[7, 8], [11, 12], [20, 21]]
+const PEAK_LABEL = '7–8h · 11–12h · 20–21h'
+
+function isPeakTime(t?: string): boolean {
+  if (!t) return false
+  const [h, m] = t.split(':').map(Number)
+  const mins = (h || 0) * 60 + (m || 0)
+  return PEAK_WINDOWS.some(([a, b]) => mins >= a * 60 && mins <= b * 60)
+}
 
 /** Matriz 6×7 cobrindo o mês de `view`, começando no domingo. */
 function buildGrid(view: Date) {
@@ -178,8 +195,17 @@ function PostChip({
         <span className="mt-0.5 shrink-0 text-faint group-hover/chip:text-steel-300">{formatIcon(post.format)}</span>
         <span className="line-clamp-2 text-body-s font-medium leading-snug text-strong">{post.title || 'Sem título'}</span>
       </span>
-      {/* Situação num relance: formato · mídia · etapa · aprovação. */}
+      {/* Situação num relance: horário · formato · mídia · etapa · aprovação. */}
       <span className="flex min-w-0 flex-wrap items-center gap-1">
+        {post.publishTime && (
+          <span
+            className={`inline-flex items-center gap-0.5 font-mono text-[10px] tabular-nums ${isPeakTime(post.publishTime) ? 'text-ok' : 'text-faint'}`}
+            title={isPeakTime(post.publishTime) ? 'Horário de pico' : `Fora do pico (${PEAK_LABEL})`}
+          >
+            <Clock size={10} strokeWidth={1.5} aria-hidden />
+            {post.publishTime}
+          </span>
+        )}
         <FormatBadge format={post.format} />
         {post.channels.map((ch) => (
           <Badge key={ch} tone={CHANNEL_META[ch].tone} size="sm" className="max-w-full">
@@ -989,6 +1015,25 @@ function PostDrawer({
           )}
         </PropertyRow>
 
+        <PropertyRow icon={<Clock size={16} strokeWidth={1.5} />} label="Horário">
+          <div className="flex flex-col gap-1.5">
+            {canManage ? (
+              <Input
+                type="time"
+                value={post.publishTime ?? ''}
+                onChange={(e) => set({ publishTime: e.target.value || undefined })}
+              />
+            ) : (
+              <span className="font-mono text-mono-data text-fg">{post.publishTime ?? '—'}</span>
+            )}
+            {post.publishTime && isPeakTime(post.publishTime) ? (
+              <Badge tone="success" variant="soft" size="sm" dot>Horário de pico</Badge>
+            ) : (
+              <span className="font-mono text-[10px] text-faint">Picos de engajamento: {PEAK_LABEL}</span>
+            )}
+          </div>
+        </PropertyRow>
+
         <PropertyRow icon={<Send size={16} strokeWidth={1.5} />} label="Tipo">
           <ChipSelect
             options={STAGE_OPTS}
@@ -1316,6 +1361,10 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
   const [openId, setOpenId] = useState<string | null>(null)
   /** Data da demanda em criação (null = modal fechado). */
   const [newDate, setNewDate] = useState<string | null>(null)
+  /** Gaveta de conteúdos (ideias sem data). */
+  const [gavetaOpen, setGavetaOpen] = useState(false)
+  const { getIdeas } = useEditorial()
+  const ideaCount = getIdeas(clientId).length
   /** Filtro por estado de aprovação (copy+arte). */
   const [approvalFilter, setApprovalFilter] = useState<PostApprovalState | 'todos'>('todos')
   const { items: catItems } = useCatalogs()
@@ -1332,6 +1381,10 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
       const list = map.get(p.date) ?? []
       list.push(p)
       map.set(p.date, list)
+    }
+    // Dentro do dia, posts com horário vêm primeiro, em ordem cronológica.
+    for (const list of map.values()) {
+      list.sort((a, b) => (a.publishTime ?? '99:99').localeCompare(b.publishTime ?? '99:99'))
     }
     return map
   }, [visiblePosts])
@@ -1427,6 +1480,14 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
                 <Tab value="lista">Lista</Tab>
               </TabList>
             </Tabs>
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Archive size={16} strokeWidth={1.5} />}
+              onClick={() => setGavetaOpen(true)}
+            >
+              Gaveta{ideaCount > 0 ? ` (${ideaCount})` : ''}
+            </Button>
             {canManage && (
               <Button
                 size="sm"
@@ -1489,6 +1550,14 @@ export function EditorialCalendar({ clientId, canManage }: { clientId: string; c
         onDuplicate={() => ctxMenu && duplicatePost(ctxMenu.post)}
         onDelete={() => ctxMenu && deletePost(ctxMenu.post)}
         onClose={() => setCtxMenu(null)}
+      />
+
+      <EditorialGaveta
+        clientId={clientId}
+        open={gavetaOpen}
+        canManage={canManage}
+        onClose={() => setGavetaOpen(false)}
+        onOpenPost={setOpenId}
       />
     </div>
   )

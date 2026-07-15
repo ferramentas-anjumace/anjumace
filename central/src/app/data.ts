@@ -294,6 +294,8 @@ export interface EditorialPost {
   id: string
   /** Data de publicação em ISO (yyyy-mm-dd). */
   date: string
+  /** Horário planejado da publicação (HH:mm). Picos: 7-8h, 11-12h, 20-21h. */
+  publishTime?: string
   title: string
   /** Formato — valor livre, gerido pelo catálogo `editorial_format`. */
   format: string

@@ -27,6 +27,7 @@ interface PostRow {
   id: string
   client_id: string
   date: string
+  publish_time: string | null
   title: string
   format: string
   channels: EditorialChannel[] | null
@@ -52,6 +53,7 @@ function rowToPost(r: PostRow): EditorialPost {
   return {
     id: r.id,
     date: r.date,
+    publishTime: r.publish_time ? r.publish_time.slice(0, 5) : undefined,
     title: r.title ?? '',
     format: r.format,
     channels: r.channels ?? [],
@@ -80,6 +82,7 @@ type PostPatch = Partial<Omit<EditorialPost, 'id'>>
 function patchToRow(patch: PostPatch): Record<string, unknown> {
   const row: Record<string, unknown> = {}
   if (patch.date !== undefined) row.date = patch.date
+  if (patch.publishTime !== undefined) row.publish_time = patch.publishTime || null
   if (patch.title !== undefined) row.title = patch.title
   if (patch.format !== undefined) row.format = patch.format
   if (patch.channels !== undefined) row.channels = patch.channels
@@ -102,12 +105,56 @@ function patchToRow(patch: PostPatch): Record<string, unknown> {
   return row
 }
 
+/* ---- Gaveta de conteúdos (public.editorial_ideas, migration 0049) --------
+   Ideias e roteiros SEM data. Ao agendar, a ideia vira um post do calendário
+   (o roteiro entra como copy) e sai da gaveta. */
+
+export interface EditorialIdea {
+  id: string
+  clientId: string
+  title: string
+  format?: string | null // catálogo editorial_format
+  script?: string | null // roteiro / esboço da copy
+  createdBy?: string | null
+  createdAt: string
+}
+
+export type EditorialIdeaInput = Pick<EditorialIdea, 'title' | 'format' | 'script'>
+
+interface IdeaRow {
+  id: string
+  client_id: string
+  title: string
+  format: string | null
+  script: string | null
+  created_by: string | null
+  sort: number | null
+  created_at: string
+}
+
+function rowToIdea(r: IdeaRow): EditorialIdea {
+  return {
+    id: r.id,
+    clientId: r.client_id,
+    title: r.title,
+    format: r.format,
+    script: r.script,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  }
+}
+
 interface EditorialCtx {
   getPosts: (clientId: string) => EditorialPost[]
   loading: boolean
   addPost: (clientId: string, post: Omit<EditorialPost, 'id'>) => Promise<string | null>
   updatePost: (clientId: string, id: string, patch: PostPatch) => void
   removePost: (clientId: string, id: string) => Promise<void>
+  /** Gaveta de conteúdos (ideias/roteiros sem data). */
+  getIdeas: (clientId: string) => EditorialIdea[]
+  addIdea: (clientId: string, input: EditorialIdeaInput) => Promise<{ error: string | null }>
+  updateIdea: (id: string, input: EditorialIdeaInput) => Promise<{ error: string | null }>
+  removeIdea: (id: string) => Promise<void>
 }
 
 const Context = createContext<EditorialCtx | null>(null)
@@ -115,8 +162,9 @@ const Context = createContext<EditorialCtx | null>(null)
 const DEBOUNCE_MS = 450
 
 export function EditorialProvider({ children }: { children: React.ReactNode }) {
-  const { status } = useSession()
+  const { status, user } = useSession()
   const [map, setMap] = useState<PostMap>({})
+  const [ideas, setIdeas] = useState<EditorialIdea[]>([])
   const [loading, setLoading] = useState(true)
 
   // Persistência adiada por post (coalesce de edições rápidas, ex.: digitar).
@@ -124,17 +172,18 @@ export function EditorialProvider({ children }: { children: React.ReactNode }) {
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchPosts = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('editorial_posts')
-      .select('*')
-      .order('date', { ascending: true })
-    if (!error && data) {
+    const [posts, ideasRes] = await Promise.all([
+      supabase.from('editorial_posts').select('*').order('date', { ascending: true }),
+      supabase.from('editorial_ideas').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true }),
+    ])
+    if (!posts.error && posts.data) {
       const next: PostMap = {}
-      for (const r of data as PostRow[]) {
+      for (const r of posts.data as PostRow[]) {
         ;(next[r.client_id] ??= []).push(rowToPost(r))
       }
       setMap(next)
     }
+    if (!ideasRes.error && ideasRes.data) setIdeas((ideasRes.data as IdeaRow[]).map(rowToIdea))
     setLoading(false)
   }, [])
 
@@ -148,12 +197,16 @@ export function EditorialProvider({ children }: { children: React.ReactNode }) {
           // Não recarrega no meio de uma edição local (evita "pular" o cursor).
           if (Object.keys(timers.current).length === 0) fetchPosts()
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'editorial_ideas' }, () => {
+          if (Object.keys(timers.current).length === 0) fetchPosts()
+        })
         .subscribe()
       return () => {
         supabase.removeChannel(channel)
       }
     } else if (status === 'anon') {
       setMap({})
+      setIdeas([])
       setLoading(false)
     }
   }, [status, fetchPosts])
@@ -207,9 +260,44 @@ export function EditorialProvider({ children }: { children: React.ReactNode }) {
     await removeStorageFiles(files) // remove os arquivos órfãos do Storage
   }, [])
 
+  const getIdeas = useCallback((clientId: string) => ideas.filter((i) => i.clientId === clientId), [ideas])
+
+  const addIdea = useCallback(async (clientId: string, input: EditorialIdeaInput) => {
+    const { data, error } = await supabase
+      .from('editorial_ideas')
+      .insert({
+        client_id: clientId,
+        title: input.title.trim(),
+        format: input.format || null,
+        script: input.script?.trim() || null,
+        created_by: user?.userId ?? null,
+      })
+      .select('*')
+      .single()
+    if (error || !data) return { error: error?.message ?? 'Falha ao salvar a ideia.' }
+    const created = rowToIdea(data as IdeaRow)
+    setIdeas((is) => [...is.filter((i) => i.id !== created.id), created])
+    return { error: null }
+  }, [user?.userId])
+
+  const updateIdea = useCallback(async (id: string, input: EditorialIdeaInput) => {
+    const { error } = await supabase
+      .from('editorial_ideas')
+      .update({ title: input.title.trim(), format: input.format || null, script: input.script?.trim() || null })
+      .eq('id', id)
+    if (error) return { error: error.message }
+    setIdeas((is) => is.map((i) => (i.id === id ? { ...i, ...input } : i)))
+    return { error: null }
+  }, [])
+
+  const removeIdea = useCallback(async (id: string) => {
+    setIdeas((is) => is.filter((i) => i.id !== id))
+    await supabase.from('editorial_ideas').delete().eq('id', id)
+  }, [])
+
   const value = useMemo<EditorialCtx>(
-    () => ({ getPosts, loading, addPost, updatePost, removePost }),
-    [getPosts, loading, addPost, updatePost, removePost],
+    () => ({ getPosts, loading, addPost, updatePost, removePost, getIdeas, addIdea, updateIdea, removeIdea }),
+    [getPosts, loading, addPost, updatePost, removePost, getIdeas, addIdea, updateIdea, removeIdea],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>
