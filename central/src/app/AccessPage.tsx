@@ -16,7 +16,7 @@ export function AccessPage() {
           <span className="font-mono text-mono-label uppercase text-steel-400">Ecossistema</span>
           <h1 className="mt-1 font-display text-h1 font-semibold text-strong">Acessos</h1>
           <p className="mt-1 text-body-s text-muted">
-            Credenciais das plataformas e bancos de mídia. Abra, copie e gerencie em um só lugar.
+            Credenciais, verificação em duas etapas e custos das ferramentas — a planilha de acessos, viva e em um só lugar.
           </p>
         </div>
       </div>

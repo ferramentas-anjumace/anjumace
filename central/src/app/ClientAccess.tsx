@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Image as ImageIcon,
   Video,
@@ -19,6 +19,10 @@ import {
   Card,
   CardHeader,
   CardTitle,
+  StatCard,
+  Badge,
+  Avatar,
+  AvatarGroup,
   Button,
   Modal,
   Input,
@@ -32,10 +36,49 @@ import {
 } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { useProfiles, type Member } from './profiles'
 
 type MediaKind = 'imagens' | 'videos' | 'marca' | 'conteudos'
 interface MediaLink { id: string; label: string; kind: MediaKind; url: string | null; hint: string | null }
-interface Credential { id: string; platform: string; url: string | null; username: string | null; password: string | null; note: string | null }
+
+type TwoFA = 'nenhum' | 'authenticator' | 'email_admin' | 'email_pessoal' | 'sms'
+type CredStatus = 'ativa' | 'cancelada'
+interface Credential {
+  id: string
+  platform: string
+  url: string | null
+  username: string | null
+  password: string | null
+  note: string | null
+  owner_id: string | null
+  twofa: TwoFA
+  monthly_cost: number | null
+  status: CredStatus
+  member_ids: string[]
+}
+
+type BadgeTone = 'neutral' | 'steel' | 'sand' | 'success' | 'danger' | 'warning'
+
+/** Onde o código de verificação chega. Authenticator = centralizado (ok);
+ *  e-mail pessoal e SMS dependem de uma pessoa — são o gargalo a migrar. */
+const TWOFA_META: Record<TwoFA, { label: string; short: string; tone: BadgeTone }> = {
+  nenhum: { label: 'Sem 2FA', short: 'Sem 2FA', tone: 'neutral' },
+  authenticator: { label: 'Aplicativo Authenticator', short: '2FA · Authenticator', tone: 'success' },
+  email_admin: { label: 'E-mail administrativo', short: '2FA · E-mail admin', tone: 'steel' },
+  email_pessoal: { label: 'E-mail pessoal', short: '2FA · E-mail pessoal', tone: 'warning' },
+  sms: { label: 'SMS', short: '2FA · SMS', tone: 'warning' },
+}
+const TWOFA_OPTIONS: TwoFA[] = ['nenhum', 'authenticator', 'email_admin', 'email_pessoal', 'sms']
+
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+/** "1.234,56" / "149,90" / "149.9" → número (null se vazio/ilegível). */
+function parseCost(s: string): number | null {
+  const t = s.replace(/[^\d.,]/g, '')
+  if (!t) return null
+  const n = t.includes(',') ? Number(t.replace(/\./g, '').replace(',', '.')) : Number(t)
+  return Number.isFinite(n) ? n : null
+}
 
 const MEDIA_ICON: Record<MediaKind, React.ReactNode> = {
   imagens: <ImageIcon size={18} strokeWidth={1.5} />,
@@ -103,71 +146,124 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
 
 function CredentialRow({
   cred,
+  people,
   canManage,
   onEdit,
   onDelete,
 }: {
   cred: Credential
+  people: Member[]
   canManage: boolean
   onEdit: () => void
   onDelete: () => void
 }) {
+  const cancelada = cred.status === 'cancelada'
+  const owner = cred.owner_id ? people.find((p) => p.id === cred.owner_id) : undefined
+  const withAccess = cred.member_ids
+    .map((id) => people.find((p) => p.id === id))
+    .filter((p): p is Member => Boolean(p))
+  const twofa = TWOFA_META[cred.twofa] ?? TWOFA_META.nenhum
   return (
-    <div className="group flex flex-col gap-3 rounded-lg border border-line bg-slate-900 p-4 sm:flex-row sm:items-center">
-      <div className="flex items-center gap-3 sm:w-52 sm:shrink-0">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-steel-tint font-mono text-mono-data font-semibold uppercase text-steel-300">
-          {cred.platform.slice(0, 2)}
-        </span>
-        <div className="min-w-0">
-          <div className="truncate font-medium text-strong">{cred.platform}</div>
-          {cred.url ? (
-            <a
-              href={cred.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 font-mono text-[11px] text-faint transition-colors hover:text-steel-300 focus-visible:outline-none focus-visible:shadow-focus"
-            >
-              <span className="truncate">{prettyUrl(cred.url)}</span>
-              <ExternalLink size={11} strokeWidth={1.5} aria-hidden />
-            </a>
-          ) : cred.note ? (
-            <div className="truncate font-mono text-[11px] text-faint">{cred.note}</div>
-          ) : null}
+    <div className={cn('group flex flex-col gap-3 rounded-lg border border-line bg-slate-900 p-4', cancelada && 'opacity-70')}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3 sm:w-52 sm:shrink-0">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-steel-tint font-mono text-mono-data font-semibold uppercase text-steel-300">
+            {cred.platform.slice(0, 2)}
+          </span>
+          <div className="min-w-0">
+            <div className="truncate font-medium text-strong">{cred.platform}</div>
+            {cred.url ? (
+              <a
+                href={cred.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-mono text-[11px] text-faint transition-colors hover:text-steel-300 focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                <span className="truncate">{prettyUrl(cred.url)}</span>
+                <ExternalLink size={11} strokeWidth={1.5} aria-hidden />
+              </a>
+            ) : cred.note ? (
+              <div className="truncate font-mono text-[11px] text-faint">{cred.note}</div>
+            ) : null}
+          </div>
         </div>
+        <div className="grid flex-1 gap-2 sm:grid-cols-2">
+          <CopyField label="Usuário" value={cred.username ?? ''} />
+          <CopyField label="Senha" value={cred.password ?? ''} secret />
+        </div>
+        {canManage && (
+          <DropdownMenu
+            align="end"
+            trigger={
+              <IconButton size="sm" aria-label={`Ações de ${cred.platform}`} className="shrink-0">
+                <MoreHorizontal size={16} strokeWidth={1.5} />
+              </IconButton>
+            }
+          >
+            <MenuItem icon={<Pencil size={16} strokeWidth={1.5} />} onClick={onEdit}>Editar</MenuItem>
+            <MenuSeparator />
+            <MenuItem icon={<Trash2 size={16} strokeWidth={1.5} />} destructive onClick={onDelete}>Excluir</MenuItem>
+          </DropdownMenu>
+        )}
       </div>
-      <div className="grid flex-1 gap-2 sm:grid-cols-2">
-        <CopyField label="Usuário" value={cred.username ?? ''} />
-        <CopyField label="Senha" value={cred.password ?? ''} secret />
+
+      {/* Meta da ferramenta — 2FA, status, custo, responsável e quem acessa. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3">
+        <Badge size="sm" variant="soft" dot tone={twofa.tone}>{twofa.short}</Badge>
+        {cancelada && <Badge size="sm" tone="danger">Cancelada</Badge>}
+        {cred.monthly_cost != null && cred.monthly_cost > 0 && (
+          <span className={cn('font-mono text-mono-data', cancelada ? 'text-ok' : 'text-muted')}>
+            {brl.format(cred.monthly_cost)}/mês{cancelada && ' economizados'}
+          </span>
+        )}
+        {owner && (
+          <span className="flex items-center gap-1.5 text-body-s text-muted" title="Responsável">
+            <Avatar size="xs" name={owner.name} src={owner.avatar ?? undefined} />
+            {owner.name.split(' ')[0]}
+          </span>
+        )}
+        {withAccess.length > 0 && (
+          <span className="flex items-center gap-1.5" title={`Acesso: ${withAccess.map((p) => p.name).join(', ')}`}>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Acesso</span>
+            <AvatarGroup max={5}>
+              {withAccess.map((p) => (
+                <Avatar key={p.id} size="xs" name={p.name} src={p.avatar ?? undefined} />
+              ))}
+            </AvatarGroup>
+          </span>
+        )}
       </div>
-      {canManage && (
-        <DropdownMenu
-          align="end"
-          trigger={
-            <IconButton size="sm" aria-label={`Ações de ${cred.platform}`} className="shrink-0">
-              <MoreHorizontal size={16} strokeWidth={1.5} />
-            </IconButton>
-          }
-        >
-          <MenuItem icon={<Pencil size={16} strokeWidth={1.5} />} onClick={onEdit}>Editar</MenuItem>
-          <MenuSeparator />
-          <MenuItem icon={<Trash2 size={16} strokeWidth={1.5} />} destructive onClick={onDelete}>Excluir</MenuItem>
-        </DropdownMenu>
-      )}
     </div>
   )
 }
 
-type CredDraft = { platform: string; url: string; username: string; password: string; note: string }
-const EMPTY_CRED: CredDraft = { platform: '', url: '', username: '', password: '', note: '' }
+type CredDraft = {
+  platform: string
+  url: string
+  username: string
+  password: string
+  note: string
+  twofa: TwoFA
+  ownerId: string
+  monthlyCost: string
+  status: CredStatus
+  memberIds: string[]
+}
+const EMPTY_CRED: CredDraft = {
+  platform: '', url: '', username: '', password: '', note: '',
+  twofa: 'nenhum', ownerId: '', monthlyCost: '', status: 'ativa', memberIds: [],
+}
 
 function CredentialModal({
   open,
   editing,
+  people,
   onClose,
   onSave,
 }: {
   open: boolean
   editing: Credential | null
+  people: Member[]
   onClose: () => void
   onSave: (draft: CredDraft) => void
 }) {
@@ -182,17 +278,28 @@ function CredentialModal({
             username: editing.username ?? '',
             password: editing.password ?? '',
             note: editing.note ?? '',
+            twofa: editing.twofa ?? 'nenhum',
+            ownerId: editing.owner_id ?? '',
+            monthlyCost: editing.monthly_cost != null ? String(editing.monthly_cost).replace('.', ',') : '',
+            status: editing.status ?? 'ativa',
+            memberIds: editing.member_ids ?? [],
           }
         : EMPTY_CRED,
     )
   }, [open, editing])
+
+  const toggleMember = (id: string) =>
+    setDraft((d) => ({
+      ...d,
+      memberIds: d.memberIds.includes(id) ? d.memberIds.filter((m) => m !== id) : [...d.memberIds, id],
+    }))
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={editing ? 'Editar acesso' : 'Novo acesso'}
-      description="Credenciais da plataforma."
+      description="Credenciais, verificação e custo da ferramenta."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
@@ -207,7 +314,50 @@ function CredentialModal({
           <Input label="Usuário" value={draft.username} onChange={(e) => setDraft((d) => ({ ...d, username: e.target.value }))} placeholder="e-mail ou login" />
           <Input label="Senha" value={draft.password} onChange={(e) => setDraft((d) => ({ ...d, password: e.target.value }))} placeholder="senha" />
         </div>
-        <Input label="Nota" optional value={draft.note} onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))} placeholder="Ex.: MFA necessário" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="Código de verificação (2FA)" value={draft.twofa} onChange={(e) => setDraft((d) => ({ ...d, twofa: e.target.value as TwoFA }))}>
+            {TWOFA_OPTIONS.map((v) => <option key={v} value={v}>{TWOFA_META[v].label}</option>)}
+          </Select>
+          <Input label="Custo mensal (R$)" optional value={draft.monthlyCost} onChange={(e) => setDraft((d) => ({ ...d, monthlyCost: e.target.value }))} placeholder="Ex.: 149,90" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="Responsável" value={draft.ownerId} onChange={(e) => setDraft((d) => ({ ...d, ownerId: e.target.value }))}>
+            <option value="">— Sem responsável —</option>
+            {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+          <Select label="Status" value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as CredStatus }))}>
+            <option value="ativa">Ativa</option>
+            <option value="cancelada">Cancelada (soma a economia)</option>
+          </Select>
+        </div>
+        <div>
+          <div className="mb-1.5 text-body-s font-medium text-strong">
+            Quem tem acesso <span className="font-normal text-faint">(opcional)</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {people.map((p) => {
+              const selected = draft.memberIds.includes(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggleMember(p.id)}
+                  aria-pressed={selected}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-body-s transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                    selected
+                      ? 'border-steel-500/50 bg-steel-tint text-steel-200'
+                      : 'border-line bg-slate-800 text-muted hover:text-strong',
+                  )}
+                >
+                  <Avatar size="xs" name={p.name} src={p.avatar ?? undefined} />
+                  {p.name.split(' ')[0]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <Input label="Nota" optional value={draft.note} onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))} placeholder="Ex.: assinatura anual, renova em março" />
       </div>
     </Modal>
   )
@@ -250,12 +400,34 @@ function MediaModal({ open, editing, onClose, onSave }: { open: boolean; editing
   )
 }
 
+/** Filtros da lista de ferramentas. "Fora do Authenticator" é a revisão pedida
+ *  na All Hands: ferramentas com 2FA que ainda dependem de e-mail/SMS. */
+type CredFilter = 'todas' | '2fa' | 'fora' | 'canceladas'
+const FILTERS: { value: CredFilter; label: string }[] = [
+  { value: 'todas', label: 'Todas' },
+  { value: '2fa', label: 'Exigem 2FA' },
+  { value: 'fora', label: 'Fora do Authenticator' },
+  { value: 'canceladas', label: 'Canceladas' },
+]
+
+function matchesFilter(c: Credential, f: CredFilter): boolean {
+  switch (f) {
+    case 'todas': return true
+    case '2fa': return c.twofa !== 'nenhum'
+    case 'fora': return c.twofa !== 'nenhum' && c.twofa !== 'authenticator' && c.status !== 'cancelada'
+    case 'canceladas': return c.status === 'cancelada'
+  }
+}
+
 /** Conteúdo da aba "Acessos" do cliente — cofre de recursos (Supabase). */
 export function ClientAccess({ clientId, canManage }: { clientId: string; canManage: boolean }) {
   const toast = useToast()
+  const { members } = useProfiles()
+  const people = useMemo(() => members.filter((m) => m.status !== 'suspenso'), [members])
   const [media, setMedia] = useState<MediaLink[]>([])
   const [creds, setCreds] = useState<Credential[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<CredFilter>('todas')
   const [credModal, setCredModal] = useState(false)
   const [editingCred, setEditingCred] = useState<Credential | null>(null)
   const [mediaModal, setMediaModal] = useState(false)
@@ -264,7 +436,11 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
   const fetchAll = useCallback(async () => {
     const [m, c] = await Promise.all([
       supabase.from('client_media').select('id, label, kind, url, hint').eq('client_id', clientId).order('sort'),
-      supabase.from('client_credentials').select('id, platform, url, username, password, note').eq('client_id', clientId).order('sort'),
+      supabase
+        .from('client_credentials')
+        .select('id, platform, url, username, password, note, owner_id, twofa, monthly_cost, status, member_ids')
+        .eq('client_id', clientId)
+        .order('sort'),
     ])
     if (m.data) setMedia(m.data as MediaLink[])
     if (c.data) setCreds(c.data as Credential[])
@@ -276,6 +452,20 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
     fetchAll()
   }, [fetchAll])
 
+  // Resumo do ecossistema: quanto custa, quanto já economizamos e quanto do
+  // 2FA já está centralizado no Authenticator (meta da All Hands).
+  const summary = useMemo(() => {
+    const ativas = creds.filter((c) => c.status !== 'cancelada')
+    const canceladas = creds.filter((c) => c.status === 'cancelada')
+    const need2fa = ativas.filter((c) => c.twofa !== 'nenhum')
+    const centralized = need2fa.filter((c) => c.twofa === 'authenticator')
+    const cost = ativas.reduce((sum, c) => sum + (c.monthly_cost ?? 0), 0)
+    const saved = canceladas.reduce((sum, c) => sum + (c.monthly_cost ?? 0), 0)
+    return { active: ativas.length, need2fa: need2fa.length, centralized: centralized.length, cost, saved }
+  }, [creds])
+
+  const filteredCreds = useMemo(() => creds.filter((c) => matchesFilter(c, filter)), [creds, filter])
+
   const nextSort = (arr: { length: number }) => arr.length + 1
 
   const saveCred = async (draft: CredDraft) => {
@@ -286,6 +476,11 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
       username: draft.username.trim() || null,
       password: draft.password || null,
       note: draft.note.trim() || null,
+      owner_id: draft.ownerId || null,
+      twofa: draft.twofa,
+      monthly_cost: parseCost(draft.monthlyCost),
+      status: draft.status,
+      member_ids: draft.memberIds,
     }
     const { error } = editingCred
       ? await supabase.from('client_credentials').update(payload).eq('id', editingCred.id)
@@ -338,6 +533,18 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Resumo do ecossistema de ferramentas */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Ferramentas ativas" value={summary.active} />
+        <StatCard
+          label="2FA no Authenticator"
+          value={summary.need2fa === 0 ? '—' : `${summary.centralized}/${summary.need2fa}`}
+          active={summary.need2fa > 0 && summary.centralized === summary.need2fa}
+        />
+        <StatCard label="Custo mensal" value={brl.format(summary.cost)} />
+        <StatCard label="Economia mensal" value={brl.format(summary.saved)} active={summary.saved > 0} />
+      </div>
+
       {/* Bancos & mídia */}
       <Card>
         <CardHeader>
@@ -409,14 +616,40 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
             </Button>
           )}
         </CardHeader>
+
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => {
+            const active = filter === f.value
+            return (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setFilter(f.value)}
+                aria-pressed={active}
+                className={cn(
+                  'rounded-md border px-2.5 py-1 text-body-s transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                  active
+                    ? 'border-steel-500/50 bg-steel-tint font-medium text-steel-200'
+                    : 'border-line bg-slate-800 text-muted hover:text-strong',
+                )}
+              >
+                {f.label}
+              </button>
+            )
+          })}
+        </div>
+
         {creds.length === 0 ? (
           <EmptyState className="border-0 bg-transparent" icon={<KeyRound size={22} strokeWidth={1.5} />} title="Nenhum acesso" description="Adicione as credenciais das plataformas do cliente." />
+        ) : filteredCreds.length === 0 ? (
+          <p className="py-6 text-center text-body-s text-faint">Nenhuma ferramenta neste filtro.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {creds.map((cred) => (
+            {filteredCreds.map((cred) => (
               <CredentialRow
                 key={cred.id}
                 cred={cred}
+                people={people}
                 canManage={canManage}
                 onEdit={() => { setEditingCred(cred); setCredModal(true) }}
                 onDelete={() => delCred(cred)}
@@ -426,7 +659,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
         )}
       </Card>
 
-      <CredentialModal open={credModal} editing={editingCred} onClose={() => { setCredModal(false); setEditingCred(null) }} onSave={saveCred} />
+      <CredentialModal open={credModal} editing={editingCred} people={people} onClose={() => { setCredModal(false); setEditingCred(null) }} onSave={saveCred} />
       <MediaModal open={mediaModal} editing={editingMedia} onClose={() => { setMediaModal(false); setEditingMedia(null) }} onSave={saveMedia} />
     </div>
   )
