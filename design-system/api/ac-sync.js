@@ -6,6 +6,8 @@
      AC_API_URL   ex.: https://SEUCONTA.api-us1.com
      AC_API_KEY   chave da API v3
      AC_TAG       opcional — nome da tag (default: "guia-cinco-falhas")
+     AC_LIST_ID   opcional — ID da lista pra inscrever o contato (o Active
+                  só entrega e-mail pra contato inscrito em alguma lista)
 
    Sem envs configuradas responde 204 (no-op): a página continua funcionando
    só com o Supabase até o Active ser plugado. */
@@ -35,6 +37,16 @@ export default async function handler(req, res) {
     })
     if (!syncRes.ok) throw new Error(`contact/sync ${syncRes.status}`)
     const { contact } = await syncRes.json()
+
+    // Inscrição na lista (status 1 = subscribed) — necessária pra receber e-mail.
+    const listId = process.env.AC_LIST_ID
+    if (listId) {
+      await fetch(`${base}/api/3/contactLists`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ contactList: { list: Number(listId), contact: contact.id, status: 1 } }),
+      })
+    }
 
     // Tag de segmentação (cria se não existir, aplica sempre)
     const tagName = process.env.AC_TAG || 'guia-cinco-falhas'
