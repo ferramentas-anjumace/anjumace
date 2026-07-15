@@ -141,21 +141,6 @@ function Callout({ children, tone = 'dark' }) {
   )
 }
 
-/** Confirmação provisória em /guia/download — segura a rota até a página de
-    entrega definitiva (Fase 2) entrar no ar. */
-export function GuiaDownloadInterino() {
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-graphite-950 px-6 text-center text-cream-100">
-      <img src="/logo-anju.svg" alt="Anju Mace" className="h-4 w-auto" />
-      <h1 className="max-w-xl text-h2">O seu guia está a caminho do seu e-mail.</h1>
-      <p className="max-w-md text-body-lg text-cream-100/70">
-        Enviamos <em>Os cinco tipos de falha</em> para o endereço que você informou.
-        Se não chegar em alguns minutos, confira o spam.
-      </p>
-    </main>
-  )
-}
-
 export function AppGuiaCaptura() {
   const utm = useMemo(readUtms, [])
   const formRef = useRef(null)
