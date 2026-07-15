@@ -14,6 +14,8 @@ import {
   Trash2,
   MoreHorizontal,
   Loader2,
+  Lock,
+  History,
 } from 'lucide-react'
 import {
   Card,
@@ -36,6 +38,7 @@ import {
 } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/lib/session'
 import { useProfiles, type Member } from './profiles'
 
 type MediaKind = 'imagens' | 'videos' | 'marca' | 'conteudos'
@@ -43,12 +46,13 @@ interface MediaLink { id: string; label: string; kind: MediaKind; url: string | 
 
 type TwoFA = 'nenhum' | 'authenticator' | 'email_admin' | 'email_pessoal' | 'sms'
 type CredStatus = 'ativa' | 'cancelada'
+// A senha NÃO vem na listagem (privilégio de coluna, migration 0050) — só via
+// RPC credential_password, que confere a permissão e registra quem pediu.
 interface Credential {
   id: string
   platform: string
   url: string | null
   username: string | null
-  password: string | null
   note: string | null
   owner_id: string | null
   twofa: TwoFA
@@ -144,16 +148,103 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
   )
 }
 
+/** Campo de senha sob demanda: o valor só sai do banco pela RPC
+ *  credential_password (que confere a permissão e loga quem pediu).
+ *  Quem não pode ver recebe o estado "restrita". */
+function SecretField({ credId, canSee }: { credId: string; canSee: boolean }) {
+  const toast = useToast()
+  const [value, setValue] = useState<string | null>(null)
+  const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const fetchSecret = async (): Promise<string | null> => {
+    if (value !== null) return value
+    setBusy(true)
+    const { data, error } = await supabase.rpc('credential_password', { cred: credId })
+    setBusy(false)
+    if (error) {
+      toast.error('Não foi possível obter a senha', error.message)
+      return null
+    }
+    const v = (data as string | null) ?? ''
+    setValue(v)
+    return v
+  }
+
+  const toggleShow = async () => {
+    if (show) { setShow(false); return }
+    const v = await fetchSecret()
+    if (v !== null) setShow(true)
+  }
+
+  const copy = async () => {
+    const v = await fetchSecret()
+    if (v === null) return
+    if (!v.trim() || /^[•·]+$/.test(v.trim())) { toast.error('Senha não definida'); return }
+    navigator.clipboard?.writeText(v)
+    toast.success('Copiado', 'Senha')
+  }
+
+  const unset = value !== null && (!value.trim() || /^[•·]+$/.test(value.trim()))
+
+  return (
+    <div className="rounded-md border border-line bg-slate-800 px-2.5 py-1.5">
+      <div className="font-mono text-[10px] uppercase tracking-wider text-faint">Senha</div>
+      <div className="flex items-center gap-2">
+        {!canSee ? (
+          <span
+            className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-mono-data italic text-faint"
+            title="Peça a quem gerencia os acessos"
+          >
+            <Lock size={12} strokeWidth={1.5} aria-hidden />
+            restrita
+          </span>
+        ) : (
+          <>
+            <span className={cn('min-w-0 flex-1 truncate font-mono text-mono-data', unset && show ? 'italic text-faint' : 'text-strong')}>
+              {show ? (unset ? 'não definida' : value) : '•'.repeat(12)}
+            </span>
+            {busy ? (
+              <Loader2 size={14} strokeWidth={1.5} className="shrink-0 animate-spin text-muted" aria-label="Carregando" />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleShow}
+                  aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="shrink-0 text-muted transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  {show ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={copy}
+                  aria-label="Copiar senha"
+                  className="shrink-0 text-muted transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  <Copy size={14} strokeWidth={1.5} />
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CredentialRow({
   cred,
   people,
   canManage,
+  canSeeSecret,
   onEdit,
   onDelete,
 }: {
   cred: Credential
   people: Member[]
   canManage: boolean
+  canSeeSecret: boolean
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -189,7 +280,7 @@ function CredentialRow({
         </div>
         <div className="grid flex-1 gap-2 sm:grid-cols-2">
           <CopyField label="Usuário" value={cred.username ?? ''} />
-          <CopyField label="Senha" value={cred.password ?? ''} secret />
+          <SecretField credId={cred.id} canSee={canSeeSecret} />
         </div>
         {canManage && (
           <DropdownMenu
@@ -276,7 +367,8 @@ function CredentialModal({
             platform: editing.platform,
             url: editing.url ?? '',
             username: editing.username ?? '',
-            password: editing.password ?? '',
+            // A senha não vem na listagem (0050); em branco = mantém a atual.
+            password: '',
             note: editing.note ?? '',
             twofa: editing.twofa ?? 'nenhum',
             ownerId: editing.owner_id ?? '',
@@ -312,7 +404,12 @@ function CredentialModal({
         <Input label="Link" optional value={draft.url} onChange={(e) => setDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://…" />
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Usuário" value={draft.username} onChange={(e) => setDraft((d) => ({ ...d, username: e.target.value }))} placeholder="e-mail ou login" />
-          <Input label="Senha" value={draft.password} onChange={(e) => setDraft((d) => ({ ...d, password: e.target.value }))} placeholder="senha" />
+          <Input
+            label="Senha"
+            value={draft.password}
+            onChange={(e) => setDraft((d) => ({ ...d, password: e.target.value }))}
+            placeholder={editing ? 'em branco mantém a atual' : 'senha'}
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="Código de verificação (2FA)" value={draft.twofa} onChange={(e) => setDraft((d) => ({ ...d, twofa: e.target.value as TwoFA }))}>
@@ -419,9 +516,71 @@ function matchesFilter(c: Credential, f: CredFilter): boolean {
   }
 }
 
+/** Histórico de quem viu/copiou senhas (credential_access_log, só gestores). */
+function AccessLogModal({
+  open, onClose, creds, people,
+}: {
+  open: boolean
+  onClose: () => void
+  creds: Credential[]
+  people: Member[]
+}) {
+  const [rows, setRows] = useState<{ id: number; credential_id: string; user_id: string | null; at: string }[] | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setRows(null)
+    supabase
+      .from('credential_access_log')
+      .select('id, credential_id, user_id, at')
+      .order('at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => setRows((data as typeof rows) ?? []))
+  }, [open])
+
+  const nameOf = (id: string | null) => (id ? people.find((p) => p.id === id)?.name ?? 'membro removido' : 'membro removido')
+  const platformOf = (id: string) => creds.find((c) => c.id === id)?.platform ?? 'ferramenta removida'
+  const fmtAt = (iso: string) => {
+    const d = new Date(iso)
+    return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} · ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Histórico de senhas"
+      description="Quem viu ou copiou cada senha — os 50 acessos mais recentes."
+      footer={<Button onClick={onClose}>Fechar</Button>}
+    >
+      {rows === null ? (
+        <div className="grid place-items-center py-8">
+          <Loader2 size={22} strokeWidth={1.5} className="animate-spin text-steel-300" aria-label="Carregando" />
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="py-6 text-center text-body-s text-faint">Nenhuma senha foi visualizada ainda.</p>
+      ) : (
+        <div className="flex max-h-96 flex-col gap-1 overflow-y-auto">
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-3 rounded-md border border-line bg-slate-900 px-3 py-2">
+              <span className="min-w-0 truncate text-body-s text-fg">
+                <span className="font-medium text-strong">{nameOf(r.user_id)}</span>
+                {' viu a senha de '}
+                <span className="font-medium text-strong">{platformOf(r.credential_id)}</span>
+              </span>
+              <span className="shrink-0 font-mono text-[11px] text-faint tabular-nums">{fmtAt(r.at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 /** Conteúdo da aba "Acessos" do cliente — cofre de recursos (Supabase). */
 export function ClientAccess({ clientId, canManage }: { clientId: string; canManage: boolean }) {
   const toast = useToast()
+  const { user } = useSession()
   const { members } = useProfiles()
   const people = useMemo(() => members.filter((m) => m.status !== 'suspenso'), [members])
   const [media, setMedia] = useState<MediaLink[]>([])
@@ -432,13 +591,14 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
   const [editingCred, setEditingCred] = useState<Credential | null>(null)
   const [mediaModal, setMediaModal] = useState(false)
   const [editingMedia, setEditingMedia] = useState<MediaLink | null>(null)
+  const [logModal, setLogModal] = useState(false)
 
   const fetchAll = useCallback(async () => {
     const [m, c] = await Promise.all([
       supabase.from('client_media').select('id, label, kind, url, hint').eq('client_id', clientId).order('sort'),
       supabase
         .from('client_credentials')
-        .select('id, platform, url, username, password, note, owner_id, twofa, monthly_cost, status, member_ids')
+        .select('id, platform, url, username, note, owner_id, twofa, monthly_cost, status, member_ids')
         .eq('client_id', clientId)
         .order('sort'),
     ])
@@ -470,11 +630,10 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
 
   const saveCred = async (draft: CredDraft) => {
     if (!draft.platform.trim()) { toast.error('Informe a plataforma'); return }
-    const payload = {
+    const payload: Record<string, unknown> = {
       platform: draft.platform.trim(),
       url: draft.url.trim() || null,
       username: draft.username.trim() || null,
-      password: draft.password || null,
       note: draft.note.trim() || null,
       owner_id: draft.ownerId || null,
       twofa: draft.twofa,
@@ -482,12 +641,14 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
       status: draft.status,
       member_ids: draft.memberIds,
     }
+    // Editando com senha em branco = mantém a atual (ela não vem na listagem).
+    if (!editingCred || draft.password) payload.password = draft.password || null
     const { error } = editingCred
       ? await supabase.from('client_credentials').update(payload).eq('id', editingCred.id)
       : await supabase.from('client_credentials').insert({ ...payload, client_id: clientId, sort: nextSort(creds) })
     if (error) toast.error('Falha ao salvar', error.message)
     else {
-      toast.success(editingCred ? 'Acesso atualizado' : 'Acesso adicionado', payload.platform)
+      toast.success(editingCred ? 'Acesso atualizado' : 'Acesso adicionado', draft.platform.trim())
       await fetchAll()
     }
     setCredModal(false)
@@ -611,9 +772,14 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
             <CardTitle>Senhas das plataformas</CardTitle>
           </div>
           {canManage && (
-            <Button size="sm" variant="secondary" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => { setEditingCred(null); setCredModal(true) }}>
-              Adicionar
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button size="sm" variant="ghost" leftIcon={<History size={16} strokeWidth={1.5} />} onClick={() => setLogModal(true)}>
+                Histórico
+              </Button>
+              <Button size="sm" variant="secondary" leftIcon={<Plus size={16} strokeWidth={1.5} />} onClick={() => { setEditingCred(null); setCredModal(true) }}>
+                Adicionar
+              </Button>
+            </div>
           )}
         </CardHeader>
 
@@ -651,6 +817,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
                 cred={cred}
                 people={people}
                 canManage={canManage}
+                canSeeSecret={canManage || cred.owner_id === user.userId || cred.member_ids.includes(user.userId)}
                 onEdit={() => { setEditingCred(cred); setCredModal(true) }}
                 onDelete={() => delCred(cred)}
               />
@@ -661,6 +828,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
 
       <CredentialModal open={credModal} editing={editingCred} people={people} onClose={() => { setCredModal(false); setEditingCred(null) }} onSave={saveCred} />
       <MediaModal open={mediaModal} editing={editingMedia} onClose={() => { setMediaModal(false); setEditingMedia(null) }} onSave={saveMedia} />
+      <AccessLogModal open={logModal} onClose={() => setLogModal(false)} creds={creds} people={people} />
     </div>
   )
 }
