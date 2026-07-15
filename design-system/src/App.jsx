@@ -2,7 +2,7 @@ import { AppTemploSingular } from './landing/singular/AppTemploSingular'
 import { AppObrigadoTemplo } from './landing/obrigado/AppObrigadoTemplo'
 import { AppObrigadoSingular } from './landing/obrigado-singular/AppObrigadoSingular'
 import { AppListaEspera } from './landing/lista-espera/AppListaEspera'
-import { AppGuiaCaptura } from './landing/guia/AppGuiaCaptura'
+import { AppGuiaCaptura, GuiaDownloadInterino } from './landing/guia/AppGuiaCaptura'
 
 // Site no ar = Lista de Espera (raiz e /lista-de-espera) — a landing
 // "App 7 dias" (src/landing/App7Dias.jsx) está fora do ar por ora.
@@ -15,6 +15,7 @@ import { AppGuiaCaptura } from './landing/guia/AppGuiaCaptura'
 //   entram na sequência.
 // O showcase do design system continua em src/showcase/Showcase.jsx (fora do ar).
 export default function App() {
+  if (window.location.pathname.startsWith('/guia/download')) return <GuiaDownloadInterino />
   if (window.location.pathname.startsWith('/guia')) return <AppGuiaCaptura />
   if (window.location.pathname.startsWith('/singular')) return <AppTemploSingular />
   if (window.location.pathname.startsWith('/obrigado-singular')) return <AppObrigadoSingular />
