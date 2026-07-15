@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
-  BarChart3, CalendarCheck, ListChecks, Flag, Tags, Layers, BadgeCheck, Users,
+  BarChart3, CalendarCheck, ListChecks, Flag, Tags, Layers, BadgeCheck, Users, Contact, Headset,
 } from 'lucide-react'
 import {
   Card,
@@ -24,6 +24,8 @@ import { useSession, ROLE_LABEL } from '@/lib/session'
 import { useTasks } from './tasks'
 import { useEditorial } from './editorial'
 import { useProfiles } from './profiles'
+import { useCrm, fmtBRL, isWon, isLost } from './crm'
+import { useCs, isTicketResolved } from './cs'
 import { useCatalogs, isExtraTone, EXTRA_TONE_HEX } from './catalogs'
 import { ANJU_ID } from '@/lib/tenant'
 import {
@@ -60,9 +62,11 @@ const TONE_BG: Record<Tone, string> = {
   sand: 'bg-sand-300',
 }
 
-/** Janelas de período para as métricas sensíveis a tempo. */
+/** Janelas de período para as métricas sensíveis a tempo. A "Quinzena" é o
+ *  padrão — a página é a pauta da reunião quinzenal com a Ana Júlia. */
 const PERIODS = [
   { key: 7, label: '7 dias' },
+  { key: 15, label: 'Quinzena' },
   { key: 30, label: '30 dias' },
   { key: 90, label: '90 dias' },
   { key: 0, label: 'Tudo' },
@@ -94,6 +98,16 @@ function DistBar({ label, value, total, tone, color }: { label: string; value: n
         />
       </div>
       <span className="w-7 shrink-0 text-right font-mono text-mono-data tabular-nums text-muted">{value}</span>
+    </div>
+  )
+}
+
+/** Rótulo de seção do relatório — separa Comercial / CS / Operação. */
+function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="mt-2 flex items-center gap-2 font-mono text-mono-label uppercase text-steel-400">
+      {icon}
+      {children}
     </div>
   )
 }
@@ -140,10 +154,66 @@ export function ReportsPage() {
   const { getPosts } = useEditorial()
   const { members } = useProfiles()
   const { items: catalogItems, tone: catTone } = useCatalogs()
+  const { leads } = useCrm()
+  const { cases, tickets } = useCs()
   const categories = catalogItems('task_category')
-  const [period, setPeriod] = useState<number>(30)
+  const origins = catalogItems('crm_origin')
+  const [period, setPeriod] = useState<number>(15)
 
   const posts = getPosts(ANJU_ID)
+
+  // Comercial + CS/Suporte — os números da pauta quinzenal.
+  const business = useMemo(() => {
+    const within = (iso: string | null | undefined) => period === 0 || daysAgo(iso ?? undefined) <= period
+
+    // CRM: entrada e desfechos do período (ganho/perdido pelo closedAt).
+    const newLeads = leads.filter((l) => within(l.createdAt))
+    const won = leads.filter((l) => isWon(l.status) && within(l.closedAt ?? undefined))
+    const lost = leads.filter((l) => isLost(l.status) && within(l.closedAt ?? undefined))
+    const wonValue = won.reduce((s, l) => s + (l.potentialValue || 0), 0)
+    const conversion = won.length + lost.length > 0 ? Math.round((won.length / (won.length + lost.length)) * 100) : 0
+
+    // Origem dos leads novos do período — onde investir tráfego/conteúdo.
+    const byOrigin = origins
+      .map((o) => {
+        const t = catTone('crm_origin', o.value)
+        const extra = isExtraTone(t)
+        return {
+          label: o.label,
+          value: newLeads.filter((l) => l.origin === o.value).length,
+          tone: (extra ? 'neutral' : t) as Tone,
+          color: extra ? EXTRA_TONE_HEX[t].bg : undefined,
+        }
+      })
+      .filter((r) => r.value > 0)
+
+    // CS: novas alunas no pós-venda; Suporte: volume e resolução.
+    const newCases = cases.filter((c) => within(c.createdAt))
+    const periodTickets = tickets.filter((t) => within(t.openedAt))
+    const resolvedTickets = periodTickets.filter((t) => isTicketResolved(t.status))
+    let resolvedMs = 0, resolvedCount = 0
+    for (const t of resolvedTickets) {
+      if (!t.resolvedAt) continue
+      const ms = new Date(t.resolvedAt).getTime() - new Date(t.openedAt).getTime()
+      if (ms > 0) { resolvedMs += ms; resolvedCount++ }
+    }
+    const avgH = resolvedCount > 0 ? resolvedMs / resolvedCount / 3_600_000 : null
+    const avgResolution = avgH === null ? '—' : avgH < 1 ? `${Math.max(Math.round(avgH * 60), 1)}min` : avgH < 48 ? `${Math.round(avgH)}h` : `${Math.round(avgH / 24)}d`
+    const openTickets = tickets.filter((t) => !isTicketResolved(t.status)).length
+
+    return {
+      newLeads: newLeads.length,
+      won: won.length,
+      wonValue,
+      conversion,
+      byOrigin,
+      newCases: newCases.length,
+      ticketCount: periodTickets.length,
+      resolvedCount: resolvedTickets.length,
+      avgResolution,
+      openTickets,
+    }
+  }, [leads, cases, tickets, origins, period, catTone])
 
   const metrics = useMemo(() => {
     const within = (iso: string | undefined) => period === 0 || daysAgo(iso) <= period
@@ -278,7 +348,34 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Métricas-chave */}
+      {/* Comercial — vendas e funil do período. */}
+      <SectionLabel icon={<Contact size={14} strokeWidth={1.5} aria-hidden />}>Comercial · {periodLabel}</SectionLabel>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Leads novos" value={String(business.newLeads)} />
+        <StatCard label="Vendas fechadas" value={String(business.won)} active={business.won > 0} />
+        <StatCard label="Valor ganho" value={fmtBRL(business.wonValue)} />
+        <StatCard label="Conversão (ganho × perdido)" value={`${business.conversion}%`} />
+      </div>
+      {business.byOrigin.length > 0 && (
+        <DistCard
+          title={`Origem dos leads novos · ${periodLabel}`}
+          icon={<Contact size={18} strokeWidth={1.5} aria-hidden />}
+          rows={business.byOrigin}
+          empty="Nenhum lead novo no período."
+        />
+      )}
+
+      {/* CS & Suporte — pós-venda e atendimentos. */}
+      <SectionLabel icon={<Headset size={14} strokeWidth={1.5} aria-hidden />}>CS & Suporte · {periodLabel}</SectionLabel>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Alunas novas no CS" value={String(business.newCases)} />
+        <StatCard label="Atendimentos" value={String(business.ticketCount)} />
+        <StatCard label="Resolvidos" value={String(business.resolvedCount)} />
+        <StatCard label="Tempo médio de resolução" value={business.avgResolution} />
+      </div>
+
+      {/* Métricas-chave da operação */}
+      <SectionLabel icon={<ListChecks size={14} strokeWidth={1.5} aria-hidden />}>Operação · tarefas e editorial</SectionLabel>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Tarefas abertas" value={String(metrics.open.length)} />
         <StatCard label={`Concluídas · ${periodLabel}`} value={String(metrics.completedInPeriod.length)} />
