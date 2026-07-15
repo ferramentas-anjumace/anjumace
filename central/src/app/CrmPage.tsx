@@ -15,6 +15,7 @@ import { useSession } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
+import { CrmUpgrade } from './CrmUpgrade'
 import {
   useCrm, fmtBRL, fmtDateBR, waHref, isActiveLead, isWon, isLost, isInactive,
   buildKpis, breakdownBy, ownerStats,
@@ -242,6 +243,7 @@ export function CrmPage() {
           <Tab value="pipeline">Pipeline</Tab>
           <Tab value="leads">Leads</Tab>
           <Tab value="planilha">Planilha</Tab>
+          <Tab value="upgrade">Upgrade</Tab>
           <Tab value="dashboard">Dashboard</Tab>
         </TabList>
 
@@ -277,6 +279,10 @@ export function CrmPage() {
 
         <TabPanel value="planilha">
           <SpreadsheetView leads={filtered} canManage={canManage} onOpen={setOpenId} />
+        </TabPanel>
+
+        <TabPanel value="upgrade">
+          <CrmUpgrade canManage={canManage} onOpen={setOpenId} />
         </TabPanel>
 
         <TabPanel value="dashboard">

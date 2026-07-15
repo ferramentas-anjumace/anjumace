@@ -34,6 +34,8 @@ export interface Lead {
   mainObjection?: string
   notes?: string
   closedAt?: string | null
+  /** Lead (aluna ganha) que originou esta oportunidade de upgrade de plano. */
+  upgradeFrom?: string | null
   sort: number
   createdAt: string
 }
@@ -127,6 +129,7 @@ interface LeadRow {
   main_objection: string | null
   notes: string | null
   closed_at: string | null
+  upgrade_from: string | null
   sort: number | null
   created_at: string
 }
@@ -150,6 +153,7 @@ function rowToLead(r: LeadRow): Lead {
     mainObjection: r.main_objection ?? undefined,
     notes: r.notes ?? undefined,
     closedAt: r.closed_at,
+    upgradeFrom: r.upgrade_from,
     sort: r.sort ?? 0,
     createdAt: r.created_at,
   }
@@ -174,6 +178,7 @@ function leadPatchToRow(patch: LeadPatch): Record<string, unknown> {
   if (patch.mainObjection !== undefined) row.main_objection = patch.mainObjection || null
   if (patch.notes !== undefined) row.notes = patch.notes || null
   if (patch.closedAt !== undefined) row.closed_at = patch.closedAt || null
+  if (patch.upgradeFrom !== undefined) row.upgrade_from = patch.upgradeFrom || null
   if (patch.sort !== undefined) row.sort = patch.sort
   return row
 }
