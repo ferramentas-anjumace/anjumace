@@ -967,6 +967,7 @@ export function ChatPage() {
     activeId,
     setActiveId,
     setChatOpen,
+    deleteChannel,
     activeChannel,
     messages,
     messagesLoading,
@@ -981,6 +982,9 @@ export function ChatPage() {
   const toast = useToast()
   const [newChannelOpen, setNewChannelOpen] = useState(false)
   const [newDmOpen, setNewDmOpen] = useState(false)
+  /** Canal/conversa com exclusão pendente de confirmação (null = modal fechado). */
+  const [channelToDelete, setChannelToDelete] = useState<{ id: string; label: string; isDm: boolean } | null>(null)
+  const [deletingChannel, setDeletingChannel] = useState(false)
 
   // Avisa o provider que o chat está visível (controla auto-leitura e avisos)
   // e aproveita a visita para pedir permissão de notificação do navegador.
@@ -1107,12 +1111,30 @@ export function ChatPage() {
                   <p className="truncate text-body-s text-muted">{activeChannel.description}</p>
                 )}
               </div>
-              <div className="ml-auto flex items-center gap-1 md:hidden">
-                <IconButton size="sm" aria-label="Nova conversa" onClick={() => setNewDmOpen(true)}>
+              <div className="ml-auto flex items-center gap-1">
+                {/* Excluir: canal → criador ou gestor; DM → qualquer participante
+                    (mesmas regras da policy no banco, migration 0045). */}
+                {(activeChannel.kind === 'dm' || isManager || activeChannel.createdBy === user.userId) && (
+                  <IconButton
+                    size="sm"
+                    aria-label={activeChannel.kind === 'dm' ? 'Excluir conversa' : 'Excluir canal'}
+                    title={activeChannel.kind === 'dm' ? 'Excluir conversa' : 'Excluir canal'}
+                    onClick={() =>
+                      setChannelToDelete({
+                        id: activeChannel.id,
+                        label: activeChannel.kind === 'dm' ? activeTitle : `#${activeChannel.name}`,
+                        isDm: activeChannel.kind === 'dm',
+                      })
+                    }
+                  >
+                    <Trash2 size={15} strokeWidth={1.5} />
+                  </IconButton>
+                )}
+                <IconButton size="sm" aria-label="Nova conversa" className="md:hidden" onClick={() => setNewDmOpen(true)}>
                   <PenSquare size={15} strokeWidth={1.5} />
                 </IconButton>
                 {isManager && (
-                  <IconButton size="sm" aria-label="Novo canal" onClick={() => setNewChannelOpen(true)}>
+                  <IconButton size="sm" aria-label="Novo canal" className="md:hidden" onClick={() => setNewChannelOpen(true)}>
                     <Plus size={16} strokeWidth={1.5} />
                   </IconButton>
                 )}
@@ -1190,6 +1212,42 @@ export function ChatPage() {
 
       <NewChannelModal open={newChannelOpen} onClose={() => setNewChannelOpen(false)} />
       <NewDmModal open={newDmOpen} onClose={() => setNewDmOpen(false)} />
+
+      {/* Confirmação de exclusão de canal/conversa — ação destrutiva e irreversível. */}
+      <Modal
+        open={channelToDelete !== null}
+        onClose={() => setChannelToDelete(null)}
+        title={channelToDelete?.isDm ? 'Excluir conversa' : 'Excluir canal'}
+        description={channelToDelete?.label}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setChannelToDelete(null)} disabled={deletingChannel}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              loading={deletingChannel}
+              onClick={async () => {
+                if (!channelToDelete) return
+                setDeletingChannel(true)
+                const { error } = await deleteChannel(channelToDelete.id)
+                setDeletingChannel(false)
+                if (error) toast.error('Não foi possível excluir', error)
+                else toast.success(channelToDelete.isDm ? 'Conversa excluída' : 'Canal excluído', channelToDelete.label)
+                setChannelToDelete(null)
+              }}
+            >
+              {channelToDelete?.isDm ? 'Excluir conversa' : 'Excluir canal'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-body-s text-fg">
+          {channelToDelete?.isDm
+            ? 'A conversa e todas as mensagens serão apagadas para os dois lados. Essa ação não tem volta.'
+            : 'Todas as mensagens, anexos e reações do canal serão apagados para todo mundo. Essa ação não tem volta.'}
+        </p>
+      </Modal>
     </div>
   )
 }

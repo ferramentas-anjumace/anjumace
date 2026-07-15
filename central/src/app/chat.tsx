@@ -139,6 +139,8 @@ interface ChatCtx {
   deleteMessage: (id: string) => Promise<void>
   toggleReaction: (messageId: string, emoji: string) => Promise<void>
   createChannel: (name: string, description?: string) => Promise<{ error: string | null; id?: string }>
+  /** Exclui o canal e todas as mensagens (RLS: criador ou gestor). */
+  deleteChannel: (id: string) => Promise<{ error: string | null }>
   openDm: (otherUserId: string) => Promise<{ error: string | null; id?: string }>
 }
 
@@ -524,6 +526,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [user.userId],
   )
 
+  const deleteChannel = useCallback(async (id: string) => {
+    const { error } = await supabase.from('chat_channels').delete().eq('id', id)
+    if (error) return { error: error.message }
+    setChannels((prev) => prev.filter((c) => c.id !== id))
+    setDms((prev) => prev.filter((c) => c.id !== id))
+    setUnread((prev) => {
+      if (!(id in prev)) return prev
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    // Sai do canal excluído — o efeito de canais escolhe o primeiro disponível.
+    setActiveId((cur) => (cur === id ? null : cur))
+    return { error: null }
+  }, [])
+
   const openDm = useCallback(
     async (otherUserId: string) => {
       const { data, error } = await supabase.rpc('get_or_create_dm', { other: otherUserId })
@@ -600,6 +618,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       deleteMessage,
       toggleReaction,
       createChannel,
+      deleteChannel,
       openDm,
     }),
     [
@@ -626,6 +645,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       deleteMessage,
       toggleReaction,
       createChannel,
+      deleteChannel,
       openDm,
     ],
   )
