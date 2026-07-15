@@ -16,6 +16,7 @@ export default defineConfig({
         singular: resolve(__dirname, 'singular.html'),
         obrigadoTemplo: resolve(__dirname, 'obrigado-templo.html'),
         obrigadoSingular: resolve(__dirname, 'obrigado-singular.html'),
+        guia: resolve(__dirname, 'guia.html'),
       },
     },
   },

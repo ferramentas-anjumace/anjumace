@@ -1,9 +1,32 @@
 {
   "rewrites": [
-    { "source": "/obrigado-singular", "destination": "/obrigado-singular.html" },
-    { "source": "/obrigado-templo", "destination": "/obrigado-templo.html" },
-    { "source": "/obrigado", "destination": "/obrigado-templo.html" },
-    { "source": "/singular", "destination": "/singular.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/guia",
+      "destination": "/guia.html"
+    },
+    {
+      "source": "/guia/(.*)",
+      "destination": "/guia.html"
+    },
+    {
+      "source": "/obrigado-singular",
+      "destination": "/obrigado-singular.html"
+    },
+    {
+      "source": "/obrigado-templo",
+      "destination": "/obrigado-templo.html"
+    },
+    {
+      "source": "/obrigado",
+      "destination": "/obrigado-templo.html"
+    },
+    {
+      "source": "/singular",
+      "destination": "/singular.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
