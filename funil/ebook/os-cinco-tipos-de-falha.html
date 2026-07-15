@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Os cinco tipos de falha — Anju Mace</title>
+<!--
+  E-BOOK · OS CINCO TIPOS DE FALHA
+  Funil de atração — pilar Execução, Método T.E.M.P.L.O.
+  Copy: verbatim do documento [Funil] [E-Book] [Cinco Tipos de Falha].pdf
+  Arte: fallback tipográfico (sem fotos) — páginas escuras e silenciosas,
+  enriquecidas com painéis, cards e molduras; nenhuma palavra além da copy.
+  Gerar PDF: chrome --headless=new --print-to-pdf (via %TEMP%, ver memória)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100;200;300;400;500;600&family=Outfit:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --graphite-950:#1A1A1A; --graphite-900:#222222; --graphite-800:#282828;
+    --panel:#1F1F1E; --panel-deep:#181817;
+    --cream:#F5F5DD; --cream-soft:rgba(245,245,221,.72); --cream-faint:rgba(245,245,221,.45);
+    --hairline:rgba(245,245,221,.12); --hairline-strong:rgba(245,245,221,.2);
+    --sage:#9EAB87; --sage-deep:#7A8569; --sage-dark:#636E55;
+    --gold:#DABE81; --gold-deep:#BE9234;
+    --font-display:'Lexend',sans-serif; --font-sans:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:#0f0f0f;}
+  body{font-family:var(--font-sans);color:var(--cream);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  @page{size:A4;margin:0;}
+  .page{
+    width:210mm;height:297mm;overflow:hidden;position:relative;
+    background:radial-gradient(130% 95% at 0% 0%, #1D1D1B 0%, var(--graphite-950) 48%, #161616 100%);
+    padding:16mm 20mm 18mm;
+    page-break-after:always;break-after:page;
+    display:flex;flex-direction:column;
+  }
+  .page:last-of-type{page-break-after:auto;break-after:auto;}
+  @media screen{ .page{margin:24px auto;box-shadow:0 24px 80px rgba(0,0,0,.5);} }
+
+  /* moldura fina — capa e página final */
+  .frame::before{
+    content:"";position:absolute;inset:8mm;border:.4pt solid rgba(245,245,221,.16);
+    border-radius:2.5mm;pointer-events:none;
+  }
+
+  /* ---------- primitivas ---------- */
+  .kicker{
+    font-family:var(--font-display);font-weight:300;font-size:8.5pt;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--sage);
+  }
+  h1,h2,h3{font-family:var(--font-display);letter-spacing:-0.011em;}
+  p{font-weight:300;line-height:1.62;}
+  em{font-style:italic;}
+  strong{font-weight:500;color:var(--cream);}
+
+  /* folha corrida (páginas de conteúdo) */
+  .runhead{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding-bottom:2.4mm;margin-bottom:9mm;
+    border-bottom:.35pt solid var(--hairline);
+    font-family:var(--font-display);font-weight:300;font-size:6.8pt;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--cream-faint);
+  }
+  .runhead .r{color:rgba(158,171,135,.7);}
+
+  .pagenum{
+    position:absolute;bottom:10mm;right:20mm;
+    font-family:var(--font-display);font-weight:300;font-size:7.5pt;
+    letter-spacing:.16em;color:var(--cream-faint);
+  }
+  .footmark{position:absolute;bottom:10mm;left:20mm;height:3mm;opacity:.45;}
+  .footmark svg{height:100%;width:auto;display:block;}
+
+  /* ---------- abertura de capítulo: tile + título ---------- */
+  .chapter-open{
+    display:flex;align-items:center;gap:7mm;
+    padding-bottom:6mm;margin-bottom:8mm;
+    border-bottom:.35pt solid var(--hairline);
+  }
+  .chapter-open .tile{
+    min-width:23mm;height:23mm;padding:0 3mm;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border:.5pt solid rgba(158,171,135,.55);border-radius:2.5mm;
+    background:rgba(158,171,135,.06);
+    font-family:var(--font-display);font-weight:100;font-size:21pt;color:var(--sage);
+  }
+  .chapter-open h2{font-weight:400;font-size:17.5pt;line-height:1.24;}
+
+  .body-col{max-width:158mm;}
+  .body-col > p{font-size:10.4pt;color:var(--cream-soft);margin-bottom:4mm;}
+  .body-col p.lead{font-size:11.3pt;color:var(--cream);}
+
+  /* painel de cena — o exemplo prático dentro do capítulo */
+  .scene{
+    background:var(--panel);border:.35pt solid var(--hairline);
+    border-left:1.6pt solid var(--sage-deep);border-radius:2.5mm;
+    padding:5mm 6mm;margin:1.5mm 0 4.6mm;
+  }
+  .scene p{font-size:10.2pt;color:var(--cream-soft);margin-bottom:2.8mm;}
+  .scene p:last-child{margin-bottom:0;}
+  .scene p.lead{font-size:11.3pt;color:var(--cream);}
+
+  /* a decisão técnica — destaque dourado */
+  .decision{
+    margin-top:5.5mm;padding:5.5mm 6.5mm;border-radius:2.5mm;
+    border:.35pt solid rgba(218,190,129,.28);
+    border-left:1.6pt solid var(--gold);
+    background:rgba(218,190,129,.06);
+  }
+  .decision p{font-size:10.4pt;color:var(--cream);margin:0;}
+
+  /* plug do método — painel sálvia */
+  .plug{
+    margin-top:5.5mm;border-radius:2.5mm;padding:5.5mm 6.5mm;
+    background:rgba(158,171,135,.10);border:.35pt solid rgba(158,171,135,.30);
+  }
+  .plug p{font-size:9.8pt;color:var(--cream);margin:0;}
+
+  /* painel de tabela */
+  .panel{
+    background:var(--panel);border:.35pt solid var(--hairline);
+    border-radius:2.5mm;padding:5mm 6mm 4mm;margin:5mm 0 3mm;
+  }
+  table.duo{width:100%;border-collapse:collapse;}
+  table.duo th{
+    font-family:var(--font-display);font-weight:400;font-size:9.5pt;
+    letter-spacing:.02em;color:var(--cream);text-align:left;
+    padding:0 5mm 3mm 0;border-bottom:.5pt solid var(--hairline-strong);
+  }
+  table.duo th+th{padding-left:5mm;padding-right:0;}
+  table.duo th .mark{
+    display:inline-block;width:1.9mm;height:1.9mm;margin-right:2.2mm;
+    vertical-align:.06em;
+  }
+  table.duo th .mark.sage{background:var(--sage);}
+  table.duo th .mark.gold{background:var(--gold);}
+  table.duo td{
+    vertical-align:top;font-size:9.7pt;font-weight:300;line-height:1.55;
+    color:var(--cream-soft);padding:3.6mm 5mm 3.6mm 0;
+    border-bottom:.35pt solid var(--hairline);
+  }
+  table.duo td+td{padding-left:5mm;padding-right:0;border-left:.35pt solid var(--hairline);}
+  table.duo tr:last-child td{border-bottom:none;padding-bottom:1mm;}
+  table.duo td strong{font-weight:500;}
+
+  /* grid de mini-cards (alavancas, pilares) */
+  .cards{display:grid;gap:3.5mm;margin:2mm 0 4.5mm;}
+  .cards.c2{grid-template-columns:1fr 1fr;}
+  .cards.c3{grid-template-columns:1fr 1fr 1fr;}
+  .mini{
+    background:var(--panel);border:.35pt solid var(--hairline);
+    border-radius:2.5mm;padding:4.5mm 5mm;
+  }
+  .mini::before{
+    content:"";display:block;width:6mm;height:.5mm;background:var(--sage-deep);
+    margin-bottom:3mm;
+  }
+  .mini h4{
+    font-family:var(--font-display);font-weight:500;font-size:9.6pt;
+    letter-spacing:.01em;color:var(--cream);margin-bottom:1.8mm;
+  }
+  .mini p{font-size:9.2pt;line-height:1.55;color:var(--cream-soft);}
+
+  /* botão */
+  .btn{
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    text-decoration:none;height:12.5mm;
+    font-family:var(--font-display);font-weight:500;font-size:9.3pt;
+    letter-spacing:.06em;text-transform:uppercase;
+    color:var(--graphite-950);background:var(--sage);border-radius:2mm;
+    padding:0 5mm;
+  }
+  .btn--gold{background:var(--gold);}
+
+  /* lista com marcador quadrado */
+  ul.stack{list-style:none;}
+  ul.stack li{
+    position:relative;padding-left:5mm;
+    font-size:8.4pt;font-weight:300;line-height:1.45;color:var(--cream-soft);
+    margin-bottom:2mm;
+  }
+  ul.stack li::before{
+    content:"";position:absolute;left:0;top:.42em;width:1.6mm;height:1.6mm;
+    background:var(--sage-deep);
+  }
+  .door--singular ul.stack li::before{background:var(--gold-deep);}
+  ul.stack li strong{font-weight:500;color:var(--cream);}
+
+  /* ======================= CAPA ======================= */
+  .cover{justify-content:space-between;padding:20mm 22mm 18mm;}
+  .cover .brand svg{height:4.2mm;width:auto;opacity:.9;}
+  .cover .numerals{
+    position:absolute;top:0;right:16mm;bottom:0;display:flex;flex-direction:column;
+    justify-content:center;gap:2mm;pointer-events:none;
+  }
+  .cover .numerals span{
+    font-family:var(--font-display);font-weight:100;font-size:34pt;line-height:1;
+    color:rgba(158,171,135,.16);text-align:right;
+  }
+  .cover .numerals span:nth-child(5){color:rgba(218,190,129,.34);}
+  .cover .kicker-rule{width:14mm;border:none;border-top:.6pt solid var(--sage-deep);margin:3mm 0 0;}
+  .cover h1{font-weight:300;font-size:41pt;line-height:1.06;max-width:130mm;margin-top:7mm;}
+  .cover .teaser{margin-top:11mm;max-width:112mm;}
+  .cover .teaser p{font-size:11.5pt;color:var(--cream-soft);margin-bottom:3mm;}
+  .cover .teaser p strong{font-weight:500;}
+  .cover .foot{font-family:var(--font-display);font-weight:300;font-size:9pt;letter-spacing:.04em;color:var(--cream-faint);}
+  .cover .foot b{font-weight:500;color:var(--cream);letter-spacing:.1em;}
+
+  /* ======================= DUAS PORTAS ======================= */
+  .doors{display:flex;gap:6mm;flex:1;margin-top:4.5mm;}
+  .door{
+    flex:1;display:flex;flex-direction:column;
+    background:var(--panel);border:.35pt solid var(--hairline);
+    border-radius:3mm;padding:5.5mm 6mm 5mm;
+  }
+  .door--templo{border-top:1.8pt solid var(--sage);}
+  .door--singular{border-top:1.8pt solid var(--gold);}
+  .door .roman{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:10mm;height:10mm;border-radius:2mm;margin-bottom:2.4mm;
+    font-family:var(--font-display);font-weight:100;font-size:13pt;
+  }
+  .door--templo .roman{color:var(--sage);background:rgba(158,171,135,.10);border:.4pt solid rgba(158,171,135,.4);}
+  .door--singular .roman{color:var(--gold);background:rgba(218,190,129,.08);border:.4pt solid rgba(218,190,129,.4);}
+  .door h3{font-weight:400;font-size:12.5pt;margin-bottom:2mm;}
+  .door .pitch{font-size:8.7pt;line-height:1.48;color:var(--cream-soft);margin-bottom:3.4mm;}
+  .door .label{
+    font-family:var(--font-display);font-weight:300;font-size:7.2pt;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--cream-faint);
+    padding-top:3mm;margin-bottom:2.2mm;border-top:.35pt solid var(--hairline);
+  }
+  .invest-panel{
+    margin-top:auto;background:var(--panel-deep);border-radius:2mm;
+    padding:3.2mm 4.2mm;border:.35pt solid var(--hairline);
+  }
+  .invest-panel .lbl{
+    font-family:var(--font-display);font-weight:300;font-size:7.2pt;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--cream-faint);margin-bottom:1.4mm;
+  }
+  .invest-panel .price{font-family:var(--font-display);font-weight:300;font-size:13.5pt;color:var(--cream);line-height:1.15;}
+  .invest-panel .price small{font-size:8.6pt;font-weight:300;color:var(--cream-soft);letter-spacing:.01em;}
+  .invest-panel .guarantee{font-size:8pt;color:var(--cream-faint);margin-top:1.2mm;}
+  .door .btn{margin-top:3mm;}
+  .doors-foot{margin-top:4.5mm;text-align:center;font-size:9pt;font-weight:300;color:var(--sage);}
+
+  /* ======================= SUMÁRIO ======================= */
+  .toc{margin-top:10mm;max-width:158mm;}
+  .toc-row{
+    display:flex;align-items:center;gap:6mm;
+    background:var(--panel);border:.35pt solid var(--hairline);border-radius:2.5mm;
+    padding:4.4mm 6mm;margin-bottom:3mm;
+  }
+  .toc-row .n{
+    min-width:13mm;height:9mm;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border:.4pt solid rgba(158,171,135,.4);border-radius:1.8mm;
+    background:rgba(158,171,135,.06);
+    font-family:var(--font-display);font-weight:100;font-size:10.5pt;color:var(--sage);
+  }
+  .toc-row .t{font-size:10.6pt;font-weight:300;color:var(--cream-soft);line-height:1.35;}
+
+  /* ======================= CAP VIII · duas portas em miniatura ======================= */
+  .mini-doors{display:grid;grid-template-columns:1fr 1fr;gap:3.5mm;margin:2mm 0 4mm;}
+  .mini-door{
+    background:var(--panel);border:.35pt solid var(--hairline);border-radius:2.5mm;
+    padding:4.8mm 5.2mm;
+  }
+  .mini-door.templo{border-top:1.4pt solid var(--sage);}
+  .mini-door.singular{border-top:1.4pt solid var(--gold);}
+  .mini-door p{font-size:9.4pt;line-height:1.58;color:var(--cream-soft);}
+
+  /* ======================= FINAL ======================= */
+  .final{justify-content:center;align-items:center;text-align:center;}
+  .final .line{
+    font-family:var(--font-display);font-weight:300;font-size:15.5pt;line-height:1.5;
+    color:var(--cream);max-width:120mm;
+  }
+  .final .sub{margin-top:5mm;font-size:10pt;color:var(--cream-faint);font-weight:300;}
+  .final .btn{margin:14mm auto 0;display:inline-flex;padding:0 16mm;}
+  .final .brand{margin-top:20mm;}
+  .final .brand svg{height:3.6mm;width:auto;opacity:.7;}
+</style>
+</head>
+<body>
+
+<!-- Wordmark ANJU MACE (defs compartilhado — paths injetados no build) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><g id="wordmark"><path d="M78.4143 14.4266V0.100708H79.9701L85.4744 9.04337L84.7369 9.02321L90.3035 0.100708H91.7567V14.4266H90.1604V7.87832C90.1604 6.65086 90.1806 5.54448 90.221 4.56288C90.2614 3.58128 90.3366 2.60519 90.4467 1.63643L90.7329 2.20886L85.5955 10.2727H84.491L79.4968 2.31161L79.7224 1.63643C79.8307 2.55015 79.9059 3.48768 79.9481 4.45094C79.9903 5.41419 80.0087 6.55545 80.0087 7.87832V14.4266H78.4124H78.4143Z" fill="#F5F5DD"/><path d="M98.2574 14.4266L103.742 0.100708H105.563L111.007 14.4266H109.268L105.769 5.13535C105.674 4.87665 105.567 4.57204 105.452 4.22526C105.336 3.87666 105.213 3.51523 105.083 3.14093C104.952 2.76664 104.83 2.40153 104.714 2.04558C104.598 1.69147 104.492 1.3777 104.397 1.10432H104.806C104.696 1.44559 104.584 1.79055 104.468 2.13732C104.352 2.48593 104.233 2.83269 104.11 3.18129C103.987 3.5299 103.864 3.87302 103.742 4.21429C103.619 4.55556 103.496 4.89679 103.373 5.23806L99.894 14.4266H98.2574ZM100.591 10.4763L101.184 8.92045H107.958L108.613 10.4763H100.591Z" fill="#F5F5DD"/><path d="M123.685 14.6323C122.661 14.6323 121.72 14.4506 120.861 14.0892C120.003 13.7277 119.258 13.2159 118.63 12.5535C118.003 11.8912 117.515 11.1114 117.168 10.2105C116.821 9.30964 116.647 8.32803 116.647 7.26387C116.647 6.1997 116.821 5.24745 117.168 4.3686C117.517 3.48791 118.01 2.71733 118.652 2.05681C119.293 1.39446 120.038 0.88622 120.883 0.53211C121.729 0.177999 122.658 0 123.667 0C124.335 0 124.997 0.106458 125.652 0.317456C126.307 0.528455 126.911 0.818346 127.463 1.18713C128.015 1.55592 128.468 1.97791 128.824 2.45678L127.72 3.60351C127.378 3.19436 126.986 2.84024 126.544 2.53934C126.1 2.24027 125.634 2.00725 125.142 1.84395C124.65 1.68066 124.16 1.59812 123.669 1.59812C122.903 1.59812 122.192 1.73753 121.529 2.01825C120.867 2.29897 120.298 2.6898 119.821 3.19436C119.344 3.69892 118.972 4.2989 118.706 4.99612C118.439 5.69149 118.307 6.44923 118.307 7.26754C118.307 8.08585 118.439 8.8913 118.706 9.60136C118.972 10.3114 119.353 10.9206 119.852 11.4325C120.349 11.9444 120.937 12.3407 121.612 12.6195C122.287 12.8984 123.041 13.0397 123.874 13.0397C124.366 13.0397 124.856 12.9682 125.347 12.8251C125.839 12.6819 126.289 12.4801 126.698 12.2214C127.107 11.9627 127.456 11.6691 127.742 11.3407L128.56 12.6709C128.246 13.0526 127.826 13.3902 127.301 13.6837C126.777 13.9773 126.199 14.2085 125.573 14.3791C124.946 14.5497 124.318 14.6341 123.691 14.6341L123.685 14.6323Z" fill="#F5F5DD"/><path d="M135.323 14.4266V0.100708H144V1.65659H136.92V12.8707H143.96V14.4266H135.323ZM136.061 7.83612V6.28024H142.855V7.83612H136.061Z" fill="#F5F5DD"/><path d="M0 14.4486L5.58687 0.122803H8.08399L13.6305 14.4486H10.8673L7.79777 6.30413C7.72988 6.14083 7.63631 5.88213 7.52072 5.52619C7.40513 5.17208 7.27853 4.78677 7.14275 4.37027C7.00698 3.95378 6.88405 3.56484 6.77396 3.20339C6.66388 2.84194 6.58314 2.57956 6.5281 2.41626L7.04001 2.39606C6.95744 2.66944 6.86203 2.97585 6.75378 3.31712C6.6437 3.65839 6.5281 4.01251 6.40517 4.38129C6.28224 4.75008 6.16298 5.1042 6.04739 5.44547C5.9318 5.78674 5.82539 6.09315 5.72998 6.36653L2.66041 14.4505H0V14.4486ZM2.53748 11.1736L3.45853 8.86178H9.98665L10.9682 11.1736H2.53748Z" fill="#F5F5DD"/><path d="M18.2925 14.4485V0.122681H20.6869L28.9966 11.3166L28.5471 11.3992C28.492 11.0175 28.4443 10.6249 28.4039 10.2231C28.3636 9.82128 28.3251 9.4011 28.292 8.96442C28.2572 8.52775 28.2315 8.07089 28.2095 7.59385C28.1893 7.11681 28.1709 6.61593 28.1581 6.08935C28.1452 5.56461 28.1379 5.00866 28.1379 4.42153V0.124517H30.7781V14.4504H28.3434L19.9934 3.41975L20.5255 3.27664C20.5933 4.04174 20.6521 4.69123 20.6998 5.23065C20.7475 5.77007 20.7842 6.23428 20.8117 6.62142C20.8392 7.01039 20.8631 7.33515 20.8832 7.59385C20.9034 7.85256 20.9181 8.08926 20.9236 8.30026C20.9309 8.51126 20.9346 8.71304 20.9346 8.90386V14.4504H18.2944L18.2925 14.4485Z" fill="#F5F5DD"/><path d="M59.672 14.5696C58.54 14.5696 57.529 14.3274 56.6428 13.843C55.7566 13.3587 55.0576 12.6908 54.5457 11.8376C54.0338 10.9844 53.7787 10.0194 53.7787 8.94237V0.100586H56.4593V8.75706C56.4593 9.39923 56.6061 9.96797 56.8997 10.4652C57.1933 10.9624 57.5859 11.3624 58.0758 11.6615C58.5675 11.9624 59.0996 12.111 59.672 12.111C60.2995 12.111 60.8665 11.9605 61.371 11.6615C61.8756 11.3624 62.2737 10.9624 62.5673 10.4652C62.8609 9.96797 63.0076 9.39739 63.0076 8.75706V0.100586H65.5855V8.94237C65.5855 10.0212 65.3305 10.9863 64.8185 11.8376C64.3066 12.6908 63.6076 13.3587 62.7214 13.843C61.8352 14.3274 60.8188 14.5696 59.672 14.5696Z" fill="#F5F5DD"/><path d="M38.8347 0.100586V2.67844H45.3774V8.75706C45.3774 9.39923 45.2307 9.96797 44.9371 10.467C44.6435 10.9643 44.2454 11.3642 43.7408 11.6633C43.2344 11.9642 42.6693 12.1146 42.0418 12.1146C41.4694 12.1146 40.9355 11.9642 40.4456 11.6633C39.9539 11.3642 39.5612 10.9643 39.2677 10.467C39.0035 10.0157 38.8585 9.50931 38.8347 8.94237H36.1467C36.1467 10.0194 36.4036 10.9844 36.9155 11.8376C37.4274 12.6908 38.1264 13.3587 39.0126 13.843C39.8988 14.3274 40.9079 14.5696 42.0418 14.5696C43.1757 14.5696 44.2032 14.3274 45.0912 13.843C45.9774 13.3587 46.6765 12.6908 47.1884 11.8376C47.7003 10.9844 47.9553 10.0194 47.9553 8.94237V0.100586H38.8347Z" fill="#F5F5DD"/></g></defs>
+</svg>
+
+<!-- ============================== PÁG 01 · CAPA ============================== -->
+<section class="page cover frame">
+  <div class="numerals" aria-hidden="true"><span>I</span><span>II</span><span>III</span><span>IV</span><span>V</span></div>
+  <div class="brand">
+    <svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg>
+  </div>
+  <div>
+    <div class="kicker">Guia de execução</div>
+    <hr class="kicker-rule"/>
+    <h1>Os cinco tipos<br/>de falha</h1>
+    <div class="teaser">
+      <p>Seu músculo tem cinco maneiras de dizer <em>chega</em>. Você para na errada.</p>
+      <p>Uma delas você deve procurar. Duas, evitar. E a mais comum de todas nem acontece no músculo.</p>
+      <p><strong>Enquanto elas parecerem a mesma coisa, a sua disciplina não vira progressão.</strong></p>
+    </div>
+  </div>
+  <div class="foot">Um guia de execução do Método T.E.M.P.L.O., pilar Execução<br/><b>ANJU MACE</b></div>
+</section>
+
+<!-- ============================== PÁG 02 · AS DUAS PORTAS ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Método T.E.M.P.L.O.</span></div>
+  <div class="kicker">Antes de você começar a ler</div>
+  <p style="margin-top:3mm;max-width:152mm;font-size:10pt;color:var(--cream-soft);">
+    Este guia é um recorte do pilar Execução, dentro do acervo do Método T.E.M.P.L.O.
+    Vale saber onde ele vive, e o que existe ao redor dele.
+  </p>
+
+  <div class="doors">
+    <div class="door door--templo">
+      <div class="roman">I</div>
+      <h3>Plano Templo</h3>
+      <p class="pitch">O método que transforma treino em jornada, e jornada em identidade. Para a mulher que treina com consistência e decide tudo sozinha: qual exercício, em que ordem, a que distância do limite.</p>
+      <div class="label">O que entra</div>
+      <ul class="stack">
+        <li><strong>Método T.E.M.P.L.O. completo.</strong> Os seis pilares em biblioteca livre, setenta e um subtópicos, percorridos no seu ritmo.</li>
+        <li><strong>Programas de treino periodizados.</strong> Por nível e por frequência, criados por Anju.</li>
+        <li><strong>Biblioteca de execução.</strong> Cada exercício gravado por Anju, com foco na ativação correta para o corpo feminino.</li>
+        <li><strong>Guia de treino.</strong> Os quatro princípios de execução consciente: zona de repetição, ordem dos exercícios, série preparatória e modo foco.</li>
+        <li><strong>Rotinas de mobilidade.</strong> Organizadas por grupo muscular, como higiene do movimento.</li>
+        <li><strong>A Aliança.</strong> A comunidade onde as Aliadas sustentam a constância umas das outras.</li>
+        <li><strong>Bônus 01: Alongamentos Conscientes.</strong> Cinco aulas guiadas.</li>
+        <li><strong>Bônus 02: Mentalidade de Treino Intencional.</strong> Quatro micro-aulas sobre constância, procrastinação e os desafios que aparecem no caminho.</li>
+      </ul>
+      <div class="invest-panel">
+        <div class="lbl">Investimento</div>
+        <div class="price">R$ 127 <small>por mês</small></div>
+        <div class="guarantee">Garantia de quinze dias.</div>
+      </div>
+      <a class="btn" href="{{link_checkout_plano_templo}}">Quero o método completo</a>
+    </div>
+
+    <div class="door door--singular">
+      <div class="roman">II</div>
+      <h3>Plano Templo Singular</h3>
+      <p class="pitch">Um ciclo de consultoria feito para o seu corpo, do zero, com o método que trata treino como transformação integral. Para o corpo que já tem ritmo e disciplina, e ainda treina como se fosse igual a todos os outros corpos.</p>
+      <div class="label">O que entra</div>
+      <ul class="stack">
+        <li><strong>Avaliação individual completa.</strong> Fotos composicionais e testes funcionais que mapeiam os seus encurtamentos e os seus padrões de movimento.</li>
+        <li><strong>Ficha prescrita do zero por Anju,</strong> com a prioridade que você declara.</li>
+        <li><strong>Correção de execução.</strong> O seu vídeo revisado, o seu ajuste devolvido.</li>
+        <li><strong>Reavaliação e relatório dentro do ciclo.</strong></li>
+        <li><strong>Método T.E.M.P.L.O. em trilha guiada,</strong> com alguém do time validando cada avanço.</li>
+        <li><strong>Suporte para dúvidas</strong> ao longo do ciclo inteiro.</li>
+        <li><strong>Hot Seat com Anju,</strong> em grupo.</li>
+        <li><strong>A Aliança,</strong> com acesso completo, inclusive à correção de movimentos.</li>
+        <li><strong>Bônus: Alongamentos Conscientes prescrito.</strong> O protocolo de mobilidade desenhado a partir da sua avaliação.</li>
+      </ul>
+      <div class="invest-panel">
+        <div class="lbl">Investimento</div>
+        <div class="price">R$ 697 <small>por ciclo bimestral</small></div>
+        <div class="guarantee">Garantia de sete dias.</div>
+      </div>
+      <a class="btn btn--gold" href="{{link_checkout_singular}}">Quero a prescrição para o meu corpo</a>
+    </div>
+  </div>
+
+  <div class="doors-foot">O Plano Templo desperta a prática. O Singular desperta o corpo que é só seu.</div>
+  <div class="pagenum">02</div>
+</section>
+
+<!-- ============================== PÁG 03 · SUMÁRIO ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="kicker">O que você vai encontrar aqui</div>
+  <div class="toc">
+    <div class="toc-row"><span class="n">I</span><span class="t">As três repetições que você entrega de graça</span></div>
+    <div class="toc-row"><span class="n">II</span><span class="t">O sinal que manda parar mesmo com a ficha pela metade</span></div>
+    <div class="toc-row"><span class="n">III</span><span class="t">O limite que vale procurar, e onde procurá-lo é erro</span></div>
+    <div class="toc-row"><span class="n">IV</span><span class="t">O que ainda existe depois do “não consigo mais”</span></div>
+    <div class="toc-row"><span class="n">V</span><span class="t">Quando o comando falha antes do corpo</span></div>
+    <div class="toc-row"><span class="n">VI</span><span class="t">A queimação não é o limite, é o aviso que vem antes dele</span></div>
+    <div class="toc-row"><span class="n">VII</span><span class="t">Como ler a sua série enquanto ela ainda está acontecendo</span></div>
+    <div class="toc-row"><span class="n">VIII</span><span class="t">Duas maneiras de decidir cada série, e só uma delas é sua</span></div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">03</div>
+</section>
+
+<!-- ============================== PÁG 04 · CAP I ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">I</div>
+    <h2>As três repetições que você entrega de graça</h2>
+  </div>
+  <div class="body-col">
+    <div class="scene">
+      <p class="lead">Ela está na cadeira extensora. Oitava repetição. O quadríceps queima, ela respira fundo e para. <em>Pronto, trabalhei o músculo.</em></p>
+      <p>O quadríceps tinha mais três repetições.</p>
+    </div>
+    <p>O que ela sentiu não era o fim da capacidade dele, era o começo do desconforto que antecede o trabalho que constrói. Agora multiplique por dezenas de séries, por semanas de treino. A conta não fecha em esforço. Fecha em estímulo. É por isso que a disciplina dela é irrepreensível e o progresso é discreto.</p>
+    <p>Quando você pensa em falha, provavelmente imagina um ponto único: o momento em que não dá mais.</p>
+    <p><strong>Existem cinco.</strong></p>
+    <p>Cinco limites diferentes, com causas diferentes, e com decisões técnicas opostas em cada um. Duas você deve evitar. Uma você deve procurar, e só em certos exercícios. Uma existe depois do fim. E a mais comum de todas não acontece no músculo.</p>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">04</div>
+</section>
+
+<!-- ============================== PÁG 05 · CAP II ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">II</div>
+    <h2>Falha técnica: o sinal que manda parar mesmo com a ficha pela metade</h2>
+  </div>
+  <div class="body-col">
+    <p>A falha técnica acontece quando a execução se perde antes de o músculo-alvo se esgotar. Para completar mais uma repetição, o corpo recruta quem não deveria estar trabalhando.</p>
+    <div class="scene">
+      <p>No agachamento, ela aparece assim. As cinco primeiras repetições saem limpas. Na sexta, o joelho começa a colapsar para dentro. Ou a lombar arredonda no fundo do movimento. Ou o tronco despenca para a frente.</p>
+    </div>
+    <p>Repare no ponto central: o quadríceps ainda tinha capacidade. Não foi ele que cedeu. Cedeu o elo mais frágil da cadeia, ou o sistema nervoso, que buscou um atalho para cumprir a tarefa.</p>
+    <p>Insistir a partir daqui produz três coisas, e nenhuma delas é adaptação. O estímulo no músculo-alvo cai, porque outras estruturas assumiram parte do trabalho. A carga migra para tecidos que ninguém preparou para recebê-la naquele ângulo. E o padrão errado fica gravado: cada repetição compensada ensina ao seu sistema nervoso que aquilo é aceitável, até virar o seu jeito de agachar.</p>
+    <div class="decision">
+      <p><strong>A decisão técnica:</strong> falha técnica é parada imediata. Não importa se a ficha pedia doze repetições e você fez sete. Se a forma não se sustenta, a série acabou.</p>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">05</div>
+</section>
+
+<!-- ============================== PÁG 06 · CAP III ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">III</div>
+    <h2>Falha concêntrica: o limite que vale procurar, e onde procurá-lo é erro</h2>
+  </div>
+  <div class="body-col">
+    <p>Este é o limite que você quer atingir. Ele acontece quando o músculo, com a forma intacta, não vence mais a resistência. A palavra que carrega tudo aqui é <em>intacta</em>.</p>
+    <div class="scene">
+      <p>Cadeira extensora. Da primeira à nona repetição, o movimento sai limpo: tronco estável, sem balanço, sem impulso. Na décima, você entrega tudo o que tem, e a perna chega a oitenta por cento da extensão e trava. O músculo não responde mais com força suficiente para vencer os últimos graus.</p>
+    </div>
+    <p>Em nenhum momento a técnica se perdeu. Foi o músculo-alvo que chegou ao fim da própria capacidade. Aí está o estímulo máximo: você recrutou as fibras de maior limiar, as últimas a entrar em cena, as que só aparecem quando o resto já não dá conta.</p>
+    <p>E aqui vem a parte que quase nenhum conteúdo de treino diz em voz alta. <strong>Você não deve buscar esse limite em todo exercício.</strong></p>
+    <div class="panel">
+      <table class="duo">
+        <tr>
+          <th><span class="mark sage"></span>Onde buscar a falha concêntrica</th>
+          <th><span class="mark gold"></span>Onde recuar por escolha técnica</th>
+        </tr>
+        <tr>
+          <td><strong>Isoladores em máquina:</strong> extensora, flexora, abdutora, adutora, puxada, remada. Trajetória guiada, exigência de estabilização mínima.</td>
+          <td><strong>Compostos livres:</strong> agachamento, terra, supino, desenvolvimento. Vários grupos fadigados ao mesmo tempo, estabilização comprometida.</td>
+        </tr>
+        <tr>
+          <td>Vá até o limite, com a forma preservada.</td>
+          <td>Encerre duas a três repetições antes do limite.</td>
+        </tr>
+      </table>
+    </div>
+    <p>Recuar não é abrir mão de intensidade. É saber onde a intensidade compensa.</p>
+    <div class="plug">
+      <p>A biblioteca de execução do Plano Templo mostra, exercício por exercício, onde o limite é seguro e onde a distância é a decisão inteligente.</p>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">06</div>
+</section>
+
+<!-- ============================== PÁG 07 · CAP IV ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">IV</div>
+    <h2>Falha excêntrica: o que ainda existe depois do “não consigo mais”</h2>
+  </div>
+  <div class="body-col">
+    <p class="lead">A falha concêntrica é não conseguir mais contrair. A falha excêntrica é não conseguir mais frear. E ela vem depois.</p>
+    <p>O músculo produz mais força na fase de alongamento sob tensão do que na fase de encurtamento. Traduzindo: você segura mais carga do que consegue levantar. Por isso, quando a perna já não sobe, ela ainda desce sob controle por alguns segundos. A falha excêntrica é o ponto em que essa capacidade também acaba, e a carga vence a descida.</p>
+    <div class="scene">
+      <p>É a base de técnicas avançadas de intensificação. Você chega à falha concêntrica, recebe assistência na subida e controla sozinha a descida, freando por três a cinco segundos, mais duas ou três vezes.</p>
+    </div>
+    <p>Também é a base de um erro caro. A fadiga é profunda e a demanda de recuperação é alta. Isso não pertence a toda série de todo treino: pertence a um momento específico da periodização, escolhido com critério.</p>
+    <div class="decision">
+      <p>Conhecer esta falha não serve para usá-la sempre. Serve para entender que “não consigo mais” tem camadas, e que abrir cada uma delas é decisão de programação, nunca de coragem.</p>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">07</div>
+</section>
+
+<!-- ============================== PÁG 08 · CAP V ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">V</div>
+    <h2>Falha neural: quando o comando falha antes do corpo</h2>
+  </div>
+  <div class="body-col">
+    <p class="lead">Esta falha não acontece no músculo. Acontece em quem comanda o músculo.</p>
+    <p>O sistema nervoso central envia o sinal que faz a fibra contrair. Exercícios compostos pesados, que exigem coordenação de vários grupos ao mesmo tempo, cobram caro desse sistema. Quando ele se esgota, a comunicação entre cérebro e músculo perde qualidade.</p>
+    <div class="scene">
+      <p>Você reconhece assim. Quarta série de leg press, depois de agachamento e terra. A execução fica desengonçada. A força cai muito além do que a fadiga local explicaria. As pernas não acabaram, o comando acabou.</p>
+    </div>
+    <p>A distinção importa porque a recuperação é outra.</p>
+    <div class="panel">
+      <table class="duo">
+        <tr>
+          <th><span class="mark sage"></span>Fadiga muscular local</th>
+          <th><span class="mark gold"></span>Fadiga neural</th>
+        </tr>
+        <tr>
+          <td>Queimação localizada, coordenação preservada.</td>
+          <td>Perda de coordenação, queda de velocidade, peso mental, foco escapando.</td>
+        </tr>
+        <tr>
+          <td>Recupera em quarenta e oito a setenta e duas horas, com descanso e nutrição adequados.</td>
+          <td>Acumula, e pode levar uma semana ou mais para dissipar.</td>
+        </tr>
+      </table>
+    </div>
+    <p>Daí a arquitetura inteligente da sessão. Preserve a integridade neural nos compostos pesados, com duas a três repetições de reserva. Leve a proximidade máxima do limite para os isoladores, que geram fadiga local sem cobrar o sistema inteiro.</p>
+    <p>Repare no que essa decisão exige. Não exige mais vontade. Exige alguém que tenha desenhado a ordem dos exercícios, a distância do limite em cada um, e a semana em que tudo isso cabe.</p>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">08</div>
+</section>
+
+<!-- ============================== PÁG 09 · CAP VI ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">VI</div>
+    <h2>Falha psicológica: a queimação não é o limite, é o aviso que vem antes dele</h2>
+  </div>
+  <div class="body-col">
+    <p class="lead">Esta é a mais comum, e a mais mal lida.</p>
+    <p>Ela acontece quando o limite vem da percepção de esforço, e não da capacidade real. O desconforto sobe, a queimação se instala, e o cérebro dispara o comando automático: pare.</p>
+    <div class="scene">
+      <p>Cadeira extensora, repetição sete ou oito, ela para. Com alguém ao lado dizendo <em>mais uma, a técnica está boa</em>, ela encontra mais duas ou três. O músculo tinha. O que faltava era leitura.</p>
+    </div>
+    <p>Não é fraqueza. É calibração ausente. O desconforto intenso é uma sensação nova, o cérebro não tem referência de que aquilo é produtivo, e trata como perigo.</p>
+    <p>Ela se supera, e com alavancas concretas.</p>
+    <div class="cards c2">
+      <div class="mini">
+        <h4>Progressão gradual</h4>
+        <p>Você não sai de cinco repetições de reserva para o limite absoluto em uma semana. Primeiro três, depois duas, depois uma. Cada fase dura algumas semanas, porque adaptação psicológica também é adaptação.</p>
+      </div>
+      <div class="mini">
+        <h4>Retorno externo</h4>
+        <p>Alguém que conhece a sua capacidade real e sabe a hora de encorajar. A voz de fora quebra o circuito do <em>não consigo</em>.</p>
+      </div>
+      <div class="mini">
+        <h4>Dado, no lugar de palpite</h4>
+        <p>Registro de treino. Quando você vê que fez doze repetições com essa carga na semana passada, a confiança deixa de depender da sensação do dia.</p>
+      </div>
+      <div class="mini">
+        <h4>Conexão mente e músculo</h4>
+        <p>Quanto mais fino o seu senso do músculo-alvo, mais nítida a diferença entre a mensagem do músculo, <em>estou cansando e ainda tenho</em>, e a mensagem da mente, <em>quero parar porque incomoda</em>.</p>
+      </div>
+    </div>
+    <div class="decision">
+      <p>Você não precisa gostar da queimação. Precisa saber o que ela significa.</p>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">09</div>
+</section>
+
+<!-- ============================== PÁG 10 · CAP VII ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">VII</div>
+    <h2>Como ler a sua série enquanto ela ainda está acontecendo</h2>
+  </div>
+  <div class="body-col">
+    <p>Entender os cinco tipos é o primeiro passo. Identificá-los no meio da série, com o coração a cento e sessenta, é outro. Isso se constrói sobre três pilares.</p>
+    <div class="cards c3">
+      <div class="mini">
+        <h4>Conhecimento técnico</h4>
+        <p>Para cada exercício, você precisa saber qual é a forma inegociável. Sem esse mapa, não há como perceber a hora em que saiu dele.</p>
+      </div>
+      <div class="mini">
+        <h4>Consciência corporal</h4>
+        <p>Sentir, com precisão, qual músculo trabalha e com que intensidade. Treina-se reduzindo carga de propósito e prestando atenção total ao trajeto do movimento: cada centímetro, cada grau de contração.</p>
+      </div>
+      <div class="mini">
+        <h4>Retorno objetivo</h4>
+        <p>O que você sente nem sempre é o que acontece. Você jura que a lombar está neutra, e a filmagem mostra que ela arredonda nas três últimas repetições. A câmera não negocia.</p>
+      </div>
+    </div>
+    <p>A soma dos três produz a cena a que este guia leva.</p>
+    <div class="scene">
+      <p>Você agacha. Sente o joelho tendendo para dentro. Reconhece: falha técnica. Encerra a série na sétima, mesmo com doze na ficha, porque insistir ali não gera resultado, gera desgaste.</p>
+      <p>Você vai para a extensora. Sente a queimação subir, confere que a técnica está intacta, e reconhece: desconforto produtivo. Continua, sabendo que as duas próximas repetições são as mais valiosas da série inteira.</p>
+    </div>
+    <div class="decision">
+      <p>Essa é a diferença entre executar um treino e conduzir um treino.</p>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">10</div>
+</section>
+
+<!-- ============================== PÁG 11 · CAP VIII ============================== -->
+<section class="page">
+  <div class="runhead"><span>Os cinco tipos de falha</span><span class="r">Pilar Execução</span></div>
+  <div class="chapter-open">
+    <div class="tile">VIII</div>
+    <h2>Duas maneiras de decidir cada série, e só uma delas é sua</h2>
+  </div>
+  <div class="body-col">
+    <p>Nada aqui pede que você se esforce mais. Você já se esforça.</p>
+    <p>O que este guia pede é outra coisa: que cada série tenha uma decisão por trás. Qual falha você está buscando, em qual exercício, a que distância do limite, em qual semana do ciclo.</p>
+    <p>Essa decisão pode ser tomada de duas formas.</p>
+    <p>Você constrói o critério, estudando execução, ordem dos exercícios, distância do limite e periodização, até que a leitura vire segunda natureza.</p>
+    <p>Ou você trabalha com quem já tem esse critério e o aplica ao seu corpo, com os seus encurtamentos, a sua história e a sua prioridade declarada.</p>
+    <p>As duas portas existem, e elas têm nome.</p>
+    <div class="mini-doors">
+      <div class="mini-door templo">
+        <p><strong>O Plano Templo</strong> entrega o método completo, a biblioteca de execução, os programas periodizados e a Aliança, para você percorrer no seu ritmo, com fundamento.</p>
+      </div>
+      <div class="mini-door singular">
+        <p><strong>O Plano Templo Singular</strong> começa onde o genérico não chega: avaliação individual, ficha prescrita do zero para o seu corpo, correção de execução e reavaliação dentro do ciclo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footmark"><svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg></div>
+  <div class="pagenum">11</div>
+</section>
+
+<!-- ============================== PÁG 12 · FINAL ============================== -->
+<section class="page final frame">
+  <div>
+    <p class="line">O treino é onde se começa.<br/>O templo é onde se chega.</p>
+    <p class="sub">Seu corpo em movimento, seu poder em liberdade.</p>
+    <a class="btn" href="{{link_pagina_de_ofertas}}">Escolher o meu caminho</a>
+    <div class="brand">
+      <svg viewBox="0 0 144 15" fill="none" xmlns="http://www.w3.org/2000/svg"><use href="#wordmark"/></svg>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
