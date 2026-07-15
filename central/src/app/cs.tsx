@@ -39,6 +39,26 @@ export interface CsCheck {
 /** Caso "encerrado" — identificado pelo texto (o catálogo é renomeável). */
 export const isCsClosed = (status?: string) => /encerrad/i.test(status ?? '')
 
+/** Atendimento do suporte (public.cs_tickets, migration 0047). */
+export interface CsTicket {
+  id: string
+  leadId?: string | null
+  contact?: string | null // nome livre quando a aluna não está no CRM
+  channel: string // catálogo support_channel
+  topic?: string | null // catálogo support_topic
+  summary?: string | null
+  status: string // catálogo support_status
+  ownerId?: string | null
+  openedAt: string // ISO
+  resolvedAt?: string | null
+  createdAt: string
+}
+
+export type CsTicketInput = Omit<CsTicket, 'id' | 'createdAt'>
+
+/** Atendimento "resolvido" — pelo texto (o catálogo é renomeável). */
+export const isTicketResolved = (status?: string) => /resolvid/i.test(status ?? '')
+
 interface CsRow {
   id: string
   lead_id: string
@@ -75,6 +95,50 @@ function rowToCheck(r: CheckRow): CsCheck {
   return { id: r.id, caseId: r.case_id, item: r.item, doneBy: r.done_by, doneAt: r.done_at }
 }
 
+interface TicketRow {
+  id: string
+  lead_id: string | null
+  contact: string | null
+  channel: string
+  topic: string | null
+  summary: string | null
+  status: string
+  owner_id: string | null
+  opened_at: string
+  resolved_at: string | null
+  created_at: string
+}
+
+function rowToTicket(r: TicketRow): CsTicket {
+  return {
+    id: r.id,
+    leadId: r.lead_id,
+    contact: r.contact,
+    channel: r.channel,
+    topic: r.topic,
+    summary: r.summary,
+    status: r.status,
+    ownerId: r.owner_id,
+    openedAt: r.opened_at,
+    resolvedAt: r.resolved_at,
+    createdAt: r.created_at,
+  }
+}
+
+function ticketToRow(t: CsTicketInput): Record<string, unknown> {
+  return {
+    lead_id: t.leadId || null,
+    contact: t.contact?.trim() || null,
+    channel: t.channel,
+    topic: t.topic || null,
+    summary: t.summary?.trim() || null,
+    status: t.status,
+    owner_id: t.ownerId || null,
+    opened_at: t.openedAt,
+    resolved_at: t.resolvedAt || null,
+  }
+}
+
 function patchToRow(patch: CsCasePatch): Record<string, unknown> {
   const row: Record<string, unknown> = {}
   if (patch.status !== undefined) row.status = patch.status
@@ -88,7 +152,12 @@ function patchToRow(patch: CsCasePatch): Record<string, unknown> {
 interface CsCtx {
   cases: CsCase[]
   checks: CsCheck[]
+  tickets: CsTicket[]
   loading: boolean
+  /** CRUD dos atendimentos do suporte (modal — grava na hora). */
+  addTicket: (input: CsTicketInput) => Promise<{ error: string | null }>
+  updateTicket: (id: string, input: CsTicketInput) => Promise<{ error: string | null }>
+  removeTicket: (id: string) => Promise<void>
   updateCase: (id: string, patch: CsCasePatch) => void
   setCaseStatus: (id: string, status: string) => Promise<void>
   removeCase: (id: string) => Promise<void>
@@ -108,18 +177,21 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
   const { status, user } = useSession()
   const [cases, setCases] = useState<CsCase[]>([])
   const [checks, setChecks] = useState<CsCheck[]>([])
+  const [tickets, setTickets] = useState<CsTicket[]>([])
   const [loading, setLoading] = useState(true)
 
   const pending = useRef<Record<string, CsCasePatch>>({})
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchAll = useCallback(async () => {
-    const [c, k] = await Promise.all([
+    const [c, k, t] = await Promise.all([
       supabase.from('cs_cases').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true }),
       supabase.from('cs_case_checks').select('*'),
+      supabase.from('cs_tickets').select('*').order('opened_at', { ascending: false }),
     ])
     if (!c.error && c.data) setCases((c.data as CsRow[]).map(rowToCase))
     if (!k.error && k.data) setChecks((k.data as CheckRow[]).map(rowToCheck))
+    if (!t.error && t.data) setTickets((t.data as TicketRow[]).map(rowToTicket))
     setLoading(false)
   }, [])
 
@@ -133,6 +205,7 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
           if (Object.keys(timers.current).length === 0) fetchAll()
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_case_checks' }, () => fetchAll())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cs_tickets' }, () => fetchAll())
         .subscribe()
       return () => {
         supabase.removeChannel(channel)
@@ -140,6 +213,7 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
     } else if (status === 'anon') {
       setCases([])
       setChecks([])
+      setTickets([])
       setLoading(false)
     }
   }, [status, fetchAll])
@@ -219,9 +293,29 @@ export function CsProvider({ children }: { children: React.ReactNode }) {
     [user?.userId],
   )
 
+  const addTicket = useCallback(async (input: CsTicketInput) => {
+    const { data, error } = await supabase.from('cs_tickets').insert(ticketToRow(input)).select('*').single()
+    if (error) return { error: error.message }
+    const created = rowToTicket(data as TicketRow)
+    setTickets((ts) => [created, ...ts.filter((t) => t.id !== created.id)])
+    return { error: null }
+  }, [])
+
+  const updateTicket = useCallback(async (id: string, input: CsTicketInput) => {
+    const { error } = await supabase.from('cs_tickets').update(ticketToRow(input)).eq('id', id)
+    if (error) return { error: error.message }
+    setTickets((ts) => ts.map((t) => (t.id === id ? { ...t, ...input } : t)))
+    return { error: null }
+  }, [])
+
+  const removeTicket = useCallback(async (id: string) => {
+    setTickets((ts) => ts.filter((t) => t.id !== id))
+    await supabase.from('cs_tickets').delete().eq('id', id)
+  }, [])
+
   const value = useMemo<CsCtx>(
-    () => ({ cases, checks, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck }),
-    [cases, checks, loading, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck],
+    () => ({ cases, checks, tickets, loading, addTicket, updateTicket, removeTicket, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck }),
+    [cases, checks, tickets, loading, addTicket, updateTicket, removeTicket, updateCase, setCaseStatus, removeCase, addCasesForLeads, checksFor, toggleCheck],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

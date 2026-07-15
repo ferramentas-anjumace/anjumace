@@ -166,6 +166,24 @@ export const CATALOGS = {
     help: 'Passos do onboarding na Circle (acolhimento, formulário, primeira missão...). O progresso aparece no card do caso.',
     usage: { table: 'cs_case_checks', column: 'item' },
   },
+  support_channel: {
+    label: 'Suporte · Canal',
+    singular: 'canal',
+    help: 'Por onde o atendimento chegou (WhatsApp, Circle, e-mail...).',
+    usage: { table: 'cs_tickets', column: 'channel' },
+  },
+  support_topic: {
+    label: 'Suporte · Tema',
+    singular: 'tema',
+    help: 'Assunto do atendimento (correção de exercício, acesso, pagamento...).',
+    usage: { table: 'cs_tickets', column: 'topic' },
+  },
+  support_status: {
+    label: 'Suporte · Status',
+    singular: 'status',
+    help: 'Situação da resolução. Mantenha "Resolvido" no nome — os KPIs dependem disso.',
+    usage: { table: 'cs_tickets', column: 'status' },
+  },
 } as const
 
 export type CatalogKey = keyof typeof CATALOGS

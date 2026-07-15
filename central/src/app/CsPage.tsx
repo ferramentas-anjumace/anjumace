@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import {
   CardIcon, StatCard, Button, Select, Textarea, DatePicker, Drawer, Modal,
-  SearchField, Avatar, Checkbox, useToast,
+  SearchField, Avatar, Checkbox, Tabs, TabList, Tab, TabPanel, useToast,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/lib/session'
@@ -13,7 +13,8 @@ import { usePermissions } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import { useCrm, fmtBRL, fmtDateBR, waHref, isWon, type Lead } from './crm'
-import { useCs, isCsClosed, type CsCase } from './cs'
+import { useCs, isCsClosed, isTicketResolved, type CsCase } from './cs'
+import { CsTickets } from './CsTickets'
 import { CS_MONITORED, CS_PHASES, planOf, templateFor, daysInCs, CS_ITEMS } from './csPlaybook'
 
 /* ----------------------------------------------------------------------------
@@ -86,22 +87,28 @@ export function CsPage() {
   const { items } = useCatalogs()
   const { toast } = useToast()
   const { leads } = useCrm()
-  const { cases, loading, setCaseStatus, addCasesForLeads } = useCs()
+  const { cases, tickets, loading, setCaseStatus, addCasesForLeads } = useCs()
   const { user } = useSession()
 
   const [owner, setOwner] = useState<OwnerFilter>('all')
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [tab, setTab] = useState('pipeline')
 
-  // Deep-link vindo do widget da Home: /app/cs?case=<id>.
+  // Deep-links: /app/cs?case=<id> (widget da Home) e ?tab=atendimentos.
   const [searchParams, setSearchParams] = useSearchParams()
   const caseParam = searchParams.get('case')
+  const tabParam = searchParams.get('tab')
   useEffect(() => {
-    if (!caseParam) return
-    setOpenId(caseParam)
+    if (!caseParam && !tabParam) return
+    if (caseParam) setOpenId(caseParam)
+    if (tabParam) setTab(tabParam)
     searchParams.delete('case')
+    searchParams.delete('tab')
     setSearchParams(searchParams, { replace: true })
-  }, [caseParam, searchParams, setSearchParams])
+  }, [caseParam, tabParam, searchParams, setSearchParams])
+
+  const openTickets = useMemo(() => tickets.filter((t) => !isTicketResolved(t.status)).length, [tickets])
 
   const canManage = can('manage_crm')
 
@@ -167,48 +174,70 @@ export function CsPage() {
         )}
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Em acompanhamento" value={kpis.active} />
-        <StatCard label="Novos · este mês" value={kpis.newThisMonth} />
-        <StatCard label="Encerrados" value={kpis.closed} />
-        <StatCard label="Total de casos" value={kpis.total} />
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabList aria-label="Seções do CS">
+          <Tab value="pipeline">Pipeline</Tab>
+          <Tab
+            value="atendimentos"
+            badge={openTickets > 0 ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-warn-tint px-1.5 font-mono text-[10px] font-semibold text-warn tabular-nums">
+                {openTickets}
+              </span>
+            ) : undefined}
+          >
+            Atendimentos
+          </Tab>
+        </TabList>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-3">
-        <SearchField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome, WhatsApp ou e-mail…"
-          className="w-full max-w-xs"
-        />
-        <Select value={owner} onChange={(e) => setOwner(e.target.value as OwnerFilter)} className="w-52">
-          <option value="all">Todos os responsáveis</option>
-          <option value="me">Meus casos</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </Select>
-        <span className="ml-auto font-mono text-mono-data text-faint tabular-nums">
-          {filtered.length} caso(s)
-        </span>
-      </div>
+        <TabPanel value="pipeline" className="flex flex-col gap-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard label="Em acompanhamento" value={kpis.active} />
+            <StatCard label="Novos · este mês" value={kpis.newThisMonth} />
+            <StatCard label="Encerrados" value={kpis.closed} />
+            <StatCard label="Total de casos" value={kpis.total} />
+          </div>
 
-      {/* Kanban */}
-      {loading ? (
-        <p className="py-16 text-center text-body-s text-faint">Carregando…</p>
-      ) : (
-        <CsBoard
-          columns={statusCols.map((s) => ({ value: s.value, label: s.label }))}
-          cases={filtered}
-          leadById={leadById}
-          getMember={getMember}
-          canManage={canManage}
-          onOpen={setOpenId}
-          onDrop={setCaseStatus}
-        />
-      )}
+          {/* Filtros */}
+          <div className="flex flex-wrap items-center gap-3">
+            <SearchField
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nome, WhatsApp ou e-mail…"
+              className="w-full max-w-xs"
+            />
+            <Select value={owner} onChange={(e) => setOwner(e.target.value as OwnerFilter)} className="w-52">
+              <option value="all">Todos os responsáveis</option>
+              <option value="me">Meus casos</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </Select>
+            <span className="ml-auto font-mono text-mono-data text-faint tabular-nums">
+              {filtered.length} caso(s)
+            </span>
+          </div>
+
+          {/* Kanban */}
+          {loading ? (
+            <p className="py-16 text-center text-body-s text-faint">Carregando…</p>
+          ) : (
+            <CsBoard
+              columns={statusCols.map((s) => ({ value: s.value, label: s.label }))}
+              cases={filtered}
+              leadById={leadById}
+              getMember={getMember}
+              canManage={canManage}
+              onOpen={setOpenId}
+              onDrop={setCaseStatus}
+            />
+          )}
+        </TabPanel>
+
+        <TabPanel value="atendimentos">
+          <CsTickets />
+        </TabPanel>
+      </Tabs>
 
       {openCase && (
         <CsDrawer
