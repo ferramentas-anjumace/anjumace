@@ -48,41 +48,48 @@ function LetterTile({ letter, active = false, tone = 'light' }) {
 /** Card de grupo de letras — tiles + rótulo "X de Nome" no topo, a frase do
     documento em destaque abaixo. Copy verbatim: cada card usa exatamente a(s)
     frase(s) do documento, sem headline emprestado de outra seção. */
-function LetterGroupCard({ letters, label, statement, tone = 'light' }) {
+function LetterGroupCard({ letters, label, statement, tone = 'light', className = '' }) {
   const light = tone === 'light'
   return (
     <div
-      className={`flex flex-col gap-5 rounded-2xl border p-6 ${
+      className={`flex flex-col gap-4 rounded-2xl border p-6 ${
         light ? 'border-graphite-900/10 bg-cream-50 shadow-sm' : 'border-cream-100/12 bg-graphite-900'
-      }`}
+      } ${className}`}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex -space-x-2">
-          {letters.map((l) => <LetterTile key={l} letter={l} active tone={tone} />)}
-        </div>
-        <span className={`text-body font-medium ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{label}</span>
+      <div className="flex flex-nowrap gap-1.5">
+        {letters.map((l) => <LetterTile key={l} letter={l} active tone={tone} />)}
       </div>
+      <span className={`text-body leading-relaxed ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>{label}</span>
       <p className={`text-h4 font-medium leading-snug ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{statement}</p>
     </div>
   )
 }
 
-/** Dobra de pilar (M/P/L/O) — headline, sub e corpo, alternando claro/escuro. */
-function PilarSection({ letter, headline, sub, tone, children }) {
+/** Dobra de pilar (M/P/L/O) — headline, sub e corpo, alternando claro/escuro.
+    Sticky empilhado: o <div> externo (altura natural = min-h-dvh do filho) é o
+    contêiner do sticky, então cada seção solta exatamente no seu próprio fim —
+    sem o wrapper, o contêiner seria o <main> inteiro e o sticky nunca soltaria. */
+function PilarSection({ letter, headline, sub, tone, z, children }) {
   const light = tone === 'light'
   return (
-    <section className={light ? 'bg-cream-100 py-20 text-graphite-900 md:py-28' : 'border-t border-cream-100/10 py-20 md:py-28'}>
-      <div className="container flex max-w-3xl flex-col gap-8">
-        <Reveal className="flex flex-col gap-6">
-          <LetterTile letter={letter} active tone={tone} />
-          <h2 className={`text-h2 ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{headline}</h2>
-          <p className={`text-body-lg ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{sub}</p>
-        </Reveal>
-        <Reveal delay={100} className={`flex flex-col gap-4 text-body-lg ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>
-          {children}
-        </Reveal>
-      </div>
-    </section>
+    <div>
+      <section
+        className={`sticky top-0 ${z} flex min-h-dvh flex-col justify-center rounded-t-[2.5rem] py-20 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.4)] md:py-28 ${
+          light ? 'bg-cream-100 text-graphite-900' : 'bg-graphite-950 text-cream-100'
+        }`}
+      >
+        <div className="container flex max-w-3xl flex-col gap-8">
+          <Reveal className="flex flex-col gap-6">
+            <LetterTile letter={letter} active tone={tone} />
+            <h2 className={`text-h2 ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{headline}</h2>
+            <p className={`text-body-lg ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{sub}</p>
+          </Reveal>
+          <Reveal delay={100} className={`flex flex-col gap-4 text-body-lg ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>
+            {children}
+          </Reveal>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -125,7 +132,7 @@ export function AppGuiaDownload() {
             <p>Ele nasceu da recusa a uma escolha falsa. De um lado, o fitness que promete o corpo e não entrega nada além dele. Do outro, o discurso morno que fala de aceitação e abre mão do resultado.</p>
             <p>Eu não quis escolher. O Método T.E.M.P.L.O. é o que sobrou dessa recusa: seis pilares que tratam o treino como instrumento, e o corpo como o lugar onde a mulher se encontra consigo mesma.</p>
           </Reveal>
-          <Reveal delay={150} className="grid gap-4 sm:grid-cols-2">
+          <Reveal delay={150} className="flex flex-col gap-4">
             <LetterGroupCard
               letters={['T', 'E']}
               label="T de Treino. E de Execução."
@@ -149,6 +156,7 @@ export function AppGuiaDownload() {
       <PilarSection
         letter="M"
         tone="dark"
+        z="z-10"
         headline="Você não tem um problema de disciplina. Tem um problema de decisão."
         sub="Disciplina não é uma virtude que algumas mulheres têm e outras não. É o que sobra quando as decisões já foram tomadas antes de você entrar na academia."
       >
@@ -159,6 +167,7 @@ export function AppGuiaDownload() {
       <PilarSection
         letter="P"
         tone="light"
+        z="z-20"
         headline="Eu conquistei o corpo que queria. E veio o vazio."
         sub="Não é ingratidão, e não é fraqueza. É o que acontece quando a motivação foi construída sobre uma base que se esgota exatamente no momento da conquista."
       >
@@ -170,6 +179,7 @@ export function AppGuiaDownload() {
       <PilarSection
         letter="L"
         tone="dark"
+        z="z-30"
         headline="Existe uma diferença brutal entre ser vista e ser enxergada."
         sub="Ser vista é ser consumida por um olhar que passa para o próximo conteúdo em trinta segundos. Ser enxergada é ser reconhecida como alguém que existe além da superfície."
       >
@@ -181,6 +191,7 @@ export function AppGuiaDownload() {
       <PilarSection
         letter="O"
         tone="light"
+        z="z-40"
         headline="As suas escolhas estéticas não são neutras. Elas contam uma história sobre você."
         sub={'A pergunta não é "posso usar isso". A pergunta é: o que isso está dizendo sobre mim, e é verdade?'}
       >
