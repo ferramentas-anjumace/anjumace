@@ -215,7 +215,7 @@ export function AppGuiaDownload() {
               integral, e ele cabe na sua semana a partir de hoje.
             </p>
           </Reveal>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col">
             {[
               ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.'],
               ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.'],
@@ -224,10 +224,15 @@ export function AppGuiaDownload() {
               ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.'],
               ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.'],
               ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.'],
-            ].map(([t, d], i) => (
-              <Reveal key={t} delay={i * 60} className="flex flex-col gap-3 rounded-2xl border border-cream-100/10 bg-cream-100/5 p-6">
-                <span className="h-0.5 w-6 bg-sage-600" aria-hidden />
-                <p className="text-body text-cream-100/75">
+            ].map(([t, d], i, arr) => (
+              <Reveal key={t} delay={i * 60} className="relative flex gap-5 pb-8 last:pb-0">
+                {i < arr.length - 1 && (
+                  <span className="absolute left-5 top-10 bottom-0 w-px bg-cream-100/15" aria-hidden />
+                )}
+                <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border border-sage-500/50 bg-graphite-950 font-display text-sm font-extralight text-sage-400">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <p className="pt-2 text-body text-cream-100/75">
                   <strong className="font-medium text-cream-100">{t}</strong> {d}
                 </p>
               </Reveal>
