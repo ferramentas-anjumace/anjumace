@@ -103,16 +103,16 @@ export function AppGuiaDownload() {
             <p>Ele nasceu da recusa a uma escolha falsa. De um lado, o fitness que promete o corpo e não entrega nada além dele. Do outro, o discurso morno que fala de aceitação e abre mão do resultado.</p>
             <p>Eu não quis escolher. O Método T.E.M.P.L.O. é o que sobrou dessa recusa: seis pilares que tratam o treino como instrumento, e o corpo como o lugar onde a mulher se encontra consigo mesma.</p>
           </Reveal>
-          <Reveal delay={150} className="grid gap-4 sm:grid-cols-2">
-            <div className="flex items-center gap-4 rounded-2xl border border-sage-600/30 bg-sage-500/10 p-5">
-              <div className="flex gap-2"><LetterTile letter="T" active /><LetterTile letter="E" active /></div>
-              <p className="text-body text-graphite-900/75">
+          <Reveal delay={150} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 rounded-2xl border border-sage-600/30 bg-sage-500/10 p-6 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex shrink-0 gap-2"><LetterTile letter="T" active /><LetterTile letter="E" active /></div>
+              <p className="text-body-lg text-graphite-900/75">
                 <strong className="font-medium text-graphite-900">T de Treino. E de Execução.</strong> Onde você começa, e onde este guia vive.
               </p>
             </div>
-            <div className="flex items-center gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-5 shadow-sm">
-              <div className="flex gap-2"><LetterTile letter="M" /><LetterTile letter="P" /><LetterTile letter="L" /><LetterTile letter="O" /></div>
-              <p className="text-body text-graphite-900/75">
+            <div className="flex flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex shrink-0 gap-2"><LetterTile letter="M" /><LetterTile letter="P" /><LetterTile letter="L" /><LetterTile letter="O" /></div>
+              <p className="text-body-lg text-graphite-900/75">
                 <strong className="font-medium text-graphite-900">M de Mentalidade. P de Propósito. L de Liberdade. O de Ordem.</strong> Onde a coisa fica séria.
               </p>
             </div>
