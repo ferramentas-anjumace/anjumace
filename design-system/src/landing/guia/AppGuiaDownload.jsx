@@ -45,24 +45,24 @@ function LetterTile({ letter, active = false, tone = 'light' }) {
   )
 }
 
-/** Card individual de um pilar — tile+nome no topo, afirmação em destaque,
-    descrição abaixo. Usado na grade-resumo antes das dobras completas. */
-function PilarCard({ letter, name, headline, description, tone = 'light' }) {
+/** Card de grupo de letras — tiles + rótulo "X de Nome" no topo, a frase do
+    documento em destaque abaixo. Copy verbatim: cada card usa exatamente a(s)
+    frase(s) do documento, sem headline emprestado de outra seção. */
+function LetterGroupCard({ letters, label, statement, tone = 'light' }) {
   const light = tone === 'light'
   return (
     <div
-      className={`flex flex-col gap-4 rounded-2xl border p-6 ${
+      className={`flex flex-col gap-5 rounded-2xl border p-6 ${
         light ? 'border-graphite-900/10 bg-cream-50 shadow-sm' : 'border-cream-100/12 bg-graphite-900'
       }`}
     >
       <div className="flex items-center gap-3">
-        <LetterTile letter={letter} active tone={tone} />
-        <span className={`text-body font-medium ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{name}</span>
+        <div className="flex -space-x-2">
+          {letters.map((l) => <LetterTile key={l} letter={l} active tone={tone} />)}
+        </div>
+        <span className={`text-body font-medium ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{label}</span>
       </div>
-      <p className={`text-body font-medium leading-snug ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{headline}</p>
-      {description && (
-        <p className={`text-body-sm leading-relaxed ${light ? 'text-graphite-900/65' : 'text-cream-100/65'}`}>{description}</p>
-      )}
+      <p className={`text-h4 font-medium leading-snug ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{statement}</p>
     </div>
   )
 }
@@ -113,7 +113,7 @@ export function AppGuiaDownload() {
 
       {/* ------------------------------------------ DOBRA 1 · O QUE É O PLANO TEMPLO */}
       <section className="bg-cream-100 py-20 text-graphite-900 md:py-28">
-        <div className="container flex max-w-4xl flex-col gap-8">
+        <div className="container flex max-w-3xl flex-col gap-8">
           <Reveal className="flex flex-col gap-4">
             <h2 className="text-h2 text-graphite-900">Este guia é um pedaço de um método. Falta te contar de qual.</h2>
             <p className="text-body-lg text-graphite-900">
@@ -125,44 +125,18 @@ export function AppGuiaDownload() {
             <p>Ele nasceu da recusa a uma escolha falsa. De um lado, o fitness que promete o corpo e não entrega nada além dele. Do outro, o discurso morno que fala de aceitação e abre mão do resultado.</p>
             <p>Eu não quis escolher. O Método T.E.M.P.L.O. é o que sobrou dessa recusa: seis pilares que tratam o treino como instrumento, e o corpo como o lugar onde a mulher se encontra consigo mesma.</p>
           </Reveal>
-          <Reveal delay={150}>
-            <div className="flex flex-col gap-4 rounded-2xl border border-cream-100/12 bg-graphite-900 p-6 sm:flex-row sm:items-center">
-              <div className="flex shrink-0 items-center gap-3">
-                <div className="flex -space-x-2">
-                  <LetterTile letter="T" active tone="dark" />
-                  <LetterTile letter="E" active tone="dark" />
-                </div>
-                <span className="text-body font-medium text-cream-100">Treino · Execução</span>
-              </div>
-              <p className="text-body-lg font-medium leading-snug text-cream-100 sm:ml-2">
-                Onde você começa, e onde este guia vive.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={200} className="grid gap-4 sm:grid-cols-2">
-            <PilarCard
-              letter="M"
-              name="Mentalidade"
-              headline="Você não tem um problema de disciplina. Tem um problema de decisão."
-              description="Disciplina não é uma virtude que algumas mulheres têm e outras não. É o que sobra quando as decisões já foram tomadas antes de você entrar na academia."
+          <Reveal delay={150} className="grid gap-4 sm:grid-cols-2">
+            <LetterGroupCard
+              letters={['T', 'E']}
+              label="T de Treino. E de Execução."
+              statement="Onde você começa, e onde este guia vive."
+              tone="dark"
             />
-            <PilarCard
-              letter="P"
-              name="Propósito"
-              headline="Eu conquistei o corpo que queria. E veio o vazio."
-              description="Não é ingratidão, e não é fraqueza. É o que acontece quando a motivação foi construída sobre uma base que se esgota exatamente no momento da conquista."
-            />
-            <PilarCard
-              letter="L"
-              name="Liberdade"
-              headline="Existe uma diferença brutal entre ser vista e ser enxergada."
-              description="Ser vista é ser consumida por um olhar que passa para o próximo conteúdo em trinta segundos. Ser enxergada é ser reconhecida como alguém que existe além da superfície."
-            />
-            <PilarCard
-              letter="O"
-              name="Ordem"
-              headline="As suas escolhas estéticas não são neutras. Elas contam uma história sobre você."
-              description={'A pergunta não é "posso usar isso". A pergunta é: o que isso está dizendo sobre mim, e é verdade?'}
+            <LetterGroupCard
+              letters={['M', 'P', 'L', 'O']}
+              label="M de Mentalidade. P de Propósito. L de Liberdade. O de Ordem."
+              statement="Onde a coisa fica séria."
+              tone="light"
             />
           </Reveal>
           <Reveal delay={200}>
