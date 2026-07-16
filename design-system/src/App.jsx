@@ -5,6 +5,7 @@ import { AppListaEspera } from './landing/lista-espera/AppListaEspera'
 import { AppGuiaCaptura } from './landing/guia/AppGuiaCaptura'
 import { AppGuiaDownload } from './landing/guia/AppGuiaDownload'
 import { AppGuiaObrigado } from './landing/guia/AppGuiaObrigado'
+import { AppGuiaTemplo } from './landing/guia/AppGuiaTemplo'
 
 // Site no ar = Lista de Espera (raiz e /lista-de-espera) — a landing
 // "App 7 dias" (src/landing/App7Dias.jsx) está fora do ar por ora.
@@ -19,6 +20,7 @@ import { AppGuiaObrigado } from './landing/guia/AppGuiaObrigado'
 export default function App() {
   if (window.location.pathname.startsWith('/guia/download')) return <AppGuiaDownload />
   if (window.location.pathname.startsWith('/guia/obrigado')) return <AppGuiaObrigado />
+  if (window.location.pathname.startsWith('/guia/templo')) return <AppGuiaTemplo />
   if (window.location.pathname.startsWith('/guia')) return <AppGuiaCaptura />
   if (window.location.pathname.startsWith('/singular')) return <AppTemploSingular />
   if (window.location.pathname.startsWith('/obrigado-singular')) return <AppObrigadoSingular />

@@ -1,11 +1,14 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 
 /* Página de obrigado / venda do Plano Templo Singular (/guia/obrigado).
    Copy verbatim do documento do funil (Página de Obrigado · Venda).
    Garantia CORRIGIDA pra 7 dias (o doc original se contradizia: "Quinze
    dias para conhecer..." seguido de "Você tem 7 dias para decidir" —
-   decisão da All Hands 15/07: Templo = 15 dias, Singular = 7 dias). */
+   decisão da All Hands 15/07: Templo = 15 dias, Singular = 7 dias).
+   Vocabulário visual emprestado de /singular (orbes, painel-assinatura,
+   marquee, banda de bônus) pra não ficar uma sequência monótona de blocos
+   de texto — feedback do usuário (16/07). */
 
 // TODO: trocar pelo link real de checkout do Plano Templo Singular quando existir.
 const LINK_CHECKOUT_SINGULAR = '#checkout-singular'
@@ -47,11 +50,23 @@ function CtaRow({ tone = 'dark', secondaryLabel = 'Não, quero apenas o e-book',
   )
 }
 
-/** Tile numerado — os 4 movimentos do mecanismo (Leitura/Prescrição/Execução/Releitura). */
-function StepTile({ n, title, children }) {
+/** Card do "você não sabe" — grid 3 col no lugar de parágrafos empilhados. */
+function FactCard({ children }) {
   return (
-    <div className="flex gap-5 rounded-2xl border border-cream-100/10 bg-cream-100/5 p-6">
-      <span className="grid size-12 shrink-0 place-items-center rounded-full border border-sage-500/50 bg-graphite-950 font-display text-lg font-extralight text-sage-400">
+    <div className="flex flex-col gap-3 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+      <span className="h-0.5 w-6 bg-sage-500" aria-hidden />
+      <p className="text-body text-graphite-900/75">{children}</p>
+    </div>
+  )
+}
+
+/** Tile numerado — os 4 movimentos do mecanismo, alternando sálvia/dourado
+    (eco do FalhaCard da captura) + grid 2 col no desktop. */
+function StepTile({ n, title, children, accent = 'sage' }) {
+  const gold = accent === 'gold'
+  return (
+    <div className={`flex gap-5 rounded-2xl border p-6 ${gold ? 'border-gold-300/25 bg-gold-300/5' : 'border-sage-500/25 bg-sage-500/10'}`}>
+      <span className={`grid size-12 shrink-0 place-items-center rounded-xl border font-display text-lg font-extralight ${gold ? 'border-gold-300/50 bg-gold-300/10 text-gold-300' : 'border-sage-500/50 bg-sage-500/15 text-sage-400'}`}>
         {n}
       </span>
       <p className="text-body text-cream-100/75">
@@ -61,19 +76,18 @@ function StepTile({ n, title, children }) {
   )
 }
 
-/** Trilha vertical numerada — o que entra no Plano Templo Singular (9 itens),
-    mesmo padrão do Fechamento de /guia/download. */
-function TrilhaItem({ n, total, title, children }) {
+/** Card com ícone — os 6 itens "core" do que entra no Singular (grid 3 col,
+    mesmo vocabulário do DeliverableCard de /guia/download). */
+function IncludeCard({ icon: Icon, title, children }) {
   return (
-    <Reveal delay={n * 40} className="relative flex gap-5 pb-8 last:pb-0">
-      {n < total && <span className="absolute left-5 top-10 bottom-0 w-px bg-graphite-900/15" aria-hidden />}
-      <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border border-sage-600/50 bg-cream-100 font-display text-sm font-extralight text-sage-700">
-        {String(n).padStart(2, '0')}
+    <div className="flex flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+      <span className="grid size-11 place-items-center rounded-full bg-sage-500/15 text-sage-700">
+        <Icon className="size-5" strokeWidth={1.5} aria-hidden />
       </span>
-      <p className="pt-2 text-body text-graphite-900/70">
+      <p className="text-body text-graphite-900/75">
         <strong className="font-medium text-graphite-900">{title}</strong> {children}
       </p>
-    </Reveal>
+    </div>
   )
 }
 
@@ -117,19 +131,52 @@ function GuaranteeBadge() {
   )
 }
 
+/** Faixa marquee — quebra o ritmo antes do fechamento, frases-síntese do
+    Singular rolando em loop (mesmo padrão de MarqueeBand em /singular). */
+const MARQUEE_PHRASES = ['Leitura do seu corpo', 'Prescrição individual', 'Ciclo bimestral', 'A Aliança', 'Método T.E.M.P.L.O.']
+
+function MarqueeTrack({ hidden = false }) {
+  return (
+    <div aria-hidden={hidden || undefined} className="flex shrink-0 items-center">
+      {MARQUEE_PHRASES.map((phrase) => (
+        <span key={phrase} className="flex items-center">
+          <span className="whitespace-nowrap px-8 font-display text-lg font-light tracking-wide text-cream-100/70">{phrase}</span>
+          <span className="size-1.5 shrink-0 rounded-full bg-sage-400/70" aria-hidden />
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function MarqueeBand() {
+  return (
+    <div className="overflow-hidden border-y border-cream-100/5 bg-graphite-950 py-6">
+      <div className="flex w-max animate-marquee">
+        <MarqueeTrack />
+        <MarqueeTrack hidden />
+        <MarqueeTrack hidden />
+        <MarqueeTrack hidden />
+        <MarqueeTrack hidden />
+        <MarqueeTrack hidden />
+      </div>
+    </div>
+  )
+}
+
 export function AppGuiaObrigado() {
   return (
     <main className="bg-graphite-950 text-cream-100">
       {/* --------------------------------------------------------- 1 · HERO */}
       <section className="relative flex min-h-dvh flex-col overflow-hidden">
         <div className="pointer-events-none absolute -right-32 top-1/3 size-96 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -left-24 bottom-0 size-72 animate-float rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
         <div className="relative z-10 flex justify-center pt-10 md:pt-12">
           <img src="/logo-anju.svg" alt="Anju Mace" className="h-4 w-auto animate-fade-in" />
         </div>
         <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
-          <p className="animate-fade-in text-caption uppercase tracking-wider text-sage-400">
-            O e-book Os cinco tipos de falha já está a caminho do seu e-mail.
-          </p>
+          <span className="inline-flex animate-fade-in items-center rounded-full border border-sage-400/40 bg-cream-100/5 px-4 py-2 text-caption uppercase tracking-wider text-sage-400">
+            O e-book já está a caminho do seu e-mail
+          </span>
           <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
             A teoria chega hoje. O corpo que vai recebê-la continua sem ninguém lendo<span className="text-sage-400">.</span>
           </h1>
@@ -154,34 +201,36 @@ export function AppGuiaObrigado() {
             <p>O guia vai mudar a forma como você observa a própria série. Você vai reconhecer a falha técnica no meio do agachamento, e vai saber a hora de encerrar.</p>
             <p>Só que observar sozinha tem um limite, e é sempre o mesmo: ninguém está olhando de fora.</p>
           </Reveal>
-          <Reveal delay={150} className="flex flex-col gap-2 text-body-lg text-graphite-900/70">
-            <p>Você não sabe se a sua lombar arredonda nas três últimas repetições.</p>
-            <p>Você não sabe qual dos seus encurtamentos está roubando amplitude do quadril.</p>
-            <p>Você não sabe se a ordem dos exercícios da sua sessão está gastando o seu sistema nervoso antes da hora.</p>
-          </Reveal>
-          <Reveal delay={200}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Reveal delay={150}><FactCard>Você não sabe se a sua lombar arredonda nas três últimas repetições.</FactCard></Reveal>
+            <Reveal delay={220}><FactCard>Você não sabe qual dos seus encurtamentos está roubando amplitude do quadril.</FactCard></Reveal>
+            <Reveal delay={290}><FactCard>Você não sabe se a ordem dos exercícios da sua sessão está gastando o seu sistema nervoso antes da hora.</FactCard></Reveal>
+          </div>
+          <Reveal delay={340}>
             <Callout tone="light">Nenhuma quantidade de leitura resolve isso, porque não é um problema de informação. É um problema de leitura. E leitura, alguém precisa fazer.</Callout>
           </Reveal>
-          <Reveal delay={250} className="flex flex-col items-center gap-4">
+          <Reveal delay={380} className="flex flex-col items-center gap-4">
             <CtaRow tone="light" />
           </Reveal>
         </div>
       </section>
 
       {/* -------------------------------------------- BLOCO 2 · O MECANISMO */}
-      <section className="border-t border-cream-100/10 py-20 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-8">
+      <section className="relative overflow-hidden border-t border-cream-100/10 py-20 md:py-28">
+        <div className="pointer-events-none absolute -top-32 left-[8%] size-[28rem] animate-drift rounded-full bg-gold-300/10 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-40 right-[6%] size-[32rem] animate-drift-slow rounded-full bg-sage-500/10 blur-3xl" aria-hidden />
+        <div className="container relative flex max-w-3xl flex-col gap-8">
           <Reveal className="flex flex-col gap-4">
             <h2 className="text-h2 text-cream-100">Receber um treino não é ter um treino feito para você.</h2>
             <p className="text-body-lg text-cream-100/70">
               Nada de catálogo. Nada de formulário automático que cospe uma ficha. Quatro movimentos, na ordem:
             </p>
           </Reveal>
-          <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Reveal delay={0}><StepTile n="1" title="Leitura.">Avaliação individual completa: formulário, fotos composicionais e testes funcionais, antes de qualquer exercício ser prescrito.</StepTile></Reveal>
-            <Reveal delay={80}><StepTile n="2" title="Prescrição.">Ficha desenhada do zero por Anju, a partir do seu corpo e da prioridade que você declara.</StepTile></Reveal>
+            <Reveal delay={80}><StepTile n="2" accent="gold" title="Prescrição.">Ficha desenhada do zero por Anju, a partir do seu corpo e da prioridade que você declara.</StepTile></Reveal>
             <Reveal delay={160}><StepTile n="3" title="Execução.">Você envia o vídeo, recebe a correção. Biblioteca de execução gravada pela própria Anju.</StepTile></Reveal>
-            <Reveal delay={240}><StepTile n="4" title="Releitura.">Reavaliação ao fim do ciclo. A prescrição evolui porque o seu corpo evoluiu.</StepTile></Reveal>
+            <Reveal delay={240}><StepTile n="4" accent="gold" title="Releitura.">Reavaliação ao fim do ciclo. A prescrição evolui porque o seu corpo evoluiu.</StepTile></Reveal>
           </div>
           <Reveal delay={300} className="flex flex-col items-center gap-4">
             <CtaRow />
@@ -191,25 +240,34 @@ export function AppGuiaObrigado() {
 
       {/* --------------------------------- BLOCO 3 · O QUE ENTRA NO SINGULAR */}
       <section className="bg-cream-100 py-20 text-graphite-900 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-10">
-          <Reveal className="flex flex-col gap-4">
+        <div className="container flex max-w-5xl flex-col gap-10">
+          <Reveal className="flex max-w-3xl flex-col gap-4">
             <h2 className="text-h2 text-graphite-900">O que entra no Plano Templo Singular</h2>
           </Reveal>
-          <div className="flex flex-col">
-            {[
-              ['Leitura do seu corpo.', 'Formulário, fotos e testes funcionais, antes de qualquer exercício.'],
-              ['Ficha prescrita do zero por Anju.', 'Construída a partir do seu corpo e da sua prioridade, nunca escolhida de um catálogo.'],
-              ['Alongamentos Conscientes prescrito.', 'Protocolo de mobilidade desenhado para os seus encurtamentos, mapeados na avaliação.'],
-              ['Correção de execução.', 'Você envia o vídeo, recebe a análise, com foco na ativação correta para o corpo feminino.'],
-              ['Reavaliação e relatório ao fim do ciclo.', 'Ponto de partida e ponto de chegada, lado a lado.'],
-              ['Método T.E.M.P.L.O. em trilha guiada.', 'Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.'],
-              ['Suporte para dúvidas,', 'ao longo do ciclo inteiro.'],
-              ['Hot Seat com Anju, e a Aliança completa.', 'Contato direto com quem criou o método, numa comunidade que se reconhece pelo padrão, não pelo número de matrícula.'],
-              ['Bônus: Mentalidade de Treino Intencional.', 'Quatro micro-aulas sobre constância, procrastinação e os desafios que aparecem no caminho.'],
-            ].map(([t, d], i, arr) => (
-              <TrilhaItem key={t} n={i + 1} total={arr.length} title={t}>{d}</TrilhaItem>
-            ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Reveal delay={0}><IncludeCard icon={ClipboardCheck} title="Leitura do seu corpo.">Formulário, fotos e testes funcionais, antes de qualquer exercício.</IncludeCard></Reveal>
+            <Reveal delay={60}><IncludeCard icon={FileEdit} title="Ficha prescrita do zero por Anju.">Construída a partir do seu corpo e da sua prioridade, nunca escolhida de um catálogo.</IncludeCard></Reveal>
+            <Reveal delay={120}><IncludeCard icon={RotateCcw} title="Alongamentos Conscientes prescrito.">Protocolo de mobilidade desenhado para os seus encurtamentos, mapeados na avaliação.</IncludeCard></Reveal>
+            <Reveal delay={180}><IncludeCard icon={Video} title="Correção de execução.">Você envia o vídeo, recebe a análise, com foco na ativação correta para o corpo feminino.</IncludeCard></Reveal>
+            <Reveal delay={240}><IncludeCard icon={ClipboardCheck} title="Reavaliação e relatório ao fim do ciclo.">Ponto de partida e ponto de chegada, lado a lado.</IncludeCard></Reveal>
+            <Reveal delay={300}><IncludeCard icon={Route} title="Método T.E.M.P.L.O. em trilha guiada.">Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.</IncludeCard></Reveal>
           </div>
+
+          {/* Banda de suporte + bônus — brilho dourado, eco da banda-bônus de /singular */}
+          <Reveal variant="scale" delay={100}>
+            <div className="relative flex flex-col gap-5 overflow-hidden rounded-3xl bg-gradient-to-br from-gold-100 via-cream-50 to-gold-100 px-8 py-10 text-center md:px-14 md:py-12">
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-shine bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+              <span className="relative mx-auto inline-flex items-center rounded-full border border-gold-500/40 bg-white/50 px-4 py-2 text-caption uppercase tracking-wider text-gold-700">
+                E além da ficha
+              </span>
+              <div className="relative grid gap-6 text-left md:grid-cols-3">
+                <p className="text-body text-graphite-900/75"><strong className="font-medium text-graphite-900">Suporte para dúvidas,</strong> ao longo do ciclo inteiro.</p>
+                <p className="text-body text-graphite-900/75"><strong className="font-medium text-graphite-900">Hot Seat com Anju, e a Aliança completa.</strong> Contato direto com quem criou o método, numa comunidade que se reconhece pelo padrão, não pelo número de matrícula.</p>
+                <p className="text-body text-graphite-900/75"><strong className="font-medium text-graphite-900">Bônus: Mentalidade de Treino Intencional.</strong> Quatro micro-aulas sobre constância, procrastinação e os desafios que aparecem no caminho.</p>
+              </div>
+            </div>
+          </Reveal>
+
           <Reveal className="flex flex-col items-center gap-4">
             <CtaRow tone="light" />
           </Reveal>
@@ -218,27 +276,48 @@ export function AppGuiaObrigado() {
 
       {/* --------------------------------------- BLOCO 4 · QUEM LÊ SEU CORPO */}
       <section className="border-t border-cream-100/10 py-20 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-8">
-          <Reveal className="flex flex-col gap-4">
-            <h2 className="text-h2 text-cream-100">Quem lê o seu corpo</h2>
-            <p className="text-body-lg text-cream-100">É Anju. Não é software. Não é formulário automático. Não é estagiário com planilha.</p>
+        <div className="container grid max-w-5xl items-center gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+          <Reveal variant="left" className="relative mx-auto w-full max-w-sm lg:mx-0">
+            <span aria-hidden className="absolute -left-3 -top-3 size-16 rounded-tl-3xl border-l-2 border-t-2 border-gold-400/60" />
+            <span aria-hidden className="absolute -bottom-3 -right-3 size-16 rounded-br-3xl border-b-2 border-r-2 border-gold-400/60" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-graphite-900 shadow-xl">
+              <img src="/landing/bioanju-desktop.webp" alt="Anju Mace" loading="lazy" className="absolute inset-0 size-full object-cover" />
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-graphite-950/90 via-graphite-950/40 to-transparent px-6 pb-6 pt-20 text-center">
+                <span className="h-px w-12 bg-gold-400/60" aria-hidden />
+                <p className="font-display text-lg tracking-wider text-cream-100"><span className="font-bold">ANJU</span> <span className="font-light">MACE</span></p>
+              </div>
+            </div>
           </Reveal>
-          <Reveal delay={100} className="flex flex-col gap-4 text-body-lg text-cream-100/70">
-            <p>É Anju quem lê a sua avaliação, quem prescreve a sua ficha, quem corrige o seu vídeo e quem relê o seu corpo no fim do ciclo.</p>
-            <p>E é exatamente por isso que existe um limite. Cada leitura passa, uma a uma, pelas mãos dela. Não há como acelerar isso sem quebrar o que faz o produto funcionar.</p>
-          </Reveal>
-          <Reveal delay={150}>
-            <Callout>O número de corpos que entram por ciclo é o número de corpos que cabem no tempo de uma pessoa. Não é tática de vendas. É aritmética.</Callout>
-          </Reveal>
-          <Reveal delay={200} className="flex flex-col items-center gap-4">
-            <CtaRow />
-          </Reveal>
+
+          <div className="flex flex-col gap-5">
+            <Reveal variant="right" className="flex flex-col gap-4">
+              <h2 className="text-h2 text-cream-100">Quem lê o seu corpo</h2>
+              <p className="text-body-lg text-cream-100">É Anju. Não é software. Não é formulário automático. Não é estagiário com planilha.</p>
+            </Reveal>
+            <Reveal variant="right" delay={100} className="flex flex-col gap-4 text-body-lg text-cream-100/70">
+              <p>É Anju quem lê a sua avaliação, quem prescreve a sua ficha, quem corrige o seu vídeo e quem relê o seu corpo no fim do ciclo.</p>
+              <p>E é exatamente por isso que existe um limite. Cada leitura passa, uma a uma, pelas mãos dela. Não há como acelerar isso sem quebrar o que faz o produto funcionar.</p>
+            </Reveal>
+            <Reveal variant="right" delay={150}>
+              <Callout>O número de corpos que entram por ciclo é o número de corpos que cabem no tempo de uma pessoa. Não é tática de vendas. É aritmética.</Callout>
+            </Reveal>
+            <Reveal variant="right" delay={180} className="flex items-center gap-3 text-h5 text-cream-100">
+              <span className="inline-grid size-10 shrink-0 place-items-center rounded-full bg-sage-500/15 text-sage-400">
+                <PenLine className="size-5" strokeWidth={1.5} aria-hidden />
+              </span>
+              Prescrição assinada individualmente.
+            </Reveal>
+            <Reveal delay={220} className="flex flex-col items-start gap-4">
+              <CtaRow />
+            </Reveal>
+          </div>
         </div>
       </section>
 
       {/* ------------------------------------------------ BLOCO 5 · GARANTIA */}
-      <section className="bg-cream-100 py-20 text-graphite-900 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-8">
+      <section className="relative overflow-hidden bg-cream-100 py-20 text-graphite-900 md:py-28">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-[32rem] -translate-x-1/2 -translate-y-1/2 animate-float-slow rounded-full bg-sage-400/10 blur-3xl" aria-hidden />
+        <div className="container relative flex max-w-3xl flex-col gap-8">
           <Reveal className="flex flex-col gap-4">
             <h2 className="text-h2 text-graphite-900">A garantia</h2>
           </Reveal>
@@ -264,20 +343,23 @@ export function AppGuiaObrigado() {
 
       {/* ---------------------------------------- BLOCO 6 · POR QUE NÃO VOLTA */}
       <section className="border-t border-cream-100/10 py-20 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-4 text-body-lg text-cream-100/70">
-          <Reveal><h2 className="text-h2 text-cream-100">Por que esta página não volta</h2></Reveal>
+        <div className="container max-w-3xl">
+          <Reveal><h2 className="mb-8 text-h2 text-cream-100">Por que esta página não volta</h2></Reveal>
           <Reveal delay={100}>
-            <p>O caminho para o Singular continua existindo depois daqui, pelo canal de sempre. O que não volta é este momento. Você acabou de ir atrás da teoria por trás dos seus treinos, e essa é uma decisão que quase ninguém toma. É a esse tipo de mulher que a leitura individual responde, e é agora que a porta está aberta na sua frente, sem que você precise procurar por ela.</p>
-          </Reveal>
-          <Reveal delay={150}>
-            <p>Some a isso o limite do bloco anterior: as leituras de cada ciclo cabem no tempo de uma pessoa só, e elas se preenchem na ordem em que chegam. Não estou pedindo pressa. Estou dizendo que a espera tem um preço, e que ele é pago em ciclos de treino.</p>
+            <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gold-400/30 bg-gold-300/5 p-8 text-body-lg text-cream-100/70">
+              <p>O caminho para o Singular continua existindo depois daqui, pelo canal de sempre. O que não volta é este momento. Você acabou de ir atrás da teoria por trás dos seus treinos, e essa é uma decisão que quase ninguém toma. É a esse tipo de mulher que a leitura individual responde, e é agora que a porta está aberta na sua frente, sem que você precise procurar por ela.</p>
+              <p>Some a isso o limite do bloco anterior: as leituras de cada ciclo cabem no tempo de uma pessoa só, e elas se preenchem na ordem em que chegam. Não estou pedindo pressa. Estou dizendo que a espera tem um preço, e que ele é pago em ciclos de treino.</p>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ---------------------------------------------------- FECHAMENTO */}
-      <section className="border-t border-cream-100/10 py-20 md:py-28">
-        <div className="container flex max-w-3xl flex-col items-center gap-6 text-center">
+      {/* --------------------------------------------------- MARQUEE + FECHAMENTO */}
+      <MarqueeBand />
+
+      <section className="relative overflow-hidden py-20 md:py-28">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-[36rem] -translate-x-1/2 -translate-y-1/2 animate-float-slow rounded-full bg-gold-400/15 blur-3xl" aria-hidden />
+        <div className="container relative flex max-w-3xl flex-col items-center gap-6 text-center">
           <Reveal className="flex flex-col gap-4">
             <h2 className="text-h2 text-cream-100">O seu corpo sempre foi singular. O que falta é alguém lendo essa singularidade.</h2>
             <p className="text-body-lg text-cream-100/70">
