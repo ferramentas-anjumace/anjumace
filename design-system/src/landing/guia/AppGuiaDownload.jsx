@@ -246,7 +246,7 @@ export function AppGuiaDownload() {
               ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução', '/guia-execucao.webp'],
               ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino', null],
               ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade', null],
-              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança', null],
+              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança', '/guia-alianca.webp'],
               ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus', null],
             ].map(([t, d, Icon, imgLabel, img], i) => (
               <Reveal key={t} delay={i * 60}>
