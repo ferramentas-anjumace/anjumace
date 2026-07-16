@@ -1,4 +1,4 @@
-import { ArrowRight, Download } from 'lucide-react'
+import { ArrowRight, Download, Image as ImageIcon, LayoutGrid, Dumbbell, PlayCircle, ClipboardList, Activity, Users, Gift } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 
 /* Página de entrega do guia (/guia/download).
@@ -61,6 +61,27 @@ function LetterGroupCard({ letters, label, statement, tone = 'light', className 
       </div>
       <span className={`text-body leading-relaxed ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>{label}</span>
       <p className={`text-h4 font-medium leading-snug ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{statement}</p>
+    </div>
+  )
+}
+
+/** Card de entregável — ícone, título, descrição e um placeholder de
+    imagem/print embaixo (substituir por <img> real quando os assets de
+    cada módulo existirem). */
+function DeliverableCard({ icon: Icon, title, description, imageLabel }) {
+  return (
+    <div className="flex flex-col gap-5 rounded-3xl bg-cream-100 p-8 text-graphite-900">
+      <span className="grid size-12 place-items-center rounded-full bg-sage-500/15 text-sage-700">
+        <Icon className="size-6" strokeWidth={1.5} aria-hidden />
+      </span>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-h4 font-medium text-graphite-900">{title}</h3>
+        <p className="text-body text-graphite-900/70">{description}</p>
+      </div>
+      <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-graphite-900/15 bg-graphite-900/5 p-4 text-center text-graphite-900/45">
+        <ImageIcon className="size-6" strokeWidth={1.5} aria-hidden />
+        <p className="text-caption leading-snug">{imageLabel}</p>
+      </div>
     </div>
   )
 }
@@ -207,38 +228,30 @@ export function AppGuiaDownload() {
 
       {/* --------------------------------------------- FECHAMENTO · O QUE VOCÊ RECEBE */}
       <section className="border-t border-cream-100/10 py-20 md:py-28">
-        <div className="container flex max-w-3xl flex-col gap-10">
-          <Reveal className="flex flex-col gap-4">
+        <div className="container flex max-w-5xl flex-col gap-10">
+          <Reveal className="flex max-w-3xl flex-col gap-4">
             <h2 className="text-h2 text-cream-100">Seis pilares. Você acabou de receber um pedaço de dois.</h2>
             <p className="text-body-lg text-cream-100/70">
               O mercado vende treino e dieta. O Plano Templo entrega um método de transformação
               integral, e ele cabe na sua semana a partir de hoje.
             </p>
           </Reveal>
-          <div className="flex flex-col">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.'],
-              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.'],
-              ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.'],
-              ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.'],
-              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.'],
-              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.'],
-              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.'],
-            ].map(([t, d], i, arr) => (
-              <Reveal key={t} delay={i * 60} className="relative flex gap-5 pb-8 last:pb-0">
-                {i < arr.length - 1 && (
-                  <span className="absolute left-5 top-10 bottom-0 w-px bg-cream-100/15" aria-hidden />
-                )}
-                <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border border-sage-500/50 bg-graphite-950 font-display text-sm font-extralight text-sage-400">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <p className="pt-2 text-body text-cream-100/75">
-                  <strong className="font-medium text-cream-100">{t}</strong> {d}
-                </p>
+              ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.', LayoutGrid, 'Print da biblioteca do método'],
+              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino'],
+              ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução'],
+              ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino'],
+              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade'],
+              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança'],
+              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus'],
+            ].map(([t, d, Icon, imgLabel], i) => (
+              <Reveal key={t} delay={i * 60}>
+                <DeliverableCard icon={Icon} title={t} description={d} imageLabel={imgLabel} />
               </Reveal>
             ))}
           </div>
-          <Reveal className="flex flex-col items-center gap-6 text-center">
+          <Reveal className="flex max-w-3xl flex-col items-center gap-6 self-center text-center">
             <p className="font-display text-body-lg text-cream-100">O treino é onde se começa. O templo é onde se chega.</p>
             <CtaPill label="Quero o método completo" href={LINK_CHECKOUT_TEMPLO} />
             <p className="text-caption text-cream-100/45">Seu corpo em movimento, seu poder em liberdade.</p>
