@@ -242,7 +242,7 @@ export function AppGuiaDownload() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.', LayoutGrid, 'Print da biblioteca do método', '/guia-metodo.webp'],
-              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino', null],
+              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino', '/guia-programa-treino.webp'],
               ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução', '/guia-execucao.webp'],
               ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino', null],
               ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade', null],
