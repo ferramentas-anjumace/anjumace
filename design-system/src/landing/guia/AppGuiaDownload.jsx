@@ -65,10 +65,9 @@ function LetterGroupCard({ letters, label, statement, tone = 'light', className 
   )
 }
 
-/** Card de entregável — ícone, título, descrição e um placeholder de
-    imagem/print embaixo (substituir por <img> real quando os assets de
-    cada módulo existirem). */
-function DeliverableCard({ icon: Icon, title, description, imageLabel }) {
+/** Card de entregável — ícone, título, descrição e um print/imagem embaixo
+    (placeholder tracejado enquanto o asset daquele módulo não existe). */
+function DeliverableCard({ icon: Icon, title, description, imageLabel, image }) {
   return (
     <div className="flex flex-col gap-5 rounded-3xl bg-cream-100 p-8 text-graphite-900">
       <span className="grid size-12 place-items-center rounded-full bg-sage-500/15 text-sage-700">
@@ -78,10 +77,14 @@ function DeliverableCard({ icon: Icon, title, description, imageLabel }) {
         <h3 className="text-h4 font-medium text-graphite-900">{title}</h3>
         <p className="text-body text-graphite-900/70">{description}</p>
       </div>
-      <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-graphite-900/15 bg-graphite-900/5 p-4 text-center text-graphite-900/45">
-        <ImageIcon className="size-6" strokeWidth={1.5} aria-hidden />
-        <p className="text-caption leading-snug">{imageLabel}</p>
-      </div>
+      {image ? (
+        <img src={image} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover" />
+      ) : (
+        <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-graphite-900/15 bg-graphite-900/5 p-4 text-center text-graphite-900/45">
+          <ImageIcon className="size-6" strokeWidth={1.5} aria-hidden />
+          <p className="text-caption leading-snug">{imageLabel}</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -238,16 +241,16 @@ export function AppGuiaDownload() {
           </Reveal>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.', LayoutGrid, 'Print da biblioteca do método'],
-              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino'],
-              ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução'],
-              ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino'],
-              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade'],
-              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança'],
-              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus'],
-            ].map(([t, d, Icon, imgLabel], i) => (
+              ['O Método T.E.M.P.L.O. completo.', 'Os seis pilares, setenta e um subtópicos, em biblioteca livre. Você percorre no seu ritmo.', LayoutGrid, 'Print da biblioteca do método', '/guia-metodo.webp'],
+              ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino', null],
+              ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução', '/guia-execucao.webp'],
+              ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino', null],
+              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade', null],
+              ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança', null],
+              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus', null],
+            ].map(([t, d, Icon, imgLabel, img], i) => (
               <Reveal key={t} delay={i * 60}>
-                <DeliverableCard icon={Icon} title={t} description={d} imageLabel={imgLabel} />
+                <DeliverableCard icon={Icon} title={t} description={d} imageLabel={imgLabel} image={img} />
               </Reveal>
             ))}
           </div>
