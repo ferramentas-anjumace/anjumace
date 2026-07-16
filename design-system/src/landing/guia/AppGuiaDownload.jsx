@@ -6,7 +6,6 @@ import { Reveal } from '../singular/Reveal'
    dobra 0 entrega o PDF; dobras 1-5 apresentam o método e os quatro pilares
    que o guia não cobre; fechamento vende o Plano Templo. */
 
-const PDF_URL = '/os-cinco-tipos-de-falha.pdf'
 // TODO: trocar pelo link real de checkout do Plano Templo quando existir.
 const LINK_CHECKOUT_TEMPLO = '#checkout-templo'
 
@@ -14,17 +13,18 @@ const gradient =
   'bg-gradient-to-r from-sage-400 via-cream-200 to-sage-500 bg-[length:200%_100%] bg-left hover:bg-right text-graphite-900 shadow-md hover:shadow-lg transition-[background-position,box-shadow,transform] duration-slow ease-out'
 
 function CtaPill({ label, href, download = false, icon: Icon = ArrowRight }) {
+  const Comp = href ? 'a' : 'div'
   return (
-    <a
+    <Comp
       href={href}
-      download={download || undefined}
+      download={href && download ? true : undefined}
       className={`group flex h-16 w-full max-w-sm items-center gap-2.5 rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal sm:w-auto sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
     >
       <span className="flex-1 whitespace-nowrap text-center text-sm md:text-base">{label}</span>
       <span className="inline-grid size-12 shrink-0 place-items-center rounded-full bg-cream-100/80 text-graphite-900 transition-transform duration-moderate ease-spring group-hover:translate-x-0.5">
         <Icon className="size-5" strokeWidth={1.5} aria-hidden />
       </span>
-    </a>
+    </Comp>
   )
 }
 
@@ -135,7 +135,16 @@ export function AppGuiaDownload() {
     <main className="bg-graphite-950 text-cream-100">
       {/* ------------------------------------------------ DOBRA 0 · A RECOMPENSA */}
       <section className="relative flex min-h-[70dvh] flex-col overflow-hidden">
-        <div className="pointer-events-none absolute -left-32 top-1/4 size-96 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
+        <picture>
+          <source media="(min-width: 768px)" srcSet="/bg-estaaqui-desktop.webp" />
+          <img
+            src="/bg-estaaqui-mobile.webp"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 size-full object-cover object-top md:object-center"
+          />
+        </picture>
+        <div className="absolute inset-0 bg-graphite-950/55" aria-hidden />
         <div className="relative z-10 flex justify-center pt-10 md:pt-12">
           <img src="/logo-anju.svg" alt="Anju Mace" className="h-4 w-auto animate-fade-in" />
         </div>
@@ -147,7 +156,7 @@ export function AppGuiaDownload() {
             Os cinco tipos de falha, separados um a um, com o que fazer quando cada um aparece.
           </p>
           <div className="flex animate-fade-in-up flex-col items-center gap-3 [animation-delay:440ms]">
-            <CtaPill label="Baixar o guia agora" href={PDF_URL} download icon={Download} />
+            <CtaPill label="Baixar o guia agora" icon={Download} />
             <p className="text-center text-caption text-cream-100/45">
               Também mandei uma cópia para o seu e-mail,<br />caso você prefira ler depois.
             </p>
@@ -265,7 +274,7 @@ export function AppGuiaDownload() {
             ))}
           </div>
           <Reveal className="flex max-w-3xl flex-col items-center gap-6 self-center text-center">
-            <p className="font-display text-body-lg text-cream-100">O treino é onde se começa. O templo é onde se chega.</p>
+            <p className="font-display text-h2 text-cream-100">O treino é onde se começa.<br className="hidden md:block" /> O templo é onde se chega.</p>
             <CtaPill label="Quero o método completo" href={LINK_CHECKOUT_TEMPLO} />
             <p className="text-caption text-cream-100/45">Seu corpo em movimento, seu poder em liberdade.</p>
           </Reveal>
