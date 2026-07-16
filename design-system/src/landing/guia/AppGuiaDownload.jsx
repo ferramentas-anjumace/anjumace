@@ -66,16 +66,17 @@ function LetterGroupCard({ letters, label, statement, tone = 'light', className 
 }
 
 /** Dobra de pilar (M/P/L/O) — headline, sub e corpo, alternando claro/escuro.
-    Sticky empilhado: SEM wrapper, o contêiner do sticky é o <main> inteiro,
-    então a seção fica travada por um intervalo de scroll bem longo — o que é
-    o que faz o efeito funcionar (o próximo pilar, com z maior, pinta por
-    cima enquanto o de baixo ainda está travado). Um wrapper com altura igual
-    à da seção elimina esse intervalo (vira scroll normal, sem travar nada);
-    por isso só o ÚLTIMO pilar (isLast) ganha wrapper — e aí sim limitado,
-    só pra ele soltar a tempo do Fechamento aparecer depois dele. */
-function PilarSection({ letter, headline, sub, tone, z, isLast, children }) {
+    As 4 dobras precisam compartilhar UM ÚNICO contêiner de sticky (ver o
+    wrapper em torno delas lá embaixo) — contêineres separados por seção
+    nunca dão sobreposição real (M só solta depois que P já teria que ter
+    soltado também, então nunca ficam grudados ao mesmo tempo). Com um
+    contêiner comum, mais alto que a soma das 4, todas soltam no MESMO
+    instante (perto do fim) — o que não é visível, pois M/P/L já estão
+    cobertas por O havia muito, e evita o "pisca de volta" de quem soltasse
+    sozinho antes das outras. */
+function PilarSection({ letter, headline, sub, tone, z, children }) {
   const light = tone === 'light'
-  const section = (
+  return (
     <section
       className={`sticky top-0 ${z} flex min-h-dvh flex-col justify-center rounded-t-[2.5rem] py-20 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.4)] md:py-28 ${
         light ? 'bg-cream-100 text-graphite-900' : 'bg-graphite-950 text-cream-100'
@@ -93,7 +94,6 @@ function PilarSection({ letter, headline, sub, tone, z, isLast, children }) {
       </div>
     </section>
   )
-  return isLast ? <div className="h-[220dvh]">{section}</div> : section
 }
 
 export function AppGuiaDownload() {
@@ -156,6 +156,7 @@ export function AppGuiaDownload() {
       </section>
 
       {/* ------------------------------------------------ DOBRAS 2-5 · OS PILARES */}
+      <div className="h-[460dvh]">
       <PilarSection
         letter="M"
         tone="dark"
@@ -195,7 +196,6 @@ export function AppGuiaDownload() {
         letter="O"
         tone="light"
         z="z-40"
-        isLast
         headline="As suas escolhas estéticas não são neutras. Elas contam uma história sobre você."
         sub={'A pergunta não é "posso usar isso". A pergunta é: o que isso está dizendo sobre mim, e é verdade?'}
       >
@@ -203,6 +203,7 @@ export function AppGuiaDownload() {
         <p>Existe uma pergunta simples, e ela cabe em toda manhã: o que eu quero comunicar hoje? Não o que gera mais reação. O que reflete quem eu sou.</p>
         <p>É o pilar mais silencioso do método, e o que mais muda a forma como você atravessa uma sala.</p>
       </PilarSection>
+      </div>
 
       {/* --------------------------------------------- FECHAMENTO · O QUE VOCÊ RECEBE */}
       <section className="border-t border-cream-100/10 py-20 md:py-28">
