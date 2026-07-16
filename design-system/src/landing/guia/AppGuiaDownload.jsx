@@ -66,34 +66,34 @@ function LetterGroupCard({ letters, label, statement, tone = 'light', className 
 }
 
 /** Dobra de pilar (M/P/L/O) — headline, sub e corpo, alternando claro/escuro.
-    Sticky empilhado: o <div> externo precisa ser MAIS ALTO que a seção (aqui,
-    160dvh) pra existir uma folga real de scroll em que a seção fica "grudada"
-    no topo — com o wrapper do mesmo tamanho do filho, o intervalo de stick é
-    zero e o efeito é indistinguível de scroll normal (mesmo com position:
-    sticky computado certinho). Ainda assim o wrapper é limitado (não é o
-    <main> inteiro), então cada seção solta a tempo da próxima cobrir. */
-function PilarSection({ letter, headline, sub, tone, z, children }) {
+    Sticky empilhado: SEM wrapper, o contêiner do sticky é o <main> inteiro,
+    então a seção fica travada por um intervalo de scroll bem longo — o que é
+    o que faz o efeito funcionar (o próximo pilar, com z maior, pinta por
+    cima enquanto o de baixo ainda está travado). Um wrapper com altura igual
+    à da seção elimina esse intervalo (vira scroll normal, sem travar nada);
+    por isso só o ÚLTIMO pilar (isLast) ganha wrapper — e aí sim limitado,
+    só pra ele soltar a tempo do Fechamento aparecer depois dele. */
+function PilarSection({ letter, headline, sub, tone, z, isLast, children }) {
   const light = tone === 'light'
-  return (
-    <div className="relative h-[160dvh]">
-      <section
-        className={`sticky top-0 ${z} flex h-dvh flex-col justify-center rounded-t-[2.5rem] py-20 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.4)] md:py-28 ${
-          light ? 'bg-cream-100 text-graphite-900' : 'bg-graphite-950 text-cream-100'
-        }`}
-      >
-        <div className="container flex max-w-3xl flex-col gap-8">
-          <Reveal className="flex flex-col gap-6">
-            <LetterTile letter={letter} active tone={tone} />
-            <h2 className={`text-h2 ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{headline}</h2>
-            <p className={`text-body-lg ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{sub}</p>
-          </Reveal>
-          <Reveal delay={100} className={`flex flex-col gap-4 text-body-lg ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>
-            {children}
-          </Reveal>
-        </div>
-      </section>
-    </div>
+  const section = (
+    <section
+      className={`sticky top-0 ${z} flex min-h-dvh flex-col justify-center rounded-t-[2.5rem] py-20 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.4)] md:py-28 ${
+        light ? 'bg-cream-100 text-graphite-900' : 'bg-graphite-950 text-cream-100'
+      }`}
+    >
+      <div className="container flex max-w-3xl flex-col gap-8">
+        <Reveal className="flex flex-col gap-6">
+          <LetterTile letter={letter} active tone={tone} />
+          <h2 className={`text-h2 ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{headline}</h2>
+          <p className={`text-body-lg ${light ? 'text-graphite-900' : 'text-cream-100'}`}>{sub}</p>
+        </Reveal>
+        <Reveal delay={100} className={`flex flex-col gap-4 text-body-lg ${light ? 'text-graphite-900/70' : 'text-cream-100/70'}`}>
+          {children}
+        </Reveal>
+      </div>
+    </section>
   )
+  return isLast ? <div className="h-[220dvh]">{section}</div> : section
 }
 
 export function AppGuiaDownload() {
@@ -195,6 +195,7 @@ export function AppGuiaDownload() {
         letter="O"
         tone="light"
         z="z-40"
+        isLast
         headline="As suas escolhas estéticas não são neutras. Elas contam uma história sobre você."
         sub={'A pergunta não é "posso usar isso". A pergunta é: o que isso está dizendo sobre mim, e é verdade?'}
       >
