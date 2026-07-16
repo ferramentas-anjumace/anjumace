@@ -18,9 +18,9 @@ function CtaPill({ label, href, download = false, icon: Icon = ArrowRight }) {
     <a
       href={href}
       download={download || undefined}
-      className={`group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
+      className={`group flex h-16 w-full max-w-sm items-center gap-2.5 rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal sm:w-auto sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
     >
-      <span className="flex-1 whitespace-nowrap text-center text-xs sm:text-sm md:text-base">{label}</span>
+      <span className="flex-1 whitespace-nowrap text-center text-sm md:text-base">{label}</span>
       <span className="inline-grid size-12 shrink-0 place-items-center rounded-full bg-cream-100/80 text-graphite-900 transition-transform duration-moderate ease-spring group-hover:translate-x-0.5">
         <Icon className="size-5" strokeWidth={1.5} aria-hidden />
       </span>
@@ -66,19 +66,29 @@ function LetterGroupCard({ letters, label, statement, tone = 'light', className 
 }
 
 /** Card de entregável — ícone, título, descrição e um print/imagem embaixo
-    (placeholder tracejado enquanto o asset daquele módulo não existe). */
+    (placeholder tracejado enquanto o asset daquele módulo não existe).
+    min-h fixo (medido pelo card com mais texto) + descrição em flex-1 pra
+    todos os 7 ficarem com a mesma altura e a imagem alinhada embaixo. */
 function DeliverableCard({ icon: Icon, title, description, imageLabel, image }) {
   return (
-    <div className="flex flex-col gap-5 rounded-3xl bg-cream-100 p-8 text-graphite-900">
+    <div className="flex min-h-[520px] flex-col gap-5 rounded-3xl bg-cream-100 p-8 text-graphite-900">
       <span className="grid size-12 place-items-center rounded-full bg-sage-500/15 text-sage-700">
         <Icon className="size-6" strokeWidth={1.5} aria-hidden />
       </span>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         <h3 className="text-h4 font-medium text-graphite-900">{title}</h3>
         <p className="text-body text-graphite-900/70">{description}</p>
       </div>
       {image ? (
-        <img src={image} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover" />
+        <img
+          src={image}
+          alt=""
+          width={800}
+          height={600}
+          loading="lazy"
+          decoding="async"
+          className="aspect-[4/3] w-full rounded-2xl object-cover"
+        />
       ) : (
         <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-graphite-900/15 bg-graphite-900/5 p-4 text-center text-graphite-900/45">
           <ImageIcon className="size-6" strokeWidth={1.5} aria-hidden />
@@ -138,8 +148,8 @@ export function AppGuiaDownload() {
           </p>
           <div className="flex animate-fade-in-up flex-col items-center gap-3 [animation-delay:440ms]">
             <CtaPill label="Baixar o guia agora" href={PDF_URL} download icon={Download} />
-            <p className="text-caption text-cream-100/45">
-              Também mandei uma cópia para o seu e-mail, caso você prefira ler depois.
+            <p className="text-center text-caption text-cream-100/45">
+              Também mandei uma cópia para o seu e-mail,<br />caso você prefira ler depois.
             </p>
           </div>
         </div>
@@ -149,7 +159,7 @@ export function AppGuiaDownload() {
       <section className="bg-cream-100 py-20 text-graphite-900 md:py-28">
         <div className="container flex max-w-3xl flex-col gap-8">
           <Reveal className="flex flex-col gap-4">
-            <h2 className="text-h2 text-graphite-900">Este guia é um pedaço de um método. Falta te contar de qual.</h2>
+            <h2 className="text-h2 text-graphite-900">Este guia é um pedaço de um método.<br className="sm:hidden" /> Falta te contar de qual.</h2>
             <p className="text-body-lg text-graphite-900">
               O Plano Templo é o método que transforma treino em jornada, e jornada em identidade.
               Seis pilares, e o guia que você acabou de baixar mora dentro de dois deles.
@@ -245,9 +255,9 @@ export function AppGuiaDownload() {
               ['Programas de treino periodizados.', 'Por nível e por frequência, criados por mim. Você para de montar sessão e passa a executar sessão.', Dumbbell, 'Print de um programa de treino', '/guia-programa-treino.webp'],
               ['A biblioteca de execução.', 'Cada exercício gravado por mim, com foco na ativação correta para o corpo feminino. É onde o guia que você baixou sai do papel.', PlayCircle, 'Print de um vídeo de execução', '/guia-execucao.webp'],
               ['O guia de treino.', 'Zona de repetição, ordem dos exercícios, série preparatória, modo foco.', ClipboardList, 'Print do guia de treino', '/guia-guia-treino.webp'],
-              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade', null],
+              ['Rotinas de mobilidade.', 'Por grupo muscular, como higiene do movimento.', Activity, 'Print de uma rotina de mobilidade', '/guia-mobilidade.webp'],
               ['A Aliança.', 'A comunidade onde as Aliadas sustentam a constância umas das outras. Sem casta, sem hierarquia de mérito.', Users, 'Print da comunidade A Aliança', '/guia-alianca.webp'],
-              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus', null],
+              ['Dois bônus.', 'Alongamentos Conscientes, cinco aulas guiadas. Mentalidade de Treino Intencional, quatro micro-aulas sobre constância e procrastinação.', Gift, 'Print dos bônus', '/guia-bonus.webp'],
             ].map(([t, d, Icon, imgLabel, img], i) => (
               <Reveal key={t} delay={i * 60}>
                 <DeliverableCard icon={Icon} title={t} description={d} imageLabel={imgLabel} image={img} />
@@ -264,7 +274,7 @@ export function AppGuiaDownload() {
 
       <footer className="border-t border-cream-100/10 py-10">
         <div className="container flex justify-center">
-          <img src="/logo-anju.svg" alt="Anju Mace" className="h-3.5 w-auto opacity-50" />
+          <img src="/logo-anju.svg" alt="Anju Mace" loading="lazy" className="h-3.5 w-auto opacity-50" />
         </div>
       </footer>
     </main>
