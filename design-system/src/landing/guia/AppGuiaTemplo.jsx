@@ -50,43 +50,49 @@ function CtaRow({ tone = 'dark', primaryLabel = 'Sim, quero meus trinta dias abe
   )
 }
 
-/** Barra de progresso do funil — "Passo 2 de 2", 2 segmentos. */
+/** Barra de progresso do funil — "Passo 2 de 2", 2 segmentos. No mobile o
+    texto completo (whitespace-nowrap + string longa) estourava a largura e
+    espremia os segmentos a quase zero — texto curto até sm, completo dali
+    pra cima (mesmo recibo de tamanho responsivo do form de /guia). */
 function ProgressBar() {
   return (
     <div className="sticky top-0 z-20 border-b border-cream-100/10 bg-graphite-950/90 backdrop-blur-sm">
-      <div className="container flex items-center gap-4 py-3">
+      <div className="container flex items-center gap-3 py-3 sm:gap-4">
         <div className="flex flex-1 gap-1.5">
           <span className="h-1 flex-1 rounded-full bg-sage-400" aria-hidden />
           <span className="h-1 flex-1 rounded-full bg-sage-400" aria-hidden />
         </div>
-        <p className="whitespace-nowrap text-caption uppercase tracking-wider text-cream-100/50">
-          Passo 2 de 2 · Uma condição que existe só nesta página
+        <p className="shrink-0 whitespace-nowrap text-[10px] uppercase tracking-wide text-cream-100/50 sm:text-caption sm:tracking-wider">
+          <span className="sm:hidden">Passo 2 de 2</span>
+          <span className="hidden sm:inline">Passo 2 de 2 · Uma condição que existe só nesta página</span>
         </p>
       </div>
     </div>
   )
 }
 
-/** Caixa da oferta — preço riscado vs. hoje por zero, moldura dourada. */
+/** Caixa da oferta — preço riscado vs. hoje por zero, moldura dourada.
+    Compacta no mobile (padding, gap e o R$0 menor) pra caber inteira na
+    primeira dobra junto com o CTA — pedido do usuário (20/07). */
 function OfferBox() {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-gold-400/30 bg-gradient-to-br from-gold-100 via-cream-50 to-gold-100 p-8 text-graphite-900 shadow-lg md:p-10">
+    <div className="relative overflow-hidden rounded-3xl border border-gold-400/30 bg-gradient-to-br from-gold-100 via-cream-50 to-gold-100 p-5 text-graphite-900 shadow-lg sm:p-8 md:p-10">
       <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-shine bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-      <div className="relative flex flex-col items-center gap-4 text-center">
-        <span className="inline-flex items-center rounded-full border border-gold-500/40 bg-white/50 px-4 py-2 text-caption uppercase tracking-wider text-gold-700">
+      <div className="relative flex flex-col items-center gap-2 text-center sm:gap-4">
+        <span className="inline-flex items-center rounded-full border border-gold-500/40 bg-white/50 px-3 py-1.5 text-caption uppercase tracking-wider text-gold-700 sm:px-4 sm:py-2">
           Plano Templo · Acesso completo
         </span>
-        <div className="flex items-end justify-center gap-4">
+        <div className="flex items-end justify-center gap-3 sm:gap-4">
           <span className="flex flex-col items-center">
             <span className="text-caption uppercase tracking-wide text-graphite-900/45">Primeiro mês</span>
             <span className="text-h4 text-graphite-900/40 line-through">R$ 127</span>
           </span>
           <span className="flex flex-col items-center">
             <span className="text-caption uppercase tracking-wide text-sage-700">Hoje</span>
-            <span className="font-display text-h1 text-sage-700">R$ 0</span>
+            <span className="font-display text-h2 text-sage-700 sm:text-h1">R$ 0</span>
           </span>
         </div>
-        <p className="max-w-sm text-body text-graphite-900/70">
+        <p className="max-w-sm text-body-sm text-graphite-900/70 sm:text-body">
           Cobrança apenas no trigésimo primeiro dia. Cancele em um clique, sem justificar nada.
         </p>
       </div>
@@ -161,11 +167,11 @@ export function AppGuiaTemplo() {
       <section className="relative flex min-h-dvh flex-col overflow-hidden">
         <div className="pointer-events-none absolute -left-32 top-1/4 size-96 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
         <div className="pointer-events-none absolute -right-24 bottom-0 size-72 animate-float rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
-        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
+        <div className="container relative flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center sm:gap-6 sm:py-12 lg:gap-8 lg:py-16">
           <p className="animate-fade-in text-caption uppercase tracking-wider text-sage-400">
             Tudo bem. Prescrição individual não é para todo momento da jornada.
           </p>
-          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
+          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[32px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
             Então fique com o método inteiro por trinta dias, e não pague nada por eles<span className="text-sage-400">.</span>
           </h1>
           <p className="max-w-2xl animate-fade-in-up text-body-lg text-cream-100/75 [animation-delay:280ms]">
@@ -174,7 +180,7 @@ export function AppGuiaTemplo() {
           <div className="w-full max-w-lg animate-fade-in-up [animation-delay:360ms]">
             <OfferBox />
           </div>
-          <div className="flex animate-fade-in-up flex-col items-center gap-4 [animation-delay:440ms]">
+          <div className="flex animate-fade-in-up flex-col items-center gap-2 [animation-delay:440ms] sm:gap-4">
             <CtaPill label="Sim, quero meus trinta dias abertos" href={LINK_CHECKOUT_TEMPLO_TRIAL} />
             <p className="text-center text-caption text-cream-100/45">Acesso liberado em minutos. Nenhuma cobrança hoje.</p>
             <a href={LINK_CHECKOUT_TEMPLO_NORMAL} className="text-caption text-cream-100/45 underline underline-offset-4 transition-colors hover:text-cream-100/70">
