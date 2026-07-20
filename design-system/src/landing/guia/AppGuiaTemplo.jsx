@@ -5,16 +5,16 @@ import { Reveal } from '../singular/Reveal'
    Copy verbatim do documento do funil (Página de Downsell · One Time Offer).
    Exibida só após recusa do Singular em /guia/obrigado; sem retorno (a
    condição não reaparece se a visitante sair e voltar — reforçar isso no
-   nível de rota/sessão quando o checkout Stripe com trial existir).
+   nível de rota/sessão; ainda pendente).
    Mesmo vocabulário visual de /singular e de /guia/obrigado (orbes, cards
    com ícone, banda de bônus, marquee, glow) — pedido do usuário (16/07)
    pra manter a riqueza visual consistente em todo o funil.
    Cards de "o que abre hoje" usam as MESMAS fotos de /guia/download (é o
    mesmo conteúdo do Plano Templo) — pedido do usuário (20/07). */
 
-// TODO: trocar pelo link real de checkout do Plano Templo (trial 30 dias) quando existir — depende do Stripe (Miranda).
-const LINK_CHECKOUT_TEMPLO_TRIAL = '#checkout-templo-trial'
-const LINK_CHECKOUT_TEMPLO_NORMAL = '#checkout-templo'
+// Links reais de checkout na Circle (planilha "Ofertas na Circle", 20/07).
+const LINK_CHECKOUT_TEMPLO_TRIAL = 'https://anju-mace.circle.so/checkout/plano-templo-alunas-or-30-dias-free-or'
+const LINK_CHECKOUT_TEMPLO_NORMAL = 'https://anju-mace.circle.so/checkout/plano-templo'
 
 const gradient =
   'bg-gradient-to-r from-sage-400 via-cream-200 to-sage-500 bg-[length:200%_100%] bg-left hover:bg-right text-graphite-900 shadow-md hover:shadow-lg transition-[background-position,box-shadow,transform] duration-slow ease-out'

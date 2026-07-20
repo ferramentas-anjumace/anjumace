@@ -6,8 +6,9 @@ import { Reveal } from '../singular/Reveal'
    dobra 0 entrega o PDF; dobras 1-5 apresentam o método e os quatro pilares
    que o guia não cobre; fechamento vende o Plano Templo. */
 
-// TODO: trocar pelo link real de checkout do Plano Templo quando existir.
-const LINK_CHECKOUT_TEMPLO = '#checkout-templo'
+// Link real de checkout na Circle (planilha "Ofertas na Circle", 20/07) —
+// mesma oferta do CTA "Templo normal" em /guia/templo.
+const LINK_CHECKOUT_TEMPLO = 'https://anju-mace.circle.so/checkout/plano-templo'
 
 const gradient =
   'bg-gradient-to-r from-sage-400 via-cream-200 to-sage-500 bg-[length:200%_100%] bg-left hover:bg-right text-graphite-900 shadow-md hover:shadow-lg transition-[background-position,box-shadow,transform] duration-slow ease-out'

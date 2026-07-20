@@ -21,8 +21,8 @@ import { ImagePlaceholder } from '../singular/ImagePlaceholder'
    guia-avaliacao.webp) — 20/07. IncludeCard mantém o fallback ImagePlaceholder
    pra qualquer item futuro sem foto ainda. */
 
-// TODO: trocar pelo link real de checkout do Plano Templo Singular quando existir.
-const LINK_CHECKOUT_SINGULAR = '#checkout-singular'
+// Link real de checkout na Circle (planilha "Ofertas na Circle", 20/07).
+const LINK_CHECKOUT_SINGULAR = 'https://anju-mace.circle.so/checkout/plano-templo-singular'
 const LINK_GUIA_DOWNLOAD = '/guia/download'
 
 const gradient =
