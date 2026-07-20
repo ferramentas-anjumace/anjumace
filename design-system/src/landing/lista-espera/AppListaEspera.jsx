@@ -4,7 +4,9 @@ import { HERO, FORM, ERROS, SUCESSO, PRIVACIDADE } from './data'
 
 /* Captura pública → função lista_espera_signup no Supabase da Central
    (migration 0040). A anon key é pública por design — quem protege a
-   tabela é o RLS + a própria função. */
+   tabela é o RLS + a própria função.
+   Sync ActiveCampaign (tag "Lista de Espera", lista "LEADS") via
+   /api/ac-sync, fire-and-forget — nunca bloqueia a conversão. */
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || 'https://hcinspgpmmsohtbizvor.supabase.co'
 const SUPABASE_ANON_KEY =
@@ -24,6 +26,13 @@ async function enviarLead({ name, email, whatsapp }) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
   if (!data?.ok) throw new Error(data?.error || 'invalid')
+
+  fetch('/api/ac-sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, phone: whatsapp, source: 'lista_espera' }),
+  }).catch(() => {})
+
   return data
 }
 
