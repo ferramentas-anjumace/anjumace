@@ -1,5 +1,6 @@
 import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
+import { ImagePlaceholder } from '../singular/ImagePlaceholder'
 
 /* Página de obrigado / venda do Plano Templo Singular (/guia/obrigado).
    Copy verbatim do documento do funil (Página de Obrigado · Venda).
@@ -8,7 +9,17 @@ import { Reveal } from '../singular/Reveal'
    decisão da All Hands 15/07: Templo = 15 dias, Singular = 7 dias).
    Vocabulário visual emprestado de /singular (orbes, painel-assinatura,
    marquee, banda de bônus) pra não ficar uma sequência monótona de blocos
-   de texto — feedback do usuário (16/07). */
+   de texto — feedback do usuário (16/07).
+   Hero (dobra 1) ganha foto de fundo (bg-guiaobrigado-desktop/mobile.webp,
+   crop próprio por breakpoint), mesmo tratamento de /guia — por isso os
+   orbes decorativos saíram, a foto já carrega o peso visual — 20/07.
+   Cards de "o que entra no Singular" ganham foto — os 6: método reaproveita
+   foto que já existe em /singular (mesmo conteúdo); correção de execução
+   reaproveita guia-guia-treino.webp de /guia/download (mesma foto, pedido do
+   usuário); ficha, alongamentos, reavaliação e leitura do corpo têm foto
+   própria (guia-ficha.webp, guia-alongamentos.webp, guia-reavaliacao.webp,
+   guia-avaliacao.webp) — 20/07. IncludeCard mantém o fallback ImagePlaceholder
+   pra qualquer item futuro sem foto ainda. */
 
 // TODO: trocar pelo link real de checkout do Plano Templo Singular quando existir.
 const LINK_CHECKOUT_SINGULAR = '#checkout-singular'
@@ -50,10 +61,13 @@ function CtaRow({ tone = 'dark', secondaryLabel = 'Não, quero apenas o e-book',
   )
 }
 
-/** Card do "você não sabe" — grid 3 col no lugar de parágrafos empilhados. */
+/** Card do "você não sabe" — grid 3 col no lugar de parágrafos empilhados.
+    h-full: o Reveal que envolve já estica pra altura da linha do grid, mas
+    sem h-full aqui o card fica do tamanho do próprio texto — os 3 boxes da
+    linha ficavam com altura diferente (pedido de harmonia do usuário 20/07). */
 function FactCard({ children }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+    <div className="flex h-full flex-col gap-3 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
       <span className="h-0.5 w-6 bg-sage-500" aria-hidden />
       <p className="text-body text-graphite-900/75">{children}</p>
     </div>
@@ -61,11 +75,12 @@ function FactCard({ children }) {
 }
 
 /** Tile numerado — os 4 movimentos do mecanismo, alternando sálvia/dourado
-    (eco do FalhaCard da captura) + grid 2 col no desktop. */
+    (eco do FalhaCard da captura) + grid 2 col no desktop. h-full pelo mesmo
+    motivo do FactCard acima. */
 function StepTile({ n, title, children, accent = 'sage' }) {
   const gold = accent === 'gold'
   return (
-    <div className={`flex gap-5 rounded-2xl border p-6 ${gold ? 'border-gold-300/25 bg-gold-300/5' : 'border-sage-500/25 bg-sage-500/10'}`}>
+    <div className={`flex h-full gap-5 rounded-2xl border p-6 ${gold ? 'border-gold-300/25 bg-gold-300/5' : 'border-sage-500/25 bg-sage-500/10'}`}>
       <span className={`grid size-12 shrink-0 place-items-center rounded-xl border font-display text-lg font-extralight ${gold ? 'border-gold-300/50 bg-gold-300/10 text-gold-300' : 'border-sage-500/50 bg-sage-500/15 text-sage-400'}`}>
         {n}
       </span>
@@ -77,16 +92,28 @@ function StepTile({ n, title, children, accent = 'sage' }) {
 }
 
 /** Card com ícone — os 6 itens "core" do que entra no Singular (grid 3 col,
-    mesmo vocabulário do DeliverableCard de /guia/download). */
-function IncludeCard({ icon: Icon, title, children }) {
+    mesmo vocabulário do DeliverableCard de /guia/download). Foto real quando
+    já existe (reaproveitada de /singular); senão, ImagePlaceholder. */
+function IncludeCard({ icon: Icon, title, image, imageAlt = '', imageLabel, children }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+    <div className="flex h-full flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
       <span className="grid size-11 place-items-center rounded-full bg-sage-500/15 text-sage-700">
         <Icon className="size-5" strokeWidth={1.5} aria-hidden />
       </span>
       <p className="text-body text-graphite-900/75">
         <strong className="font-medium text-graphite-900">{title}</strong> {children}
       </p>
+      {image ? (
+        <img src={image} alt={imageAlt} loading="lazy" className="mt-auto aspect-[16/10] w-full rounded-xl object-cover" />
+      ) : (
+        <ImagePlaceholder
+          label={imageLabel}
+          size="1200 × 750 px · 16:10 · WebP"
+          ratio="aspect-[16/10]"
+          rounded="rounded-xl"
+          className="mt-auto"
+        />
+      )}
     </div>
   )
 }
@@ -118,13 +145,17 @@ function GuaranteeBadge() {
           d={`M ${r - textRadius},${r} a ${textRadius},${textRadius} 0 1,1 ${textRadius * 2},0 a ${textRadius},${textRadius} 0 1,1 -${textRadius * 2},0`}
         />
       </defs>
-      {ticks.map((angle) => (
-        <line key={angle} x1={r} y1={4} x2={r} y2={12} stroke="currentColor" strokeWidth="1" opacity="0.4" transform={`rotate(${angle} ${r} ${r})`} />
-      ))}
-      <text fontSize="7.5" letterSpacing="1.5" fill="currentColor" className="uppercase">
-        <textPath href="#guarantee-ring" startOffset="0%">{ringText.repeat(2)}</textPath>
-      </text>
-      <text x={r} y={r} textAnchor="middle" dominantBaseline="central" fontSize="36" fontWeight="300" fill="currentColor" className="font-display">
+      <g className="animate-spin-slow-reverse" style={{ transformOrigin: `${r}px ${r}px` }}>
+        {ticks.map((angle) => (
+          <line key={angle} x1={r} y1={4} x2={r} y2={12} stroke="currentColor" strokeWidth="1" opacity="0.4" transform={`rotate(${angle} ${r} ${r})`} />
+        ))}
+      </g>
+      <g className="animate-spin-slow" style={{ transformOrigin: `${r}px ${r}px` }}>
+        <text fontSize="7.5" letterSpacing="2.5" fill="currentColor" className="uppercase">
+          <textPath href="#guarantee-ring" startOffset="0%">{ringText.repeat(3)}</textPath>
+        </text>
+      </g>
+      <text x={r} y={r} textAnchor="middle" dominantBaseline="central" fontSize="44" fontWeight="300" fill="currentColor" className="font-display">
         7D
       </text>
     </svg>
@@ -168,22 +199,33 @@ export function AppGuiaObrigado() {
     <main className="bg-graphite-950 text-cream-100">
       {/* --------------------------------------------------------- 1 · HERO */}
       <section className="relative flex min-h-dvh flex-col overflow-hidden">
-        <div className="pointer-events-none absolute -right-32 top-1/3 size-96 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -left-24 bottom-0 size-72 animate-float rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
+        {/* Foto de fundo (arte própria por breakpoint) + véu grafite, mesmo
+            tratamento do hero de /guia. */}
+        <picture>
+          <source media="(min-width: 768px)" srcSet="/bg-guiaobrigado-desktop.webp" />
+          <img
+            src="/bg-guiaobrigado-mobile.webp"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 size-full object-cover object-center"
+          />
+        </picture>
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-graphite-950" aria-hidden />
         <div className="relative z-10 flex justify-center pt-10 md:pt-12">
           <img src="/logo-anju.svg" alt="Anju Mace" className="h-4 w-auto animate-fade-in" />
         </div>
         <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
-          <span className="inline-flex animate-fade-in items-center rounded-full border border-sage-400/40 bg-cream-100/5 px-4 py-2 text-caption uppercase tracking-wider text-sage-400">
+          <p className="animate-fade-in text-label text-sage-400">
             O e-book já está a caminho do seu e-mail
-          </span>
+          </p>
           <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
             A teoria chega hoje. O corpo que vai recebê-la continua sem ninguém lendo<span className="text-sage-400">.</span>
           </h1>
           <p className="max-w-2xl animate-fade-in-up text-body-lg text-cream-100/75 [animation-delay:280ms]">
-            Nas próximas semanas você vai treinar de qualquer forma. A pergunta que esta página faz é uma
-            só: esse ciclo vai acontecer com uma prescrição feita para o seu corpo, ou vai ser mais um
-            ciclo em que você aplica sozinha uma teoria escrita para todo mundo?
+            Nas próximas semanas você vai treinar de qualquer forma.<br className="hidden md:block" />
+            A pergunta que esta página faz é uma só: esse ciclo vai acontecer<br className="hidden md:block" />
+            com uma prescrição feita para o seu corpo, ou vai ser mais um ciclo<br className="hidden md:block" />
+            em que você aplica sozinha uma teoria escrita para todo mundo?
           </p>
           <div className="flex animate-fade-in-up flex-col items-center gap-4 [animation-delay:440ms]">
             <CtaRow />
@@ -202,9 +244,9 @@ export function AppGuiaObrigado() {
             <p>Só que observar sozinha tem um limite, e é sempre o mesmo: ninguém está olhando de fora.</p>
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Reveal delay={150}><FactCard>Você não sabe se a sua lombar arredonda nas três últimas repetições.</FactCard></Reveal>
-            <Reveal delay={220}><FactCard>Você não sabe qual dos seus encurtamentos está roubando amplitude do quadril.</FactCard></Reveal>
-            <Reveal delay={290}><FactCard>Você não sabe se a ordem dos exercícios da sua sessão está gastando o seu sistema nervoso antes da hora.</FactCard></Reveal>
+            <Reveal delay={150} className="h-full"><FactCard>Você não sabe se a sua lombar arredonda nas três últimas repetições.</FactCard></Reveal>
+            <Reveal delay={220} className="h-full"><FactCard>Você não sabe qual dos seus encurtamentos está roubando amplitude do quadril.</FactCard></Reveal>
+            <Reveal delay={290} className="h-full"><FactCard>Você não sabe se a ordem dos exercícios da sua sessão está gastando o seu sistema nervoso antes da hora.</FactCard></Reveal>
           </div>
           <Reveal delay={340}>
             <Callout tone="light">Nenhuma quantidade de leitura resolve isso, porque não é um problema de informação. É um problema de leitura. E leitura, alguém precisa fazer.</Callout>
@@ -227,10 +269,10 @@ export function AppGuiaObrigado() {
             </p>
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Reveal delay={0}><StepTile n="1" title="Leitura.">Avaliação individual completa: formulário, fotos composicionais e testes funcionais, antes de qualquer exercício ser prescrito.</StepTile></Reveal>
-            <Reveal delay={80}><StepTile n="2" accent="gold" title="Prescrição.">Ficha desenhada do zero por Anju, a partir do seu corpo e da prioridade que você declara.</StepTile></Reveal>
-            <Reveal delay={160}><StepTile n="3" title="Execução.">Você envia o vídeo, recebe a correção. Biblioteca de execução gravada pela própria Anju.</StepTile></Reveal>
-            <Reveal delay={240}><StepTile n="4" accent="gold" title="Releitura.">Reavaliação ao fim do ciclo. A prescrição evolui porque o seu corpo evoluiu.</StepTile></Reveal>
+            <Reveal delay={0} className="h-full"><StepTile n="1" title="Leitura.">Avaliação individual completa: formulário, fotos composicionais e testes funcionais, antes de qualquer exercício ser prescrito.</StepTile></Reveal>
+            <Reveal delay={80} className="h-full"><StepTile n="2" accent="gold" title="Prescrição.">Ficha desenhada do zero por Anju, a partir do seu corpo e da prioridade que você declara.</StepTile></Reveal>
+            <Reveal delay={160} className="h-full"><StepTile n="3" title="Execução.">Você envia o vídeo, recebe a correção. Biblioteca de execução gravada pela própria Anju.</StepTile></Reveal>
+            <Reveal delay={240} className="h-full"><StepTile n="4" accent="gold" title="Releitura.">Reavaliação ao fim do ciclo. A prescrição evolui porque o seu corpo evoluiu.</StepTile></Reveal>
           </div>
           <Reveal delay={300} className="flex flex-col items-center gap-4">
             <CtaRow />
@@ -245,12 +287,12 @@ export function AppGuiaObrigado() {
             <h2 className="text-h2 text-graphite-900">O que entra no Plano Templo Singular</h2>
           </Reveal>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Reveal delay={0}><IncludeCard icon={ClipboardCheck} title="Leitura do seu corpo.">Formulário, fotos e testes funcionais, antes de qualquer exercício.</IncludeCard></Reveal>
-            <Reveal delay={60}><IncludeCard icon={FileEdit} title="Ficha prescrita do zero por Anju.">Construída a partir do seu corpo e da sua prioridade, nunca escolhida de um catálogo.</IncludeCard></Reveal>
-            <Reveal delay={120}><IncludeCard icon={RotateCcw} title="Alongamentos Conscientes prescrito.">Protocolo de mobilidade desenhado para os seus encurtamentos, mapeados na avaliação.</IncludeCard></Reveal>
-            <Reveal delay={180}><IncludeCard icon={Video} title="Correção de execução.">Você envia o vídeo, recebe a análise, com foco na ativação correta para o corpo feminino.</IncludeCard></Reveal>
-            <Reveal delay={240}><IncludeCard icon={ClipboardCheck} title="Reavaliação e relatório ao fim do ciclo.">Ponto de partida e ponto de chegada, lado a lado.</IncludeCard></Reveal>
-            <Reveal delay={300}><IncludeCard icon={Route} title="Método T.E.M.P.L.O. em trilha guiada.">Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.</IncludeCard></Reveal>
+            <Reveal delay={0} className="h-full"><IncludeCard icon={ClipboardCheck} image="/guia-avaliacao.webp" imageAlt="Formulário e fotos da avaliação inicial" title="Leitura do seu corpo.">Formulário, fotos e testes funcionais, antes de qualquer exercício.</IncludeCard></Reveal>
+            <Reveal delay={60} className="h-full"><IncludeCard icon={FileEdit} image="/guia-ficha.webp" imageAlt="Aluna conferindo a ficha da Prescrição Singular pelo celular" title="Ficha prescrita do zero por Anju.">Construída a partir do seu corpo e da sua prioridade, nunca escolhida de um catálogo.</IncludeCard></Reveal>
+            <Reveal delay={120} className="h-full"><IncludeCard icon={RotateCcw} image="/guia-alongamentos.webp" imageAlt="Tabela de Alongamentos Conscientes" title="Alongamentos Conscientes prescrito.">Protocolo de mobilidade desenhado para os seus encurtamentos, mapeados na avaliação.</IncludeCard></Reveal>
+            <Reveal delay={180} className="h-full"><IncludeCard icon={Video} image="/guia-guia-treino.webp" imageAlt="Vídeo de execução com a correção de Anju" title="Correção de execução.">Você envia o vídeo, recebe a análise, com foco na ativação correta para o corpo feminino.</IncludeCard></Reveal>
+            <Reveal delay={240} className="h-full"><IncludeCard icon={ClipboardCheck} image="/guia-reavaliacao.webp" imageAlt="Anju analisando a reavaliação de uma aluna" title="Reavaliação e relatório ao fim do ciclo.">Ponto de partida e ponto de chegada, lado a lado.</IncludeCard></Reveal>
+            <Reveal delay={300} className="h-full"><IncludeCard icon={Route} image="/landing/ometodo-desktop.webp" imageAlt="As aulas dos pilares do método T.E.M.P.L.O." title="Método T.E.M.P.L.O. em trilha guiada.">Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.</IncludeCard></Reveal>
           </div>
 
           {/* Banda de suporte + bônus — brilho dourado, eco da banda-bônus de /singular */}

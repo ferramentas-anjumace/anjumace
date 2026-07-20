@@ -8,7 +8,9 @@ import { Reveal } from '../singular/Reveal'
    nível de rota/sessão quando o checkout Stripe com trial existir).
    Mesmo vocabulário visual de /singular e de /guia/obrigado (orbes, cards
    com ícone, banda de bônus, marquee, glow) — pedido do usuário (16/07)
-   pra manter a riqueza visual consistente em todo o funil. */
+   pra manter a riqueza visual consistente em todo o funil.
+   Cards de "o que abre hoje" usam as MESMAS fotos de /guia/download (é o
+   mesmo conteúdo do Plano Templo) — pedido do usuário (20/07). */
 
 // TODO: trocar pelo link real de checkout do Plano Templo (trial 30 dias) quando existir — depende do Stripe (Miranda).
 const LINK_CHECKOUT_TEMPLO_TRIAL = '#checkout-templo-trial'
@@ -21,7 +23,7 @@ function CtaPill({ label, href }) {
   return (
     <a
       href={href}
-      className={`group flex min-h-16 w-full min-w-0 max-w-sm items-center gap-2.5 rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal sm:h-16 sm:w-auto sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
+      className={`group flex min-h-16 w-full min-w-0 max-w-sm items-center gap-2.5 overflow-hidden rounded-full py-2 pl-5 pr-2 font-medium uppercase tracking-normal sm:h-16 sm:w-auto sm:gap-3 sm:pl-6 sm:tracking-wide md:gap-4 md:pl-8 ${gradient}`}
     >
       <span className="flex-1 text-center text-sm leading-tight sm:whitespace-nowrap md:text-base">{label}</span>
       <span className="inline-grid size-12 shrink-0 place-items-center rounded-full bg-cream-100/80 text-graphite-900 transition-transform duration-moderate ease-spring group-hover:translate-x-0.5">
@@ -93,10 +95,12 @@ function OfferBox() {
 }
 
 /** Card com ícone — os itens do que abre hoje (grid 3 col, mesmo vocabulário
-    do DeliverableCard de /guia/download). */
-function OpenCard({ icon: Icon, title, children }) {
+    do DeliverableCard de /guia/download; mesmas fotos, já que é o mesmo
+    conteúdo do Plano Templo mostrado ali). */
+function OpenCard({ icon: Icon, title, image, imageAlt = '', children }) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+    <div className="flex h-full flex-col gap-4 rounded-2xl border border-graphite-900/10 bg-cream-50 p-6 shadow-sm">
+      <img src={image} alt={imageAlt} loading="lazy" className="aspect-[16/10] w-full rounded-xl object-cover" />
       <span className="grid size-11 place-items-center rounded-full bg-sage-500/15 text-sage-700">
         <Icon className="size-5" strokeWidth={1.5} aria-hidden />
       </span>
@@ -188,12 +192,12 @@ export function AppGuiaTemplo() {
             <p className="text-body-lg text-graphite-900/70">Não é amostra. É o Plano Templo inteiro, do primeiro dia.</p>
           </Reveal>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Reveal delay={0}><OpenCard icon={Dumbbell} title="Programas periodizados por nível e frequência,">criados por Anju. Você para de montar sessão e passa a executar sessão.</OpenCard></Reveal>
-            <Reveal delay={60}><OpenCard icon={PlayCircle} title="Biblioteca de execução.">Cada exercício gravado por Anju, com foco na ativação correta para o corpo feminino. É onde os cinco tipos de falha saem do papel e viram mão na barra.</OpenCard></Reveal>
-            <Reveal delay={120}><OpenCard icon={ClipboardList} title="Guia de treino.">Zona de repetição, ordem dos exercícios, série preparatória e modo foco.</OpenCard></Reveal>
-            <Reveal delay={180}><OpenCard icon={LayoutGrid} title="Método T.E.M.P.L.O. completo.">Seis pilares, setenta e um subtópicos, em biblioteca livre.</OpenCard></Reveal>
-            <Reveal delay={240}><OpenCard icon={Activity} title="Rotinas de mobilidade,">por grupo muscular, como higiene do movimento.</OpenCard></Reveal>
-            <Reveal delay={300}><OpenCard icon={Users} title="A Aliança.">A comunidade onde as Aliadas sustentam a constância umas das outras.</OpenCard></Reveal>
+            <Reveal delay={0} className="h-full"><OpenCard icon={Dumbbell} image="/guia-programa-treino.webp" imageAlt="Print de um programa de treino" title="Programas periodizados por nível e frequência,">criados por Anju. Você para de montar sessão e passa a executar sessão.</OpenCard></Reveal>
+            <Reveal delay={60} className="h-full"><OpenCard icon={PlayCircle} image="/guia-execucao.webp" imageAlt="Print de um vídeo de execução" title="Biblioteca de execução.">Cada exercício gravado por Anju, com foco na ativação correta para o corpo feminino. É onde os cinco tipos de falha saem do papel e viram mão na barra.</OpenCard></Reveal>
+            <Reveal delay={120} className="h-full"><OpenCard icon={ClipboardList} image="/guia-guia-treino.webp" imageAlt="Print do guia de treino" title="Guia de treino.">Zona de repetição, ordem dos exercícios, série preparatória e modo foco.</OpenCard></Reveal>
+            <Reveal delay={180} className="h-full"><OpenCard icon={LayoutGrid} image="/guia-metodo.webp" imageAlt="Print da biblioteca do método" title="Método T.E.M.P.L.O. completo.">Seis pilares, setenta e um subtópicos, em biblioteca livre.</OpenCard></Reveal>
+            <Reveal delay={240} className="h-full"><OpenCard icon={Activity} image="/guia-mobilidade.webp" imageAlt="Print de uma rotina de mobilidade" title="Rotinas de mobilidade,">por grupo muscular, como higiene do movimento.</OpenCard></Reveal>
+            <Reveal delay={300} className="h-full"><OpenCard icon={Users} image="/guia-alianca.webp" imageAlt="Print da comunidade A Aliança" title="A Aliança.">A comunidade onde as Aliadas sustentam a constância umas das outras.</OpenCard></Reveal>
           </div>
 
           {/* Banda de bônus — brilho dourado, eco de /singular e /guia/obrigado */}
