@@ -46,7 +46,7 @@ function CtaPill({ label, href }) {
     visível ao lado do "sim", nunca escondido. Sem <div> próprio (fragment):
     quem chama precisa envolver em flex flex-col items-center — um wrapper
     extra aqui quebrava a base percentual do w-full do CtaPill no mobile. */
-function CtaRow({ tone = 'dark', secondaryLabel = 'Não, quero apenas o e-book', secondaryHref = '#' }) {
+function CtaRow({ tone = 'dark', secondaryLabel = 'Não, quero apenas o e-book', secondaryHref = LINK_GUIA_DOWNLOAD }) {
   const light = tone === 'light'
   return (
     <>
