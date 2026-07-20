@@ -1,4 +1,4 @@
-import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine } from 'lucide-react'
+import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine, AlertTriangle } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 import { ImagePlaceholder } from '../singular/ImagePlaceholder'
 
@@ -383,14 +383,23 @@ export function AppGuiaObrigado() {
         </div>
       </section>
 
-      {/* ---------------------------------------- BLOCO 6 · POR QUE NÃO VOLTA */}
+      {/* ---------------------------------------- BLOCO 6 · POR QUE NÃO VOLTA
+          Moldura de urgência: ícone de alerta pulsando, borda sólida com glow
+          dourado e o mesmo "shine" das bandas de bônus, no lugar da caixa
+          tracejada neutra — pedido do usuário (20/07), copy inalterada. */}
       <section className="border-t border-cream-100/10 py-20 md:py-28">
         <div className="container max-w-3xl">
-          <Reveal><h2 className="mb-8 text-h2 text-cream-100">Por que esta página não volta</h2></Reveal>
+          <Reveal className="mb-8 flex items-center gap-3">
+            <span className="inline-grid size-10 shrink-0 animate-pulse place-items-center rounded-full bg-gold-400/15 text-gold-300">
+              <AlertTriangle className="size-5" strokeWidth={1.5} aria-hidden />
+            </span>
+            <h2 className="text-h2 text-cream-100">Por que esta página não volta</h2>
+          </Reveal>
           <Reveal delay={100}>
-            <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gold-400/30 bg-gold-300/5 p-8 text-body-lg text-cream-100/70">
-              <p>O caminho para o Singular continua existindo depois daqui, pelo canal de sempre. O que não volta é este momento. Você acabou de ir atrás da teoria por trás dos seus treinos, e essa é uma decisão que quase ninguém toma. É a esse tipo de mulher que a leitura individual responde, e é agora que a porta está aberta na sua frente, sem que você precise procurar por ela.</p>
-              <p>Some a isso o limite do bloco anterior: as leituras de cada ciclo cabem no tempo de uma pessoa só, e elas se preenchem na ordem em que chegam. Não estou pedindo pressa. Estou dizendo que a espera tem um preço, e que ele é pago em ciclos de treino.</p>
+            <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-gold-400/40 bg-gold-300/5 p-8 text-body-lg text-cream-100/70 shadow-lg shadow-gold-500/10">
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-shine bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <p className="relative">O caminho para o Singular continua existindo depois daqui, pelo canal de sempre. O que não volta é este momento. Você acabou de ir atrás da teoria por trás dos seus treinos, e essa é uma decisão que quase ninguém toma. É a esse tipo de mulher que a leitura individual responde, e é agora que a porta está aberta na sua frente, sem que você precise procurar por ela.</p>
+              <p className="relative">Some a isso o limite do bloco anterior: as leituras de cada ciclo cabem no tempo de uma pessoa só, e elas se preenchem na ordem em que chegam. Não estou pedindo pressa. Estou dizendo que a espera tem um preço, e que ele é pago em ciclos de treino.</p>
             </div>
           </Reveal>
         </div>
