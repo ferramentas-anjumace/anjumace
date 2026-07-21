@@ -292,7 +292,7 @@ export function AppGuiaObrigado() {
             <Reveal delay={120} className="h-full"><IncludeCard icon={RotateCcw} image="/guia-alongamentos.webp" imageAlt="Tabela de Alongamentos Conscientes" title="Alongamentos Conscientes prescrito.">Protocolo de mobilidade desenhado para os seus encurtamentos, mapeados na avaliação.</IncludeCard></Reveal>
             <Reveal delay={180} className="h-full"><IncludeCard icon={Video} image="/guia-guia-treino.webp" imageAlt="Vídeo de execução com a correção de Anju" title="Correção de execução.">Você envia o vídeo, recebe a análise, com foco na ativação correta para o corpo feminino.</IncludeCard></Reveal>
             <Reveal delay={240} className="h-full"><IncludeCard icon={ClipboardCheck} image="/guia-reavaliacao.webp" imageAlt="Anju analisando a reavaliação de uma aluna" title="Reavaliação e relatório ao fim do ciclo.">Ponto de partida e ponto de chegada, lado a lado.</IncludeCard></Reveal>
-            <Reveal delay={300} className="h-full"><IncludeCard icon={Route} image="/landing/ometodo-desktop.webp" imageAlt="As aulas dos pilares do método T.E.M.P.L.O." title="Método T.E.M.P.L.O. em trilha guiada.">Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.</IncludeCard></Reveal>
+            <Reveal delay={300} className="h-full"><IncludeCard icon={Route} image="/guia-metodo.webp" imageAlt="As aulas dos pilares do método T.E.M.P.L.O." title="Método T.E.M.P.L.O. em trilha guiada.">Os seis pilares sequenciados conforme a sua fase, com alguém do time validando cada avanço.</IncludeCard></Reveal>
           </div>
 
           {/* Banda de suporte + bônus — brilho dourado, eco da banda-bônus de /singular */}
