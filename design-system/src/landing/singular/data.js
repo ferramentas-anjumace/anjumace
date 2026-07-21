@@ -257,9 +257,7 @@ export const CREDIBILIDADE = {
     'A Prescrição Singular não é um software nem um formulário automático. É Anju quem lê o seu corpo, prescreve, corrige e relê.',
     'A prescrição do Plano Templo Singular segue o mesmo padrão técnico que sustenta as consultorias individuais e presenciais de Anju Mace.',
   ],
-  /* ⚠️ Espaço reservado para as credenciais verificadas de Anju (registro e
-     formação). A confirmar antes da publicação. */
-  credentials: null,
+  credentials: 'CREF 021553-G/DF',
   closing: 'O seu treino é desenhado, revisado e assinado individualmente por Anju.',
 }
 

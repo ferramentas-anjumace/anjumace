@@ -327,6 +327,7 @@ export function AppGuiaObrigado() {
               <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-graphite-950/90 via-graphite-950/40 to-transparent px-6 pb-6 pt-20 text-center">
                 <span className="h-px w-12 bg-gold-400/60" aria-hidden />
                 <p className="font-display text-lg tracking-wider text-cream-100"><span className="font-bold">ANJU</span> <span className="font-light">MACE</span></p>
+                <p className="text-label text-cream-100/50">CREF 021553-G/DF</p>
               </div>
             </div>
           </Reveal>

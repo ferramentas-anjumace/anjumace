@@ -37,6 +37,9 @@ export function CredibilidadeSection() {
               <p className="text-label text-white/70">
                 Prescrição assinada individualmente
               </p>
+              {CREDIBILIDADE.credentials && (
+                <p className="text-label text-white/50">{CREDIBILIDADE.credentials}</p>
+              )}
             </div>
           </div>
         </Reveal>

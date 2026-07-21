@@ -10,9 +10,9 @@ const extraIcons = [LayoutGrid, Mic, Users]
 /* Foto de cada card de sustentação (mesma proporção 16:10 nos 3).
    `src: null` ainda mostra o placeholder com o rótulo. */
 const extraImages = [
-  { src: '/landing/ometodo-desktop.webp', label: 'Arte/print: as aulas dos pilares do método T.E.M.P.L.O.' },
+  { src: '/guia-metodo.webp', label: 'Arte/print: as aulas dos pilares do método T.E.M.P.L.O.' },
   { src: '/landing/hotseat-desktop.webp', label: 'Foto: Anju ao vivo — Hot Seat / falando com alunas' },
-  { src: '/landing/comunidade-desktop.webp', label: 'Print: a comunidade Aliança no Circle' },
+  { src: '/guia-alianca.webp', label: 'Print: a comunidade Aliança no Circle' },
 ]
 
 /**
