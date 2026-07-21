@@ -52,6 +52,16 @@ export interface LeadInteraction {
   createdAt: string
 }
 
+/** Uma entrada do log automático de mudança de status (auditoria, não editável). */
+export interface LeadStatusChange {
+  id: string
+  leadId: string
+  fromStatus?: string | null
+  toStatus: string
+  changedBy?: string | null
+  changedAt: string
+}
+
 /** Campos aceitos ao criar/atualizar um lead (sem os derivados). */
 export type LeadInput = Partial<Omit<Lead, 'id' | 'sort' | 'createdAt'>> & { name: string }
 export type LeadPatch = Partial<Omit<Lead, 'id' | 'createdAt'>>
@@ -79,6 +89,14 @@ export function fmtDateBR(iso?: string | null): string {
   const [y, m, d] = iso.split('-')
   if (!y || !m || !d) return iso
   return `${d}/${m}/${y}`
+}
+
+/** Timestamp ISO → "dd/mm/aaaa, hh:mm" (hora local). */
+export function fmtDateTimeBR(iso: string): string {
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${date}, ${time}`
 }
 
 /**
@@ -209,6 +227,26 @@ function rowToInteraction(r: InteractionRow): LeadInteraction {
   }
 }
 
+interface StatusHistoryRow {
+  id: string
+  lead_id: string
+  from_status: string | null
+  to_status: string
+  changed_by: string | null
+  changed_at: string
+}
+
+function rowToStatusChange(r: StatusHistoryRow): LeadStatusChange {
+  return {
+    id: r.id,
+    leadId: r.lead_id,
+    fromStatus: r.from_status,
+    toStatus: r.to_status,
+    changedBy: r.changed_by,
+    changedAt: r.changed_at,
+  }
+}
+
 /* ============================================================================
    Provider
    ============================================================================ */
@@ -230,6 +268,8 @@ interface CrmCtx {
   interactionCount: (leadId: string) => number
   /** Data do último contato (última interação, ou o 1º contato). */
   lastContactAt: (lead: Lead) => string | null
+  /** Log automático de mudanças de status de um lead, mais recente primeiro. */
+  statusHistoryFor: (leadId: string) => LeadStatusChange[]
 }
 
 const Context = createContext<CrmCtx | null>(null)
@@ -240,6 +280,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession()
   const [leads, setLeads] = useState<Lead[]>([])
   const [interactions, setInteractions] = useState<LeadInteraction[]>([])
+  const [statusHistory, setStatusHistory] = useState<LeadStatusChange[]>([])
   const [loading, setLoading] = useState(true)
 
   // Persistência adiada por lead (coalesce de edições rápidas no drawer).
@@ -247,12 +288,14 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchAll = useCallback(async () => {
-    const [l, i] = await Promise.all([
+    const [l, i, h] = await Promise.all([
       supabase.from('crm_leads').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true }),
       supabase.from('crm_interactions').select('*').order('date', { ascending: false }),
+      supabase.from('crm_status_history').select('*').order('changed_at', { ascending: false }),
     ])
     if (!l.error && l.data) setLeads((l.data as LeadRow[]).map(rowToLead))
     if (!i.error && i.data) setInteractions((i.data as InteractionRow[]).map(rowToInteraction))
+    if (!h.error && h.data) setStatusHistory((h.data as StatusHistoryRow[]).map(rowToStatusChange))
     setLoading(false)
   }, [])
 
@@ -267,6 +310,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
           if (Object.keys(timers.current).length === 0) fetchAll()
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_interactions' }, () => fetchAll())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_status_history' }, () => fetchAll())
         .subscribe()
       return () => {
         supabase.removeChannel(channel)
@@ -274,6 +318,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     } else if (status === 'anon') {
       setLeads([])
       setInteractions([])
+      setStatusHistory([])
       setLoading(false)
     }
   }, [status, fetchAll])
@@ -389,6 +434,13 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     },
     [interactions],
   )
+  const statusHistoryFor = useCallback(
+    (leadId: string) =>
+      statusHistory
+        .filter((h) => h.leadId === leadId)
+        .sort((a, b) => (a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : 0)),
+    [statusHistory],
+  )
 
   const value = useMemo<CrmCtx>(
     () => ({
@@ -405,8 +457,9 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
       interactionsFor,
       interactionCount,
       lastContactAt,
+      statusHistoryFor,
     }),
-    [leads, interactions, loading, addLead, updateLead, setLeadStatus, removeLead, importLeads, addInteraction, removeInteraction, interactionsFor, interactionCount, lastContactAt],
+    [leads, interactions, loading, addLead, updateLead, setLeadStatus, removeLead, importLeads, addInteraction, removeInteraction, interactionsFor, interactionCount, lastContactAt, statusHistoryFor],
   )
 
   return <Context.Provider value={value}>{children}</Context.Provider>

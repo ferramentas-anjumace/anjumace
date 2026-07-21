@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Upload, Download, Trash2, CalendarClock, MessageSquarePlus, FileDown, Maximize2,
-  Contact, ListChecks, Radar, Users, MessageCircle,
+  Contact, ListChecks, Radar, Users, MessageCircle, History,
 } from 'lucide-react'
 import {
   Card, CardHeader, CardTitle, CardIcon, StatCard, Button, IconButton, Input, Textarea, Select,
@@ -17,10 +17,10 @@ import { useProfiles } from './profiles'
 import { useCatalogs, CatalogBadge, type CatalogKey } from './catalogs'
 import { CrmUpgrade } from './CrmUpgrade'
 import {
-  useCrm, fmtBRL, fmtDateBR, waHref, isActiveLead, isWon, isLost, isInactive,
+  useCrm, fmtBRL, fmtDateBR, fmtDateTimeBR, waHref, isActiveLead, isWon, isLost, isInactive,
   buildKpis, breakdownBy, ownerStats,
   parseLeadsCsv, leadsToCsv, leadsCsvTemplate, downloadText,
-  type Lead, type LeadInteraction,
+  type Lead, type LeadInteraction, type LeadStatusChange,
 } from './crm'
 
 /* ----------------------------------------------------------------------------
@@ -921,6 +921,8 @@ function LeadDrawer({ leadId, onClose, canManage, canDelete }: { leadId: string;
 
         <InteractionsSection leadId={lead.id} canManage={canManage} />
 
+        <StatusHistorySection leadId={lead.id} />
+
         <div className="flex items-center justify-between border-t border-line pt-4">
           {canDelete ? (
             confirmDel ? (
@@ -1003,6 +1005,50 @@ function InteractionItem({ it, canManage, onRemove }: { it: LeadInteraction; can
         <p className="text-body-s text-muted"><span className="font-mono text-[11px] uppercase text-faint">Próxima ação:</span> {it.nextAction}</p>
       )}
       {it.ownerId && <span className="text-[11px] text-faint">{getMember(it.ownerId)?.name}</span>}
+    </li>
+  )
+}
+
+/* ----------------------------------------------------- histórico de status */
+
+/** Log automático (não editável) de mudanças de status — quem moveu e quando. */
+function StatusHistorySection({ leadId }: { leadId: string }) {
+  const { statusHistoryFor } = useCrm()
+  const list = statusHistoryFor(leadId)
+
+  if (list.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-line bg-ink-deep/30 p-4">
+      <div className="mb-3 flex items-center gap-2.5">
+        <History size={16} strokeWidth={1.5} className="text-muted" aria-hidden />
+        <h3 className="font-display text-body font-semibold text-strong">Histórico de status</h3>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {list.map((h) => (
+          <StatusHistoryItem key={h.id} h={h} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function StatusHistoryItem({ h }: { h: LeadStatusChange }) {
+  const { getMember } = useProfiles()
+  const who = h.changedBy ? getMember(h.changedBy)?.name : null
+  return (
+    <li className="flex flex-wrap items-center gap-1.5 text-body-s">
+      {h.fromStatus ? (
+        <>
+          <CatBadge catalog="crm_status" value={h.fromStatus} />
+          <span className="text-faint">→</span>
+        </>
+      ) : null}
+      <CatBadge catalog="crm_status" value={h.toStatus} />
+      <span className="text-faint">·</span>
+      <span className="font-mono text-mono-data tabular-nums text-muted">{fmtDateTimeBR(h.changedAt)}</span>
+      <span className="text-faint">·</span>
+      <span className="text-muted">{who ?? 'Alguém do time'}</span>
     </li>
   )
 }
