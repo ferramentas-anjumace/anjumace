@@ -56,17 +56,42 @@ interface WaitlistCtx {
 
 const Context = createContext<WaitlistCtx | null>(null)
 
+/**
+ * O PostgREST corta em 1000 linhas por requisição por padrão — sem paginar,
+ * qualquer tabela acima de 1000 registros perde o resto SILENCIOSAMENTE (foi
+ * o que aconteceu com crm_leads depois da promoção em massa). Pagina em
+ * blocos de 1000 até a página vir mais curta que o pedido.
+ */
+const PAGE_SIZE = 1000
+
+async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const out: T[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1)
+    if (error) {
+      console.error('fetchAllRows:', error.message)
+      break
+    }
+    if (!data || data.length === 0) break
+    out.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return out
+}
+
 export function WaitlistProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession()
   const [entries, setEntries] = useState<WaitlistLead[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('waitlist_leads')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (!error && data) setEntries((data as WaitlistRow[]).map(rowToLead))
+    const rows = await fetchAllRows<WaitlistRow>((from, to) =>
+      supabase.from('waitlist_leads').select('*').order('created_at', { ascending: false }).range(from, to))
+    setEntries(rows.map(rowToLead))
     setLoading(false)
   }, [])
 

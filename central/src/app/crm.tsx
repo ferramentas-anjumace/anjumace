@@ -276,6 +276,34 @@ const Context = createContext<CrmCtx | null>(null)
 
 const DEBOUNCE_MS = 450
 
+/**
+ * O PostgREST corta em 1000 linhas por requisição por padrão — sem isso, toda
+ * tabela que passar de 1000 registros perde o resto SILENCIOSAMENTE (foi o que
+ * aconteceu com os leads da Lista de Espera promovidos em massa: só os 1000
+ * primeiros por `sort`/`created_at` vinham, o resto sumia sem erro nenhum).
+ * Pagina em blocos de 1000 até a página vir mais curta que o pedido.
+ */
+const PAGE_SIZE = 1000
+
+async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const out: T[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1)
+    if (error) {
+      console.error('fetchAllRows:', error.message)
+      break
+    }
+    if (!data || data.length === 0) break
+    out.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return out
+}
+
 export function CrmProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession()
   const [leads, setLeads] = useState<Lead[]>([])
@@ -289,13 +317,18 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAll = useCallback(async () => {
     const [l, i, h] = await Promise.all([
-      supabase.from('crm_leads').select('*').order('sort', { ascending: true }).order('created_at', { ascending: true }),
-      supabase.from('crm_interactions').select('*').order('date', { ascending: false }),
-      supabase.from('crm_status_history').select('*').order('changed_at', { ascending: false }),
+      fetchAllRows<LeadRow>((from, to) =>
+        supabase.from('crm_leads').select('*')
+          .order('sort', { ascending: true }).order('created_at', { ascending: true })
+          .range(from, to)),
+      fetchAllRows<InteractionRow>((from, to) =>
+        supabase.from('crm_interactions').select('*').order('date', { ascending: false }).range(from, to)),
+      fetchAllRows<StatusHistoryRow>((from, to) =>
+        supabase.from('crm_status_history').select('*').order('changed_at', { ascending: false }).range(from, to)),
     ])
-    if (!l.error && l.data) setLeads((l.data as LeadRow[]).map(rowToLead))
-    if (!i.error && i.data) setInteractions((i.data as InteractionRow[]).map(rowToInteraction))
-    if (!h.error && h.data) setStatusHistory((h.data as StatusHistoryRow[]).map(rowToStatusChange))
+    setLeads(l.map(rowToLead))
+    setInteractions(i.map(rowToInteraction))
+    setStatusHistory(h.map(rowToStatusChange))
     setLoading(false)
   }, [])
 

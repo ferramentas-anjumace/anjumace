@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Hourglass, ArrowUpRight, Trash2, ExternalLink } from 'lucide-react'
 import {
-  CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge,
+  CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge, Switch,
   Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell, TableEmpty,
   useToast,
 } from '@/components/ui'
@@ -36,6 +36,7 @@ export function WaitlistPage() {
   const { addLead } = useCrm()
 
   const [query, setQuery] = useState('')
+  const [showPromoted, setShowPromoted] = useState(false)
   const [toDelete, setToDelete] = useState<WaitlistLead | null>(null)
   const [promoting, setPromoting] = useState<string | null>(null)
 
@@ -44,15 +45,16 @@ export function WaitlistPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return entries
     const qDigits = q.replace(/\D/g, '')
     return entries.filter((e) => {
+      if (!showPromoted && e.promotedAt) return false
+      if (!q) return true
       const matchText = `${e.name} ${e.email ?? ''} ${e.whatsapp ?? ''}`.toLowerCase().includes(q)
       const digits = (e.whatsapp ?? '').replace(/\D/g, '')
       const matchPhone = qDigits.length >= 2 && digits.includes(qDigits)
       return matchText || matchPhone
     })
-  }, [entries, query])
+  }, [entries, query, showPromoted])
 
   const kpis = useMemo(() => {
     const now = Date.now()
@@ -110,12 +112,19 @@ export function WaitlistPage() {
             </p>
           </div>
         </div>
-        <SearchField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome, e-mail ou telefone…"
-          className="w-72"
-        />
+        <div className="flex flex-wrap items-center gap-4">
+          <Switch
+            checked={showPromoted}
+            onChange={(e) => setShowPromoted(e.target.checked)}
+            label="Mostrar promovidos"
+          />
+          <SearchField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome, e-mail ou telefone…"
+            className="w-72"
+          />
+        </div>
       </div>
 
       {/* KPIs */}
@@ -149,7 +158,9 @@ export function WaitlistPage() {
               <span className="text-body-s text-muted">
                 {entries.length === 0
                   ? 'Nenhuma inscrição ainda — os leads da página de lista de espera aparecem aqui.'
-                  : 'Nenhuma inscrição bate com a busca.'}
+                  : !showPromoted && kpis.waiting === 0
+                    ? 'Todos os leads foram promovidos pro CRM. Ative "Mostrar promovidos" pra ver o histórico.'
+                    : 'Nenhuma inscrição bate com a busca.'}
               </span>
             </TableEmpty>
           ) : (
