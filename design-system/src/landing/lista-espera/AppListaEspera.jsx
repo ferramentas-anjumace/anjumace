@@ -1,6 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Check, ChevronDown, X } from 'lucide-react'
+import 'flag-icons/css/flag-icons.min.css'
 import { HERO, FORM, ERROS, SUCESSO, PRIVACIDADE } from './data'
+import { PAISES, BRASIL } from './paises'
+
+/* Bandeira de verdade via flag-icons (SVG) — emoji de bandeira não renderiza
+   no Windows (as fontes do sistema não têm os glifos, só mostram a sigla). */
+function Flag({ code, className = '' }) {
+  return (
+    <span
+      className={`fi fi-${code.toLowerCase()} shrink-0 rounded-[3px] ${className}`}
+      style={{ width: '1.25rem', height: '0.875rem' }}
+      aria-hidden
+    />
+  )
+}
 
 /* Captura pública → função lista_espera_signup no Supabase da Central
    (migration 0040). A anon key é pública por design — quem protege a
@@ -37,12 +51,23 @@ async function enviarLead({ name, email, whatsapp }) {
 }
 
 /* Máscara BR conforme digita: (11) 98765-4321. Aceita 10 ou 11 dígitos. */
-function maskWhatsapp(value) {
+function maskWhatsappBR(value) {
   const d = value.replace(/\D/g, '').slice(0, 11)
   if (d.length <= 2) return d
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+/* Máscara genérica pros demais países: só agrupa dígitos de 3 em 3
+   (não dá pra ter uma máscara específica por DDI sem uma lib de telefone). */
+function maskWhatsappGenerico(value) {
+  const d = value.replace(/\D/g, '').slice(0, 14)
+  return d.replace(/(\d{3})(?=\d)/g, '$1 ')
+}
+
+function maskWhatsapp(value, country) {
+  return country.code === 'BR' ? maskWhatsappBR(value) : maskWhatsappGenerico(value)
 }
 
 const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
@@ -142,9 +167,102 @@ function PrivacidadeModal({ open, onClose }) {
   )
 }
 
+/** Seletor de país (bandeira + DDI) pro campo de WhatsApp — busca por nome ou código. */
+function CountrySelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onPointerDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return PAISES
+    return PAISES.filter((p) => p.name.toLowerCase().includes(q) || p.dial.includes(q))
+  }, [query])
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Selecionar país"
+        className="flex h-14 items-center gap-1.5 rounded-full bg-cream-200/60 pl-5 pr-3 text-graphite-900 transition-colors duration-fast hover:bg-cream-200"
+      >
+        <Flag code={value.code} />
+        <span className="text-body-sm font-medium text-graphite-900/60">+{value.dial}</span>
+        <ChevronDown
+          className={`size-4 text-graphite-900/50 transition-transform duration-fast ${open ? 'rotate-180' : ''}`}
+          strokeWidth={1.5}
+          aria-hidden
+        />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-[calc(100%+0.5rem)] z-dropdown w-72 animate-scale-in overflow-hidden rounded-2xl bg-cream-50 shadow-xl"
+          role="listbox"
+        >
+          <div className="border-b border-graphite-900/10 p-2">
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar país..."
+              className="h-10 w-full rounded-full bg-cream-200/60 px-4 text-body-sm text-graphite-900 outline-none placeholder:text-graphite-900/45"
+            />
+          </div>
+          <ul className="max-h-64 overflow-y-auto py-1" data-lenis-prevent>
+            {filtered.length === 0 && (
+              <li className="px-4 py-3 text-body-sm text-graphite-900/50">Nenhum país encontrado.</li>
+            )}
+            {filtered.map((p) => (
+              <li key={p.code}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={p.code === value.code}
+                  onClick={() => {
+                    onChange(p)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-body-sm transition-colors duration-fast hover:bg-cream-200/70 ${
+                    p.code === value.code ? 'bg-sage-400/15 text-graphite-900' : 'text-graphite-900/80'
+                  }`}
+                >
+                  <Flag code={p.code} />
+                  <span className="flex-1 truncate">{p.name}</span>
+                  <span className="text-graphite-900/50">+{p.dial}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Drawer lateral creme com o formulário — desliza da direita como na original. */
 function FormDrawer({ open, onClose }) {
   const [values, setValues] = useState({ name: '', email: '', whatsapp: '' })
+  const [country, setCountry] = useState(BRASIL)
   const [consent, setConsent] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -164,13 +282,23 @@ function FormDrawer({ open, onClose }) {
   if (!open) return null
 
   const set = (key) => (e) =>
-    setValues((v) => ({ ...v, [key]: key === 'whatsapp' ? maskWhatsapp(e.target.value) : e.target.value }))
+    setValues((v) => ({
+      ...v,
+      [key]: key === 'whatsapp' ? maskWhatsapp(e.target.value, country) : e.target.value,
+    }))
+
+  const handleCountryChange = (next) => {
+    setCountry(next)
+    setValues((v) => ({ ...v, whatsapp: maskWhatsapp(v.whatsapp, next) }))
+  }
+
+  const whatsappMinDigits = country.code === 'BR' ? 10 : 7
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (values.name.trim().length < 2) return setError(ERROS.name)
     if (!emailValido(values.email)) return setError(ERROS.email)
-    if (values.whatsapp.replace(/\D/g, '').length < 10) return setError(ERROS.whatsapp)
+    if (values.whatsapp.replace(/\D/g, '').length < whatsappMinDigits) return setError(ERROS.whatsapp)
     if (!consent) return setError(ERROS.consent)
 
     setError(null)
@@ -179,7 +307,7 @@ function FormDrawer({ open, onClose }) {
       await enviarLead({
         name: values.name.trim(),
         email: values.email.trim(),
-        whatsapp: `+55 ${values.whatsapp}`,
+        whatsapp: `+${country.dial} ${values.whatsapp}`,
       })
       setDone(true)
     } catch {
@@ -195,7 +323,10 @@ function FormDrawer({ open, onClose }) {
       <div className="absolute inset-0 animate-fade-in bg-graphite-950/70" onClick={onClose} aria-hidden />
 
       {/* Painel creme — largura total no mobile, coluna à direita no desktop. */}
-      <aside className="absolute inset-y-0 right-0 flex w-full flex-col overflow-y-auto bg-cream-50 px-7 py-8 animate-[slide-in-right_0.45s_var(--ease-out)_both] md:max-w-lg md:px-12">
+      <aside
+        data-lenis-prevent
+        className="absolute inset-y-0 right-0 flex w-full flex-col overflow-y-auto bg-cream-50 px-7 py-8 animate-[slide-in-right_0.45s_var(--ease-out)_both] md:max-w-lg md:px-12"
+      >
         {/* Cabeçalho: wordmark + fechar. */}
         <div className="flex items-center justify-between border-b border-graphite-900/10 pb-5">
           {/* Logo é creme — brightness-0 escurece para ler sobre o painel claro. */}
@@ -258,10 +389,8 @@ function FormDrawer({ open, onClose }) {
                 onChange={set('email')}
                 className={inputPill}
               />
-              <div className="relative flex items-center">
-                <span className="pointer-events-none absolute left-6 text-body font-medium text-graphite-900/60">
-                  +55
-                </span>
+              <div className="flex items-center gap-2">
+                <CountrySelect value={country} onChange={handleCountryChange} />
                 <input
                   type="tel"
                   name="whatsapp"
@@ -270,7 +399,7 @@ function FormDrawer({ open, onClose }) {
                   placeholder={FORM.whatsappPlaceholder}
                   value={values.whatsapp}
                   onChange={set('whatsapp')}
-                  className={`${inputPill} pl-[4.75rem]`}
+                  className={inputPill}
                 />
               </div>
 
