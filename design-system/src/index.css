@@ -158,6 +158,15 @@
       line-height: var(--leading-relaxed);
     }
   }
+  /* Páginas com .page-largura-1050: trava a largura do conteúdo em 1050px
+     no desktop (a .container padrão só limita a partir do 2xl/1200px) —
+     opt-in por página, pedido do usuário (23/07) pras 3 páginas do funil
+     do guia, sem mexer no container compartilhado com as outras landings. */
+  @media (min-width: 1024px) {
+    .page-largura-1050 .container {
+      max-width: 1050px;
+    }
+  }
   .text-caption {
     font-family: var(--font-sans);
     font-size: var(--text-xs);
