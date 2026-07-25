@@ -193,9 +193,9 @@ function Callout({ children, tone = 'dark' }) {
     padrão richCover do EntregaveisCarousel de /guia). Substitui o layout
     editorial anterior (pedido do usuário, 25/07). */
 const MOVEMENT_COVERS = [
-  { title: 'A execução consciente', image: '/movimento-1-execucao-consciente.png' },
-  { title: 'A constância que não depende de motivação', image: '/movimento-2-constancia.png' },
-  { title: 'A ordem que aparece', image: '/movimento-3-ordem-aparece.png' },
+  { title: 'A execução consciente', image: '/movimento-1-execucao-consciente.webp' },
+  { title: 'A constância que não depende de motivação', image: '/movimento-2-constancia.webp' },
+  { title: 'A ordem que aparece', image: '/movimento-3-ordem-aparece.webp' },
 ]
 
 /** Mobile: carrossel horizontal em loop automático, estilo Netflix (mesmo
@@ -464,9 +464,9 @@ export function AppAordemCaptura() {
             (rosto no topo, fade embaixo onde o texto cai), paisagem no
             desktop (25/07). */}
         <picture>
-          <source media="(min-width: 1024px)" srcSet="/bg-hotseat1-desktop.png" />
+          <source media="(min-width: 1024px)" srcSet="/bg-hotseat1-desktop.webp" />
           <img
-            src="/bg-hotseat1-mobile.png"
+            src="/bg-hotseat1-mobile.webp"
             alt=""
             aria-hidden
             className="pointer-events-none absolute inset-0 size-full object-cover object-top lg:object-right-top"
@@ -508,7 +508,7 @@ export function AppAordemCaptura() {
           </Reveal>
         </div>
 
-        <div className="container relative flex flex-1 flex-col items-center justify-end gap-8 pb-10 pt-[250px] text-center lg:items-start lg:justify-start lg:pb-20 lg:pt-12 lg:text-left">
+        <div className="container relative flex flex-1 flex-col items-center justify-end gap-8 pb-10 pt-[210px] text-center lg:items-start lg:justify-start lg:pb-20 lg:pt-12 lg:text-left">
           <img src="/logo-ordem.svg" alt="A Ordem" className="h-10 w-auto animate-fade-in md:h-12" />
 
           <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[30px] text-graphite-900 md:text-[42px] lg:max-w-md lg:text-[46px] [animation-delay:120ms]">
@@ -563,9 +563,9 @@ export function AppAordemCaptura() {
             da página. Crop próprio por breakpoint: retrato no mobile, rosto
             à esquerda no desktop, conteúdo à direita (25/07). */}
         <picture>
-          <source media="(min-width: 1024px)" srcSet="/bg-hotseat2-desktop.png" />
+          <source media="(min-width: 1024px)" srcSet="/bg-hotseat2-desktop.webp" />
           <img
-            src="/bg-hotseat2-mobile.png"
+            src="/bg-hotseat2-mobile.webp"
             alt=""
             aria-hidden
             className="pointer-events-none absolute inset-0 size-full object-cover object-top lg:object-left-top"
@@ -710,9 +710,9 @@ export function AppAordemCaptura() {
             trocar cor de texto aqui (diferente da seção 3, que usava uma
             foto escura). Crop próprio por breakpoint (25/07). */}
         <picture>
-          <source media="(min-width: 1024px)" srcSet="/bg-hotseat3-desktop.png" />
+          <source media="(min-width: 1024px)" srcSet="/bg-hotseat3-desktop.webp" />
           <img
-            src="/bg-hotseat3-mobile.png"
+            src="/bg-hotseat3-mobile.webp"
             alt=""
             aria-hidden
             className="pointer-events-none absolute inset-0 size-full object-cover object-top lg:object-left"
