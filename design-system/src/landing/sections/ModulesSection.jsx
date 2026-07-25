@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Section } from '../../components'
 import { cn } from '../../lib/cn'
+import { Reveal } from '../singular/Reveal'
 import { MODULES } from '../data'
 
 /** Bloco de estatística colorido (número grande + unidade + descrição + fonte). */
@@ -31,15 +32,15 @@ export function ModulesSection() {
 
   return (
     <Section id="metodologia" tone="warm" padding="lg">
-      <div className="mx-auto mb-10 flex max-w-3xl flex-col items-center gap-4 text-center">
+      <Reveal className="mx-auto mb-10 flex max-w-3xl flex-col items-center gap-4 text-center">
         <span className="text-label text-accent-text">Metodologia · 6 módulos</span>
         <h2 className="text-h2 text-content">
           Um caminho que transforma esforço físico em potência feminina absoluta
         </h2>
-      </div>
+      </Reveal>
 
       {/* Abas */}
-      <div className="mb-8 flex flex-wrap justify-center gap-3">
+      <Reveal delay={100} className="mb-8 flex flex-wrap justify-center gap-3">
         {MODULES.map((m, i) => (
           <button
             key={m.n}
@@ -57,10 +58,10 @@ export function ModulesSection() {
             Módulo {m.n}
           </button>
         ))}
-      </div>
+      </Reveal>
 
       {/* Módulo ativo */}
-      <div className="grid items-stretch gap-5 lg:grid-cols-[1.45fr_1fr]">
+      <Reveal delay={180} variant="scale" className="grid items-stretch gap-5 lg:grid-cols-[1.45fr_1fr]">
         {/* Imagem + título/descrição sobrepostos */}
         <div className="relative min-h-[480px] overflow-hidden rounded-3xl shadow-xl">
           <img
@@ -87,7 +88,7 @@ export function ModulesSection() {
           <StatPanel stat={mod.stats[0]} tone="gold" />
           {mod.stats[1] && <StatPanel stat={mod.stats[1]} tone="sage" />}
         </div>
-      </div>
+      </Reveal>
     </Section>
   )
 }

@@ -1,12 +1,13 @@
 import { MessageCircle, Mail } from 'lucide-react'
 import { Wordmark } from '../../components'
+import { Reveal } from '../singular/Reveal'
 import { FOOTER } from '../data'
 
 /** Rodapé — marca, contato, navegação e legal. */
 export function FooterSection() {
   return (
     <footer id="contato" className="bg-surface-inverse text-content-inverse">
-      <div className="container grid gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr]">
+      <Reveal as="div" className="container grid gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr]">
         {/* Marca + tagline */}
         <div className="flex flex-col gap-5">
           <Wordmark size="lg" tone="inverse" />
@@ -38,7 +39,7 @@ export function FooterSection() {
             <Mail className="size-4" strokeWidth={1.5} /> {FOOTER.email}
           </a>
         </div>
-      </div>
+      </Reveal>
 
       <div className="border-t border-white/10">
         <div className="container flex flex-col items-center justify-between gap-4 py-6 text-center md:flex-row md:text-left">

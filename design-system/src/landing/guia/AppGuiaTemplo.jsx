@@ -147,8 +147,8 @@ export function AppGuiaTemplo() {
         <Nav links={NAV_LINKS} ctaLabel="Sim, quero meus trinta dias abertos" ctaHref={LINK_CHECKOUT_TEMPLO_TRIAL} />
         <div className="pointer-events-none absolute -left-32 top-1/4 size-96 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
         <div className="pointer-events-none absolute -right-24 bottom-0 size-72 animate-float rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
-        <div className="container relative flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center sm:gap-6 sm:py-12 lg:gap-8 lg:py-16">
-          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[32px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
+        <div className="container relative flex flex-1 flex-col items-center justify-center gap-4 pb-10 pt-28 text-center sm:gap-6 sm:pb-12 sm:pt-32 lg:gap-8 lg:pb-16 lg:pt-36">
+          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[28px] text-cream-100 md:text-[44px] [animation-delay:120ms]">
             Então fique com o método inteiro por trinta dias, e não pague nada por eles<span className="text-sage-400">.</span>
           </h1>
           <p className="max-w-2xl animate-fade-in-up text-[18px] leading-relaxed tracking-tight lg:text-[20px] text-cream-100/75 [animation-delay:280ms]">

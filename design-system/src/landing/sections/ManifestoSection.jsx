@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { Section, Button } from '../../components'
+import { Reveal } from '../singular/Reveal'
 import { MANIFESTO } from '../data'
 
 /** Manifesto + screenshots do app, em duas colunas. */
@@ -8,7 +9,7 @@ export function ManifestoSection() {
     <Section tone="base" padding="lg">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Texto */}
-        <div className="flex flex-col gap-6">
+        <Reveal as="div" variant="left" className="flex flex-col gap-6">
           <h2 className="text-h2 text-content">{MANIFESTO.title}</h2>
           <p className="text-body-lg text-content-secondary">{MANIFESTO.lead}</p>
           <div className="flex flex-col gap-4">
@@ -21,10 +22,10 @@ export function ManifestoSection() {
               {MANIFESTO.cta}
             </Button>
           </div>
-        </div>
+        </Reveal>
 
         {/* Screenshots */}
-        <div className="relative flex justify-center gap-4">
+        <Reveal variant="right" delay={100} className="relative flex justify-center gap-4">
           {MANIFESTO.screens.map((src, i) => (
             <img
               key={src}
@@ -36,7 +37,7 @@ export function ManifestoSection() {
               }
             />
           ))}
-        </div>
+        </Reveal>
       </div>
     </Section>
   )

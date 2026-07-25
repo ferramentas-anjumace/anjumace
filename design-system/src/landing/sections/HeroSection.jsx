@@ -1,5 +1,6 @@
 import { ArrowRight, Smartphone } from 'lucide-react'
 import { Button } from '../../components'
+import { Reveal } from '../singular/Reveal'
 import { HERO } from '../data'
 
 /**
@@ -24,13 +25,17 @@ export function HeroSection() {
 
       <div className="container relative flex min-h-[86vh] items-center py-24">
         <div className="flex max-w-2xl flex-col gap-7">
-          <span className="text-label text-white/70">{HERO.eyebrow}</span>
+          <Reveal as="span" variant="fade" className="text-label text-white/70">{HERO.eyebrow}</Reveal>
 
-          <h1 className="text-display-sm md:text-display text-white">{HERO.title}</h1>
+          <Reveal delay={80}>
+            <h1 className="text-display-sm md:text-display text-white">{HERO.title}</h1>
+          </Reveal>
 
-          <p className="text-body-lg max-w-xl text-white/80">{HERO.description}</p>
+          <Reveal delay={160}>
+            <p className="text-body-lg max-w-xl text-white/80">{HERO.description}</p>
+          </Reveal>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <Reveal delay={240} className="flex flex-wrap items-center gap-3 pt-2">
             <Button as="a" href="#planos" size="lg" leftIcon={<Smartphone className="size-5" strokeWidth={1.5} />}>
               {HERO.primaryCta}
             </Button>
@@ -44,7 +49,7 @@ export function HeroSection() {
             >
               {HERO.secondaryCta}
             </Button>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

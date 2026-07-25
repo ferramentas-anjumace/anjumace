@@ -18,6 +18,11 @@
      AC_LIST_ID_LEADS        opcional — ID numérico da lista "LEADS" no Active.
                               Default "3" (mesma lista do funil de atração).
 
+     # Origem "aordem" (Hotseat A Ordem, evento ao vivo)
+     AC_TAG_AORDEM           opcional — default "Hotseat A Ordem"
+     AC_LIST_ID_AORDEM       opcional — default "3" (mesma lista padrão até
+                              existir uma lista dedicada pro evento).
+
    Sem AC_API_URL/AC_API_KEY responde 204 (no-op): a página continua
    funcionando só com o Supabase até o Active ser plugado. */
 
@@ -33,6 +38,12 @@ const SOURCES = {
     tagDescription: 'Lead da lista de espera da Anju Mace',
     listId: process.env.AC_LIST_ID_LEADS || '3',
     noteLabel: 'Origem da lista de espera',
+  },
+  aordem: {
+    tag: process.env.AC_TAG_AORDEM || 'Hotseat A Ordem',
+    tagDescription: 'Lead do Hotseat A Ordem (evento ao vivo)',
+    listId: process.env.AC_LIST_ID_AORDEM || '3',
+    noteLabel: 'Origem do Hotseat A Ordem',
   },
 }
 

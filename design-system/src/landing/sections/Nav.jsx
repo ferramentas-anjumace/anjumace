@@ -5,7 +5,7 @@ import { NAV_LINKS } from '../data'
 /** Cabeçalho fixo com vidro: marca + navegação âncora + CTA. */
 export function Nav() {
   return (
-    <header className="sticky top-0 z-sticky border-b border-subtle/60 glass">
+    <header className="sticky top-0 z-sticky animate-fade-in-up border-b border-subtle/60 glass">
       <div className="container flex h-16 items-center justify-between gap-6">
         <a href="#inicio" className="shrink-0" aria-label="Anju Mace — início">
           <Wordmark size="md" />

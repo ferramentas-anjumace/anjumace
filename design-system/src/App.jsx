@@ -3,12 +3,16 @@ import { AppObrigadoTemplo } from './landing/obrigado/AppObrigadoTemplo'
 import { AppObrigadoSingular } from './landing/obrigado-singular/AppObrigadoSingular'
 import { AppListaEspera } from './landing/lista-espera/AppListaEspera'
 import { AppGuiaCaptura } from './landing/guia/AppGuiaCaptura'
+import { AppAordemCaptura } from './landing/aordem/AppAordemCaptura'
 import { AppGuiaDownload } from './landing/guia/AppGuiaDownload'
 import { AppGuiaObrigado } from './landing/guia/AppGuiaObrigado'
 import { AppGuiaTemplo } from './landing/guia/AppGuiaTemplo'
+import { App7Dias } from './landing/App7Dias'
+import { useLenis } from './lib/useLenis'
 
 // Site no ar = Lista de Espera (raiz e /lista-de-espera) — a landing
-// "App 7 dias" (src/landing/App7Dias.jsx) está fora do ar por ora.
+// "App 7 dias" (src/landing/App7Dias.jsx) está fora do ar por ora, mas
+// acessível em /app-7-dias pra preview enquanto não se decide reativar.
 // /singular = landing "Plano Templo Singular" (consultoria individualizada).
 // /obrigado-singular = obrigado do Plano Templo Singular (pós-compra).
 // /obrigado-templo = obrigado do Plano Templo; o /obrigado antigo continua
@@ -16,12 +20,17 @@ import { AppGuiaTemplo } from './landing/guia/AppGuiaTemplo'
 // /guia = captura do e-book "Os cinco tipos de falha" (funil de atração);
 //   as demais páginas do funil (/guia/obrigado, /guia/templo, /guia/download)
 //   entram na sequência.
+// /aordem-captura = captura do Hotseat "A Ordem" (novo projeto, 25/07),
+//   evento ao vivo — grava em hotseat_ordem_leads via RPC própria.
 // O showcase do design system continua em src/showcase/Showcase.jsx (fora do ar).
 export default function App() {
+  useLenis()
+  if (window.location.pathname.startsWith('/app-7-dias')) return <App7Dias />
   if (window.location.pathname.startsWith('/guia/download')) return <AppGuiaDownload />
   if (window.location.pathname.startsWith('/guia/obrigado')) return <AppGuiaObrigado />
   if (window.location.pathname.startsWith('/guia/templo')) return <AppGuiaTemplo />
   if (window.location.pathname.startsWith('/guia')) return <AppGuiaCaptura />
+  if (window.location.pathname.startsWith('/aordem-captura')) return <AppAordemCaptura />
   if (window.location.pathname.startsWith('/singular')) return <AppTemploSingular />
   if (window.location.pathname.startsWith('/obrigado-singular')) return <AppObrigadoSingular />
   if (window.location.pathname.startsWith('/obrigado')) return <AppObrigadoTemplo />
