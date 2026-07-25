@@ -508,7 +508,7 @@ export function AppAordemCaptura() {
           </Reveal>
         </div>
 
-        <div className="container relative flex flex-1 flex-col items-center justify-end gap-8 pb-10 pt-[210px] text-center lg:items-start lg:justify-start lg:pb-20 lg:pt-12 lg:text-left">
+        <div className="container relative flex flex-1 flex-col items-center justify-end gap-8 pb-10 pt-[185px] text-center lg:items-start lg:justify-start lg:pb-20 lg:pt-12 lg:text-left">
           <img src="/logo-ordem.svg" alt="A Ordem" className="h-10 w-auto animate-fade-in md:h-12" />
 
           <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[30px] text-graphite-900 md:text-[42px] lg:max-w-md lg:text-[46px] [animation-delay:120ms]">
