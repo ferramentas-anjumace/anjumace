@@ -314,7 +314,7 @@ function CsBoard({
               setOver(null)
             } : undefined}
             className={cn(
-              'flex w-72 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors',
+              'flex w-64 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors md:w-72',
               over === col.value ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30',
             )}
           >

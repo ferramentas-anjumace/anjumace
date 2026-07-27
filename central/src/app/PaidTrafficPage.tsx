@@ -111,13 +111,13 @@ function Segmented<T extends string | number>({
   size?: 'sm' | 'md'
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-lg border border-line bg-slate-900 p-1">
+    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-line bg-slate-900 p-1">
       {options.map((o) => (
         <button
           key={String(o.key)}
           onClick={() => onChange(o.key)}
           className={cn(
-            'rounded-md font-mono uppercase transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+            'shrink-0 whitespace-nowrap rounded-md font-mono uppercase transition-colors focus-visible:outline-none focus-visible:shadow-focus',
             size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-mono-data',
             value === o.key ? 'bg-steel-500 text-accent-fg' : 'text-muted hover:text-strong',
           )}
@@ -463,52 +463,92 @@ function CampaignsTable({ rows }: { rows: CampaignRow[] }) {
     )
   }
   return (
-    <Card padded={false} className="overflow-hidden">
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Campanha</TableHeaderCell>
-            <TableHeaderCell align="right">Investimento</TableHeaderCell>
-            <TableHeaderCell align="right">Leads</TableHeaderCell>
-            <TableHeaderCell align="right">CPL</TableHeaderCell>
-            <TableHeaderCell align="right">CPC</TableHeaderCell>
-            <TableHeaderCell align="right">CTR</TableHeaderCell>
-            <TableHeaderCell align="right">ROAS</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((r) => {
-            const status = STATUS_META[r.campaign.status]
-            return (
-              <TableRow key={r.campaign.id}>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <span className="truncate text-body-s font-medium text-strong">{r.campaign.name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <PlatformChip platform={r.campaign.platform} />
-                      <Badge tone={status.tone} size="sm">{status.label}</Badge>
-                      <span className="font-mono text-[11px] text-faint">{r.campaign.objective}</span>
+    <>
+      <Card padded={false} className="hidden overflow-hidden md:block">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell>Campanha</TableHeaderCell>
+              <TableHeaderCell align="right">Investimento</TableHeaderCell>
+              <TableHeaderCell align="right">Leads</TableHeaderCell>
+              <TableHeaderCell align="right">CPL</TableHeaderCell>
+              <TableHeaderCell align="right">CPC</TableHeaderCell>
+              <TableHeaderCell align="right">CTR</TableHeaderCell>
+              <TableHeaderCell align="right">ROAS</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((r) => {
+              const status = STATUS_META[r.campaign.status]
+              return (
+                <TableRow key={r.campaign.id}>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <span className="truncate text-body-s font-medium text-strong">{r.campaign.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <PlatformChip platform={r.campaign.platform} />
+                        <Badge tone={status.tone} size="sm">{status.label}</Badge>
+                        <span className="font-mono text-[11px] text-faint">{r.campaign.objective}</span>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtMoney(r.spend)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtInt(r.leads)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoneyCents(r.cpl)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoneyCents(r.cpc)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtPct(r.ctr)}</span></TableCell>
-                <TableCell align="right">
+                  </TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtMoney(r.spend)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtInt(r.leads)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoneyCents(r.cpl)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoneyCents(r.cpc)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtPct(r.ctr)}</span></TableCell>
+                  <TableCell align="right">
+                    {Number.isFinite(r.roas) ? (
+                      <Badge tone={r.roas >= 2 ? 'success' : r.roas >= 1 ? 'warning' : 'danger'} size="sm">{fmtX(r.roas)}</Badge>
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Cards — abaixo de md substituem a tabela (7 colunas não cabem lado a lado). */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {rows.map((r) => {
+          const status = STATUS_META[r.campaign.status]
+          return (
+            <Card key={r.campaign.id} className="p-4">
+              <div className="flex flex-col gap-1">
+                <span className="truncate text-body-l font-semibold text-strong">{r.campaign.name}</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <PlatformChip platform={r.campaign.platform} />
+                  <Badge tone={status.tone} size="sm">{status.label}</Badge>
+                  <span className="font-mono text-[11px] text-faint">{r.campaign.objective}</span>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3">
+                <Metric icon={<Banknote size={12} strokeWidth={1.5} />} label="Invest." value={fmtMoney(r.spend)} />
+                <Metric icon={<Users size={12} strokeWidth={1.5} />} label="Leads" value={fmtInt(r.leads)} />
+                <Metric icon={<Target size={12} strokeWidth={1.5} />} label="CPL" value={fmtMoneyCents(r.cpl)} />
+                <Metric icon={<MousePointerClick size={12} strokeWidth={1.5} />} label="CPC" value={fmtMoneyCents(r.cpc)} />
+                <Metric icon={<Eye size={12} strokeWidth={1.5} />} label="CTR" value={fmtPct(r.ctr)} />
+                <div className="flex flex-col gap-0.5">
+                  <span className="flex items-center gap-1 font-mono text-[10px] uppercase text-faint">
+                    <TrendingUp size={12} strokeWidth={1.5} aria-hidden /> ROAS
+                  </span>
                   {Number.isFinite(r.roas) ? (
-                    <Badge tone={r.roas >= 2 ? 'success' : r.roas >= 1 ? 'warning' : 'danger'} size="sm">{fmtX(r.roas)}</Badge>
+                    <Badge tone={r.roas >= 2 ? 'success' : r.roas >= 1 ? 'warning' : 'danger'} size="sm" className="w-fit">
+                      {fmtX(r.roas)}
+                    </Badge>
                   ) : (
-                    <span className="text-faint">—</span>
+                    <span className="font-mono text-mono-data text-faint">—</span>
                   )}
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </Card>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </>
   )
 }
 
@@ -639,47 +679,82 @@ function PagesTable({ pages }: { pages: { id: string; name: string; url: string;
     )
   }
   return (
-    <Card padded={false} className="overflow-hidden">
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Página</TableHeaderCell>
-            <TableHeaderCell align="right">Visitas</TableHeaderCell>
-            <TableHeaderCell align="right">Leads</TableHeaderCell>
-            <TableHeaderCell align="right">Conversão</TableHeaderCell>
-            <TableHeaderCell align="right">Investimento</TableHeaderCell>
-            <TableHeaderCell align="right">CPL</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((p) => {
-            const conv = p.visits ? p.leads / p.visits : 0
-            const cpl = p.leads ? p.spend / p.leads : NaN
-            return (
-              <TableRow key={p.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-800 text-muted">
-                      <Globe size={15} strokeWidth={1.5} aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="truncate text-body-s font-medium text-strong">{p.name}</div>
-                      <div className="truncate font-mono text-[11px] text-faint">{p.url}</div>
+    <>
+      <Card padded={false} className="hidden overflow-hidden md:block">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell>Página</TableHeaderCell>
+              <TableHeaderCell align="right">Visitas</TableHeaderCell>
+              <TableHeaderCell align="right">Leads</TableHeaderCell>
+              <TableHeaderCell align="right">Conversão</TableHeaderCell>
+              <TableHeaderCell align="right">Investimento</TableHeaderCell>
+              <TableHeaderCell align="right">CPL</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((p) => {
+              const conv = p.visits ? p.leads / p.visits : 0
+              const cpl = p.leads ? p.spend / p.leads : NaN
+              return (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-800 text-muted">
+                        <Globe size={15} strokeWidth={1.5} aria-hidden />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-body-s font-medium text-strong">{p.name}</div>
+                        <div className="truncate font-mono text-[11px] text-faint">{p.url}</div>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtInt(p.visits)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtInt(p.leads)}</span></TableCell>
-                <TableCell align="right">
-                  <Badge tone={conv >= 0.3 ? 'success' : conv >= 0.15 ? 'warning' : 'neutral'} size="sm">{fmtPct(conv)}</Badge>
-                </TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoney(p.spend)}</span></TableCell>
-                <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtMoneyCents(cpl)}</span></TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </Card>
+                  </TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtInt(p.visits)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtInt(p.leads)}</span></TableCell>
+                  <TableCell align="right">
+                    <Badge tone={conv >= 0.3 ? 'success' : conv >= 0.15 ? 'warning' : 'neutral'} size="sm">{fmtPct(conv)}</Badge>
+                  </TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-muted">{fmtMoney(p.spend)}</span></TableCell>
+                  <TableCell align="right"><span className="font-mono tabular-nums text-strong">{fmtMoneyCents(cpl)}</span></TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Cards — abaixo de md substituem a tabela. */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {rows.map((p) => {
+          const conv = p.visits ? p.leads / p.visits : 0
+          const cpl = p.leads ? p.spend / p.leads : NaN
+          return (
+            <Card key={p.id} className="p-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-800 text-muted">
+                  <Globe size={15} strokeWidth={1.5} aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <div className="truncate text-body-s font-medium text-strong">{p.name}</div>
+                  <div className="truncate font-mono text-[11px] text-faint">{p.url}</div>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3">
+                <Metric icon={<Users size={12} strokeWidth={1.5} />} label="Visitas" value={fmtInt(p.visits)} />
+                <Metric icon={<Target size={12} strokeWidth={1.5} />} label="Leads" value={fmtInt(p.leads)} />
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[10px] uppercase text-faint">Conversão</span>
+                  <Badge tone={conv >= 0.3 ? 'success' : conv >= 0.15 ? 'warning' : 'neutral'} size="sm" className="w-fit">
+                    {fmtPct(conv)}
+                  </Badge>
+                </div>
+                <Metric icon={<Banknote size={12} strokeWidth={1.5} />} label="Invest." value={fmtMoney(p.spend)} />
+                <Metric icon={<Target size={12} strokeWidth={1.5} />} label="CPL" value={fmtMoneyCents(cpl)} />
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+    </>
   )
 }

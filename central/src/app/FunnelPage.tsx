@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, ArrowUpRight, Trash2, ExternalLink } from 'lucide-react'
 import {
-  CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge,
+  Card, CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge,
   Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell, TableEmpty,
   useToast,
 } from '@/components/ui'
@@ -132,8 +132,8 @@ export function FunnelPage() {
         <StatCard label="Total de capturas" value={kpis.total} />
       </div>
 
-      {/* Tabela */}
-      <Table>
+      {/* Tabela — só a partir de md; em telas estreitas vira lista de cards abaixo. */}
+      <Table wrapperClassName="hidden md:block">
         <TableHead>
           <TableRow>
             <TableHeaderCell>Nome</TableHeaderCell>
@@ -221,6 +221,84 @@ export function FunnelPage() {
           )}
         </TableBody>
       </Table>
+
+      {/* Cards — abaixo de md substituem a tabela (colunas demais pra caber). */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {loading ? (
+          <p className="py-10 text-center text-body-s text-muted">Carregando capturas…</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-10 text-center text-body-s text-muted">
+            {leads.length === 0
+              ? 'Nenhuma captura ainda — os leads da página /guia aparecem aqui.'
+              : 'Nenhum lead bate com a busca.'}
+          </p>
+        ) : (
+          filtered.map((l) => (
+            <Card key={l.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-body-l font-semibold text-strong">{l.name}</p>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-faint">{l.email}</p>
+                </div>
+                {l.promotedAt ? (
+                  <Badge tone="success" variant="soft" size="sm" className="shrink-0">Promovido</Badge>
+                ) : (
+                  <Badge tone="steel" variant="soft" size="sm" className="shrink-0">Em nutrição</Badge>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-col gap-1.5 text-body-s">
+                <div className="flex items-center gap-2">
+                  <span className="w-24 shrink-0 font-mono text-mono-label uppercase text-faint">Origem</span>
+                  <span className="min-w-0 truncate font-mono text-muted" title={l.referrer ?? undefined}>
+                    {fmtOrigem(l)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-24 shrink-0 font-mono text-mono-label uppercase text-faint">Capturado</span>
+                  <span className="font-mono text-muted">{fmtDateTime(l.createdAt)}</span>
+                </div>
+                {l.signupCount > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-24 shrink-0 font-mono text-mono-label uppercase text-faint">Recapturas</span>
+                    <span className="font-mono text-muted">{l.signupCount}×</span>
+                  </div>
+                )}
+              </div>
+
+              {l.promotedAt && l.crmLeadId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/crm?lead=${l.crmLeadId}`)}
+                  className="mt-3 inline-flex items-center gap-1.5 text-body-s text-steel-300 transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                >
+                  Ver lead no CRM <ExternalLink size={14} strokeWidth={1.5} aria-hidden />
+                </button>
+              )}
+
+              {canManage && (
+                <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+                  {!l.promotedAt && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      loading={promoting === l.id}
+                      leftIcon={<ArrowUpRight size={15} strokeWidth={1.5} />}
+                      onClick={() => handlePromote(l)}
+                    >
+                      Promover pro CRM
+                    </Button>
+                  )}
+                  <IconButton size="sm" variant="ghost" aria-label="Excluir lead" onClick={() => setToDelete(l)}>
+                    <Trash2 size={15} strokeWidth={1.5} />
+                  </IconButton>
+                </div>
+              )}
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* Confirmação de exclusão */}
       <Modal

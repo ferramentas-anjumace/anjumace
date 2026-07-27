@@ -150,7 +150,7 @@ function CatalogCard({ catalog, canManage, onAdd, onEdit }: {
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {list.map((item, i) => (
-            <li key={item.id} className="flex items-center gap-3 py-2.5">
+            <li key={item.id} className="flex flex-wrap items-center gap-y-2 gap-x-3 py-2.5">
               {canManage && (
                 <div className="flex flex-col">
                   <IconButton

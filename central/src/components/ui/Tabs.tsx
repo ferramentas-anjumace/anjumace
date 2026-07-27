@@ -64,9 +64,12 @@ export function TabList({ className, children, ...props }: TabListProps) {
       role="tablist"
       onKeyDown={onKeyDown}
       className={cn(
+        // overflow-x-auto: com muitas abas (ex.: Equipe, CRM) o conjunto não
+        // cabe em telas estreitas — rola em vez de espremer/cortar os labels.
+        'flex items-center gap-1 overflow-x-auto overscroll-x-contain',
         variant === 'underline'
-          ? 'flex items-center gap-1 border-b border-line'
-          : 'inline-flex items-center gap-1 rounded-md border border-line bg-slate-900 p-1',
+          ? 'border-b border-line'
+          : 'rounded-md border border-line bg-slate-900 p-1',
         className,
       )}
       {...props}
@@ -94,7 +97,7 @@ export function Tab({ value, badge, className, children, ...props }: TabProps) {
       tabIndex={selected ? 0 : -1}
       onClick={() => setValue(value)}
       className={cn(
-        'inline-flex items-center gap-2 text-body-s font-medium transition-[color,background-color,border-color] duration-fast focus-visible:outline-none focus-visible:shadow-focus',
+        'inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-body-s font-medium transition-[color,background-color,border-color] duration-fast focus-visible:outline-none focus-visible:shadow-focus',
         variant === 'underline'
           ? cn(
               '-mb-px border-b-2 px-1 py-2.5',

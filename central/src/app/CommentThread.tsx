@@ -82,7 +82,7 @@ function CommentItem({
           {canDelete && (
             <button
               onClick={onDelete}
-              className="ml-auto grid size-6 shrink-0 place-items-center rounded text-faint opacity-0 transition-opacity hover:text-err focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100"
+              className="ml-auto grid size-6 shrink-0 place-items-center rounded text-faint opacity-100 transition-opacity hover:text-err focus-visible:opacity-100 focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
               aria-label="Excluir comentário"
               title="Excluir comentário"
             >

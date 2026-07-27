@@ -3,6 +3,7 @@ import { Plus, MoreHorizontal, Pencil, UserX, Loader2, Trash2, Users } from 'luc
 import {
   SectionHeader,
   CardIcon,
+  Card,
   Button,
   SearchField,
   Tabs,
@@ -14,7 +15,6 @@ import {
   TableRow,
   TableHeaderCell,
   TableCell,
-  TableEmpty,
   Badge,
   Avatar,
   EmptyState,
@@ -296,27 +296,25 @@ export function UsersPage() {
         <div className="grid place-items-center py-24">
           <Loader2 size={26} strokeWidth={1.5} className="animate-spin text-steel-300" aria-label="Carregando" />
         </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={<UserX size={22} strokeWidth={1.5} />}
+          title="Nenhum usuário encontrado"
+          description={members.length === 0 ? 'Crie o primeiro usuário do time.' : 'Ajuste a busca ou o filtro.'}
+        />
       ) : (
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeaderCell>Usuário</TableHeaderCell>
-              <TableHeaderCell>Papel</TableHeaderCell>
-              {isAdmin && <TableHeaderCell className="w-12" align="right">Ações</TableHeaderCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableEmpty colSpan={isAdmin ? 3 : 2}>
-                <EmptyState
-                  className="border-0 bg-transparent py-0"
-                  icon={<UserX size={22} strokeWidth={1.5} />}
-                  title="Nenhum usuário encontrado"
-                  description={members.length === 0 ? 'Crie o primeiro usuário do time.' : 'Ajuste a busca ou o filtro.'}
-                />
-              </TableEmpty>
-            ) : (
-              filtered.map((u) => {
+        <>
+          {/* Tabela — só a partir de md; em telas estreitas vira lista de cards abaixo. */}
+          <Table wrapperClassName="hidden md:block">
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell>Usuário</TableHeaderCell>
+                <TableHeaderCell>Papel</TableHeaderCell>
+                {isAdmin && <TableHeaderCell className="w-12" align="right">Ações</TableHeaderCell>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map((u) => {
                 const isSelf = u.id === user.userId
                 return (
                   <TableRow key={u.id}>
@@ -324,8 +322,8 @@ export function UsersPage() {
                       <div className="flex items-center gap-3">
                         <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
                         <div className="min-w-0">
-                          <div className="font-medium text-strong">{u.name || '—'}</div>
-                          <div className="font-mono text-[11px] text-faint">{u.email}</div>
+                          <div className="truncate font-medium text-strong">{u.name || '—'}</div>
+                          <div className="truncate font-mono text-[11px] text-faint">{u.email}</div>
                         </div>
                       </div>
                     </TableCell>
@@ -359,10 +357,56 @@ export function UsersPage() {
                     )}
                   </TableRow>
                 )
-              })
-            )}
-          </TableBody>
-        </Table>
+              })}
+            </TableBody>
+          </Table>
+
+          {/* Cards — abaixo de md substituem a tabela. */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filtered.map((u) => {
+              const isSelf = u.id === user.userId
+              return (
+                <Card key={u.id} className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-strong">{u.name || '—'}</div>
+                        <div className="truncate font-mono text-[11px] text-faint">{u.email}</div>
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <DropdownMenu
+                        align="end"
+                        trigger={
+                          <IconButton size="sm" aria-label={`Ações de ${u.name}`} className="shrink-0">
+                            <MoreHorizontal size={16} strokeWidth={1.5} />
+                          </IconButton>
+                        }
+                      >
+                        <MenuItem icon={<Pencil size={16} strokeWidth={1.5} />} onClick={() => setEditing(u)}>
+                          Editar
+                        </MenuItem>
+                        <MenuSeparator />
+                        <MenuItem
+                          icon={<Trash2 size={16} strokeWidth={1.5} />}
+                          destructive
+                          disabled={isSelf}
+                          onClick={() => setDeleting(u)}
+                        >
+                          {isSelf ? 'Excluir (você)' : 'Excluir usuário'}
+                        </MenuItem>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                  <div className="mt-3 border-t border-line pt-3">
+                    <Badge tone={ROLE_TONE[u.role]} dot={MANAGER_ROLES.includes(u.role)}>{ROLE_LABEL[u.role]}</Badge>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </>
       )}
 
       <EditMemberModal

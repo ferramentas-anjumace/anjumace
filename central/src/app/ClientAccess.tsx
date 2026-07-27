@@ -738,7 +738,7 @@ export function ClientAccess({ clientId, canManage }: { clientId: string; canMan
                   </div>
                 </a>
                 {canManage && (
-                  <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  <div className="absolute right-2 top-2 flex gap-1 opacity-100 transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => { setEditingMedia(m); setMediaModal(true) }}

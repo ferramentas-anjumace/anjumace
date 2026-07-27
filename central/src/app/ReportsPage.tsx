@@ -331,14 +331,14 @@ export function ReportsPage() {
           </div>
         </div>
 
-        {/* Seletor de período (segmentado) */}
-        <div className="flex items-center gap-1 rounded-lg border border-line bg-slate-900 p-1">
+        {/* Seletor de período (segmentado) — rola em vez de espremer/quebrar em telas estreitas. */}
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-line bg-slate-900 p-1">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                'rounded-md px-3 py-1.5 font-mono text-mono-data uppercase transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 font-mono text-mono-data uppercase transition-colors focus-visible:outline-none focus-visible:shadow-focus',
                 period === p.key ? 'bg-steel-500 text-accent-fg' : 'text-muted hover:text-strong',
               )}
             >
@@ -460,7 +460,7 @@ export function ReportsPage() {
           </div>
           <span className="font-mono text-mono-label uppercase text-faint">tarefas por pessoa</span>
         </CardHeader>
-        <Table>
+        <Table wrapperClassName="hidden md:block">
           <TableHead>
             <TableRow>
               <TableHeaderCell>Pessoa</TableHeaderCell>
@@ -510,6 +510,55 @@ export function ReportsPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Cards — abaixo de md substituem a tabela (5 colunas não cabem lado a lado). */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {metrics.workload.length === 0 ? (
+            <p className="py-6 text-center text-body-s text-muted">Nenhuma tarefa atribuída ainda.</p>
+          ) : (
+            metrics.workload.map((w) => (
+              <div key={w.member.id} className="rounded-lg border border-line bg-ink-deep/30 p-3">
+                <div className="flex items-center gap-2.5">
+                  <Avatar size="sm" name={w.member.name} src={w.member.avatar ?? undefined} />
+                  <div className="min-w-0">
+                    <div className="truncate text-body-s font-medium text-strong">{w.member.name}</div>
+                    <div className="truncate font-mono text-[11px] text-faint">{ROLE_LABEL[w.member.role]}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div className="font-mono text-[10px] uppercase text-faint">Abertas</div>
+                    <div className="mt-1">
+                      {w.open > 0 ? (
+                        <span className="font-mono tabular-nums text-strong">{w.open}</span>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[10px] uppercase text-faint">Revisão</div>
+                    <div className="mt-1">
+                      {w.review > 0 ? (
+                        <Badge size="sm" tone="warning">{w.review}</Badge>
+                      ) : (
+                        <span className="text-faint">—</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[10px] uppercase text-faint">Concl.</div>
+                    <div className="mt-1 font-mono tabular-nums text-muted">{w.done}</div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[10px] uppercase text-faint">Total</div>
+                    <div className="mt-1 font-mono tabular-nums text-strong">{w.total}</div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Card>
     </div>
   )

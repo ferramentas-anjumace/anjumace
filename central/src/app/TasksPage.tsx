@@ -517,51 +517,56 @@ function CalendarView({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => v
           </IconButton>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-subtle bg-subtle">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="bg-ink-deep/40 px-2 py-1.5 text-center font-mono text-[10px] uppercase text-faint">
-            {w}
-          </div>
-        ))}
-        {cells.map((d, i) => {
-          if (d === null) return <div key={`e${i}`} className="min-h-[92px] bg-ink-deep/20" />
-          const iso = dateToIso(new Date(year, month, d))!
-          const dayTasks = byDay.get(iso) ?? []
-          const isToday = iso === today
-          return (
-            <div key={iso} className="min-h-[92px] bg-slate-900 p-1.5">
-              <div className="mb-1 text-right">
-                <span
-                  className={`inline-grid size-5 place-items-center rounded-full font-mono text-[11px] tabular-nums ${
-                    isToday ? 'bg-steel-500 text-accent-fg' : 'text-faint'
-                  }`}
-                >
-                  {d}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                {dayTasks.slice(0, 3).map((t) => {
-                  const meta = TASK_STATUS_META[t.status]
-                  const done = t.status === 'concluida'
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => onOpen(t)}
-                      title={t.title}
-                      className="flex items-center gap-1 rounded-xs bg-ink-deep/50 px-1.5 py-0.5 text-left text-[11px] text-strong transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
-                    >
-                      <span className={`size-1.5 shrink-0 rounded-full ${STATUS_DOT[meta.tone]}`} aria-hidden />
-                      <span className={`truncate ${done ? 'text-faint line-through' : ''}`}>{t.title}</span>
-                    </button>
-                  )
-                })}
-                {dayTasks.length > 3 && (
-                  <span className="px-1 text-[10px] text-faint">+{dayTasks.length - 3} mais</span>
-                )}
-              </div>
+      {/* overflow-x-auto + min-width: em telas estreitas as 7 colunas não cabem
+          espremidas — rola em vez de virar ilegível (mesmo padrão do calendário
+          editorial em EditorialCalendar.tsx). */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[700px] grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-subtle bg-subtle">
+          {WEEKDAYS.map((w) => (
+            <div key={w} className="bg-ink-deep/40 px-2 py-1.5 text-center font-mono text-[10px] uppercase text-faint">
+              {w}
             </div>
-          )
-        })}
+          ))}
+          {cells.map((d, i) => {
+            if (d === null) return <div key={`e${i}`} className="min-h-[92px] bg-ink-deep/20" />
+            const iso = dateToIso(new Date(year, month, d))!
+            const dayTasks = byDay.get(iso) ?? []
+            const isToday = iso === today
+            return (
+              <div key={iso} className="min-h-[92px] bg-slate-900 p-1.5">
+                <div className="mb-1 text-right">
+                  <span
+                    className={`inline-grid size-5 place-items-center rounded-full font-mono text-[11px] tabular-nums ${
+                      isToday ? 'bg-steel-500 text-accent-fg' : 'text-faint'
+                    }`}
+                  >
+                    {d}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {dayTasks.slice(0, 3).map((t) => {
+                    const meta = TASK_STATUS_META[t.status]
+                    const done = t.status === 'concluida'
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => onOpen(t)}
+                        title={t.title}
+                        className="flex items-center gap-1 rounded-xs bg-ink-deep/50 px-1.5 py-0.5 text-left text-[11px] text-strong transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
+                      >
+                        <span className={`size-1.5 shrink-0 rounded-full ${STATUS_DOT[meta.tone]}`} aria-hidden />
+                        <span className={`truncate ${done ? 'text-faint line-through' : ''}`}>{t.title}</span>
+                      </button>
+                    )
+                  })}
+                  {dayTasks.length > 3 && (
+                    <span className="px-1 text-[10px] text-faint">+{dayTasks.length - 3} mais</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </Card>
   )
@@ -836,7 +841,7 @@ function ChecklistSection({ task, onChange }: { task: Task; onChange: (items: Ch
                 type="button"
                 onClick={() => remove(i.id)}
                 aria-label="Remover subtarefa"
-                className="ml-auto grid size-6 shrink-0 place-items-center rounded-xs text-faint opacity-0 transition hover:text-err focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100"
+                className="ml-auto grid size-6 shrink-0 place-items-center rounded-xs text-faint opacity-100 transition hover:text-err focus-visible:opacity-100 focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
               >
                 <Trash2 size={14} strokeWidth={1.5} />
               </button>

@@ -5,6 +5,7 @@ import {
   Plus,
   Send,
   Trash2,
+  ChevronLeft,
   MessagesSquare,
   PenSquare,
   Paperclip,
@@ -482,11 +483,12 @@ function MessageItem({
             )}
           </div>
 
-          {/* Ações (hover): responder + reagir + excluir. Fixo com o picker aberto. */}
+          {/* Ações: sempre visíveis em mobile (sem hover); em telas com mouse
+              só aparecem no hover/foco da mensagem, ou com o picker aberto. */}
           <div
             className={cn(
-              'relative mt-1 flex shrink-0 items-center gap-0.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100',
-              pickerOpen ? 'opacity-100' : 'opacity-0',
+              'relative mt-1 flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity md:focus-within:opacity-100 md:group-hover:opacity-100',
+              !pickerOpen && 'md:opacity-0',
             )}
           >
             {onOpenThread && (
@@ -1037,8 +1039,14 @@ export function ChatPage() {
 
   return (
     <div className="relative flex h-full min-h-0">
-      {/* Lista de conversas */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-slate-900/40 md:flex">
+      {/* Lista de conversas — em mobile alterna com a conversa (padrão master-detail);
+          a partir de md os dois ficam lado a lado como sempre. */}
+      <aside
+        className={cn(
+          'w-full shrink-0 flex-col border-r border-line bg-slate-900/40 md:flex md:w-60',
+          activeId ? 'hidden md:flex' : 'flex',
+        )}
+      >
         <nav className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 py-3">
           {/* Canais */}
           <div className="flex flex-col gap-0.5">
@@ -1095,11 +1103,19 @@ export function ChatPage() {
         </nav>
       </aside>
 
-      {/* Conversa */}
-      <section className="flex min-w-0 flex-1 flex-col">
+      {/* Conversa — em mobile só aparece quando há canal ativo (ver aside acima) */}
+      <section className={cn('min-w-0 flex-1 flex-col md:flex', activeChannel ? 'flex' : 'hidden md:flex')}>
         {activeChannel ? (
           <>
             <header className="flex items-center gap-2 border-b border-line px-4 py-3">
+              <IconButton
+                size="sm"
+                aria-label="Voltar para a lista de conversas"
+                className="-ml-1.5 md:hidden"
+                onClick={() => setActiveId(null)}
+              >
+                <ChevronLeft size={18} strokeWidth={1.5} />
+              </IconButton>
               {activeChannel.kind === 'dm' ? (
                 <Avatar size="sm" name={activeTitle} src={dmOther?.avatar ?? undefined} />
               ) : (

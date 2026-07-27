@@ -111,7 +111,7 @@ export function AvatarUploader({
         aria-label={src ? 'Trocar foto' : 'Adicionar foto'}
       >
         <Avatar size={size} name={name} src={src ?? undefined} />
-        <span className="absolute inset-0 grid place-items-center rounded-full bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="absolute inset-0 grid place-items-center rounded-full bg-black/45 text-white opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
           {busy ? (
             <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />
           ) : (

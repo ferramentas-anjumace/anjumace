@@ -242,7 +242,8 @@ export function CrmPage() {
         <TabList aria-label="Visões do CRM">
           <Tab value="pipeline">Pipeline</Tab>
           <Tab value="leads">Leads</Tab>
-          <Tab value="planilha">Planilha</Tab>
+          {/* Some no menu mobile — a tabela tem colunas demais pra caber numa tela pequena. */}
+          <Tab value="planilha" className="hidden md:inline-flex">Planilha</Tab>
           <Tab value="upgrade">Upgrade</Tab>
           <Tab value="dashboard">Dashboard</Tab>
         </TabList>
@@ -278,7 +279,19 @@ export function CrmPage() {
         </TabPanel>
 
         <TabPanel value="planilha">
-          <SpreadsheetView leads={filtered} canManage={canManage} onOpen={setOpenId} />
+          {/* Tabela larga demais pra caber numa tela pequena — fallback explica
+              e manda pra "Leads", que tem os mesmos dados num formato viável. */}
+          <div className="hidden md:block">
+            <SpreadsheetView leads={filtered} canManage={canManage} onOpen={setOpenId} />
+          </div>
+          <div className="md:hidden">
+            <EmptyState
+              icon={<ListChecks size={22} strokeWidth={1.5} />}
+              title="Planilha é uma visão de desktop"
+              description="Essa tabela tem colunas demais pra caber numa tela pequena. No celular, use a aba “Leads” pra ver e editar os mesmos leads."
+              action={<Button onClick={() => setTab('leads')}>Ir para Leads</Button>}
+            />
+          </div>
         </TabPanel>
 
         <TabPanel value="upgrade">
@@ -380,7 +393,7 @@ function PipelineBoard({
               setOver(null)
             } : undefined}
             className={cn(
-              'flex w-72 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors',
+              'flex w-64 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors md:w-72',
               over === col.value ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30',
             )}
           >
@@ -995,7 +1008,7 @@ function InteractionItem({ it, canManage, onRemove }: { it: LeadInteraction; can
           <CatBadge catalog="crm_channel" value={it.channel} />
         </div>
         {canManage && (
-          <IconButton aria-label="Excluir interação" size="sm" className="opacity-0 group-hover:opacity-100" onClick={onRemove}>
+          <IconButton aria-label="Excluir interação" size="sm" className="opacity-100 md:opacity-0 md:group-hover:opacity-100" onClick={onRemove}>
             <Trash2 size={14} strokeWidth={1.5} aria-hidden />
           </IconButton>
         )}

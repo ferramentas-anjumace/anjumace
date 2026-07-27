@@ -54,7 +54,12 @@ export function PermissionsPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell>Ação</TableHeaderCell>
+              {/* Coluna fixa: com 6 papéis a matriz fica larga — sem isso, ao
+                  rolar horizontalmente em mobile perde-se de vista qual ação
+                  cada switch representa. */}
+              <TableHeaderCell className="sticky left-0 z-10 border-r border-line bg-slate-800/95 backdrop-blur">
+                Ação
+              </TableHeaderCell>
               {COLUMNS.map((r) => (
                 <TableHeaderCell key={r} align="center" className="w-32">
                   <span className="inline-flex items-center gap-1.5">
@@ -79,7 +84,7 @@ export function PermissionsPage() {
             ) : (
               CAPABILITIES.map((capDef) => (
                 <TableRow key={capDef.key}>
-                  <TableCell>
+                  <TableCell className="sticky left-0 z-10 border-r border-line bg-slate-900">
                     <div className="font-medium text-strong">{capDef.label}</div>
                     <div className="text-[12px] text-faint">{capDef.hint}</div>
                   </TableCell>

@@ -19,6 +19,7 @@ import {
   LogOut,
   UserCog,
   ChevronDown,
+  Menu,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -32,7 +33,9 @@ import {
   MenuItem,
   MenuSeparator,
   Modal,
+  Drawer,
   Button,
+  IconButton,
   Input,
   useToast,
 } from '@/components/ui'
@@ -110,6 +113,7 @@ export function AppShell() {
   const { totalUnread } = useChat()
   const toast = useToast()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
 
   // Foto do próprio usuário vem da linha em profiles (casada pelo uuid do Auth).
   const myAvatar = members.find((m) => m.id === user.userId)?.avatar ?? undefined
@@ -135,7 +139,62 @@ export function AppShell() {
   const go = (to: string) => (e: React.MouseEvent) => {
     e.preventDefault()
     navigate(to)
+    setNavOpen(false)
   }
+
+  // Conteúdo de navegação — compartilhado entre a Sidebar fixa (desktop) e o
+  // Drawer que a substitui abaixo do breakpoint md (mobile/tablet estreito).
+  const navContent = (
+    <>
+      {nav.map((g) => (
+        <SidebarGroup key={g.group} label={g.group}>
+          {g.items.map((item) => (
+            <SidebarItem
+              key={item.to}
+              href={item.to}
+              icon={item.icon}
+              active={isActive(item.to)}
+              onClick={go(item.to)}
+            >
+              {item.label}
+            </SidebarItem>
+          ))}
+        </SidebarGroup>
+      ))}
+
+      {/* Chat — fixado no rodapé, com destaque visual próprio. */}
+      <a
+        href="/app/chat"
+        onClick={go('/app/chat')}
+        aria-current={isActive('/app/chat') ? 'page' : undefined}
+        className={cn(
+          'group mt-auto flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-body-s font-medium transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+          isActive('/app/chat')
+            ? 'border-transparent bg-steel-500 text-accent-fg shadow-e1'
+            : 'border-steel-500/30 bg-steel-tint text-steel-200 hover:bg-steel-500/25 hover:text-strong',
+        )}
+      >
+        <MessagesSquare size={19} strokeWidth={1.5} className="shrink-0" aria-hidden />
+        <span className="flex-1">Chat</span>
+        {totalUnread > 0 && (
+          <span
+            className={cn(
+              'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+              isActive('/app/chat') ? 'bg-accent-fg/25 text-accent-fg' : 'bg-steel-500 text-accent-fg',
+            )}
+          >
+            {totalUnread > 99 ? '99+' : totalUnread}
+          </span>
+        )}
+      </a>
+    </>
+  )
+
+  // Fecha o drawer de navegação mobile sempre que a rota muda — cobre tanto
+  // os links do menu quanto a busca (que navega direto, sem passar por `go`).
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
 
   // Trava a rolagem da janela enquanto o app está montado: o shell ocupa a
   // tela inteira e cada área rola por conta própria. Sem a trava, qualquer
@@ -161,15 +220,28 @@ export function AppShell() {
       <Topbar
         className="relative z-sticky"
         leading={
-          <button
-            onClick={go('/app')}
-            className="flex items-center rounded-md focus-visible:outline-none focus-visible:shadow-focus"
-            aria-label="Anju Mace — início"
-          >
-            <Logo className="h-4 w-auto text-strong" />
-          </button>
+          <>
+            <IconButton
+              aria-label="Abrir menu de navegação"
+              className="-ml-1 md:hidden"
+              onClick={() => setNavOpen(true)}
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </IconButton>
+            <button
+              onClick={go('/app')}
+              className="flex items-center rounded-md focus-visible:outline-none focus-visible:shadow-focus"
+              aria-label="Anju Mace — início"
+            >
+              <Logo className="h-4 w-auto text-strong" />
+            </button>
+          </>
         }
-        center={<GlobalSearch />}
+        center={
+          <div className="hidden w-full md:block">
+            <GlobalSearch />
+          </div>
+        }
         trailing={
           <>
             {/* Seletores de marca/tema ocultos enquanto *_LOCKED (lib/theme.tsx). */}
@@ -203,54 +275,38 @@ export function AppShell() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <Sidebar className="hidden md:flex">
-          {nav.map((g) => (
-            <SidebarGroup key={g.group} label={g.group}>
-              {g.items.map((item) => (
-                <SidebarItem
-                  key={item.to}
-                  href={item.to}
-                  icon={item.icon}
-                  active={isActive(item.to)}
-                  onClick={go(item.to)}
-                >
-                  {item.label}
-                </SidebarItem>
-              ))}
-            </SidebarGroup>
-          ))}
-
-          {/* Chat — fixado no rodapé, com destaque visual próprio. */}
-          <a
-            href="/app/chat"
-            onClick={go('/app/chat')}
-            aria-current={isActive('/app/chat') ? 'page' : undefined}
-            className={cn(
-              'group mt-auto flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-body-s font-medium transition-colors focus-visible:outline-none focus-visible:shadow-focus',
-              isActive('/app/chat')
-                ? 'border-transparent bg-steel-500 text-accent-fg shadow-e1'
-                : 'border-steel-500/30 bg-steel-tint text-steel-200 hover:bg-steel-500/25 hover:text-strong',
-            )}
-          >
-            <MessagesSquare size={19} strokeWidth={1.5} className="shrink-0" aria-hidden />
-            <span className="flex-1">Chat</span>
-            {totalUnread > 0 && (
-              <span
-                className={cn(
-                  'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
-                  isActive('/app/chat') ? 'bg-accent-fg/25 text-accent-fg' : 'bg-steel-500 text-accent-fg',
-                )}
-              >
-                {totalUnread > 99 ? '99+' : totalUnread}
-              </span>
-            )}
-          </a>
-        </Sidebar>
+        <Sidebar className="hidden md:flex">{navContent}</Sidebar>
 
         <main className="min-w-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
+
+      {/* Atalho de chat — evita ter que abrir o menu (mobile) ou ir até a
+          sidebar (desktop) só para trocar de conversa. Some na própria página do chat. */}
+      {!isActive('/app/chat') && (
+        <button
+          onClick={go('/app/chat')}
+          aria-label={totalUnread > 0 ? `Abrir chat, ${totalUnread} não lidas` : 'Abrir chat'}
+          className="fixed bottom-5 right-5 z-sticky flex size-14 items-center justify-center rounded-full bg-steel-500 text-accent-fg shadow-e3 transition-colors hover:bg-steel-400 active:translate-y-px focus-visible:outline-none focus-visible:shadow-focus"
+        >
+          <MessagesSquare size={24} strokeWidth={1.5} />
+          {totalUnread > 0 && (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-err px-1.5 text-[11px] font-semibold text-white ring-2 ring-ink tabular-nums">
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Navegação mobile — a Sidebar fixa some abaixo de md; este Drawer é o
+          único jeito de trocar de seção em telas estreitas. */}
+      <Drawer open={navOpen} onClose={() => setNavOpen(false)} side="left" width={280} title="Menu">
+        <div className="flex flex-col gap-6">
+          <GlobalSearch />
+          {navContent}
+        </div>
+      </Drawer>
 
       <Modal
         open={accountOpen}

@@ -70,7 +70,7 @@ function AttachmentItem({
       {canDelete && (
         <button
           onClick={onDelete}
-          className="grid size-8 shrink-0 place-items-center rounded-md text-muted opacity-0 transition-all hover:bg-slate-800 hover:text-err focus-visible:opacity-100 focus-visible:outline-none group-hover:opacity-100"
+          className="grid size-8 shrink-0 place-items-center rounded-md text-muted opacity-100 transition-all hover:bg-slate-800 hover:text-err focus-visible:opacity-100 focus-visible:outline-none md:opacity-0 md:group-hover:opacity-100"
           aria-label={`Excluir ${att.name}`}
           title="Excluir"
         >

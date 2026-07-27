@@ -292,7 +292,7 @@ function MonthGrid({
                       type="button"
                       onClick={() => onAdd(iso)}
                       aria-label={`Nova postagem em ${longFmt.format(d)}`}
-                      className="grid size-5 place-items-center rounded-sm text-faint opacity-0 transition-[opacity,color,background-color] hover:bg-slate-700 hover:text-strong focus-visible:opacity-100 focus-visible:outline-none focus-visible:shadow-focus group-hover/cell:opacity-100"
+                      className="grid size-5 place-items-center rounded-sm text-faint opacity-100 transition-[opacity,color,background-color] hover:bg-slate-700 hover:text-strong focus-visible:opacity-100 focus-visible:outline-none focus-visible:shadow-focus md:opacity-0 md:group-hover/cell:opacity-100"
                     >
                       <Plus size={14} strokeWidth={1.5} aria-hidden />
                     </button>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Hourglass, ArrowUpRight, Trash2, ExternalLink } from 'lucide-react'
 import {
-  CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge, Switch,
+  Card, CardIcon, StatCard, Button, IconButton, Modal, SearchField, Badge, Switch,
   Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell, TableEmpty,
   useToast,
 } from '@/components/ui'
@@ -135,8 +135,8 @@ export function WaitlistPage() {
         <StatCard label="Total de inscrições" value={kpis.total} />
       </div>
 
-      {/* Tabela */}
-      <Table>
+      {/* Tabela — só a partir de md; em telas estreitas vira lista de cards abaixo. */}
+      <Table wrapperClassName="hidden md:block">
         <TableHead>
           <TableRow>
             <TableHeaderCell>Nome</TableHeaderCell>
@@ -245,6 +245,104 @@ export function WaitlistPage() {
           )}
         </TableBody>
       </Table>
+
+      {/* Cards — abaixo de md substituem a tabela (colunas demais pra caber). */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {loading ? (
+          <p className="py-10 text-center text-body-s text-muted">Carregando inscrições…</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-10 text-center text-body-s text-muted">
+            {entries.length === 0
+              ? 'Nenhuma inscrição ainda — os leads da página de lista de espera aparecem aqui.'
+              : !showPromoted && kpis.waiting === 0
+                ? 'Todos os leads foram promovidos pro CRM. Ative "Mostrar promovidos" pra ver o histórico.'
+                : 'Nenhuma inscrição bate com a busca.'}
+          </p>
+        ) : (
+          filtered.map((e) => {
+            const wa = waHref(e.whatsapp)
+            return (
+              <Card key={e.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-body-l font-semibold text-strong">{e.name}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-faint">{fmtDateTime(e.createdAt)}</p>
+                  </div>
+                  {e.promotedAt ? (
+                    <Badge tone="success" variant="soft" size="sm" className="shrink-0">Promovido</Badge>
+                  ) : (
+                    <Badge tone="steel" variant="soft" size="sm" className="shrink-0">Na lista</Badge>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-col gap-1.5 text-body-s">
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 shrink-0 font-mono text-mono-label uppercase text-faint">WhatsApp</span>
+                    <span className="font-mono text-muted">{e.whatsapp ?? '—'}</span>
+                    {wa && (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir no WhatsApp"
+                        aria-label="Abrir no WhatsApp"
+                        className="inline-flex text-ok transition-colors hover:text-ok/70 focus-visible:outline-none focus-visible:shadow-focus"
+                      >
+                        <MessageCircle size={15} strokeWidth={1.5} aria-hidden />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-16 shrink-0 font-mono text-mono-label uppercase text-faint">E-mail</span>
+                    <span className="min-w-0 truncate font-mono text-muted">{e.email ?? '—'}</span>
+                  </div>
+                  {e.notes && (
+                    <div className="flex items-start gap-2">
+                      <span className="w-16 shrink-0 pt-0.5 font-mono text-mono-label uppercase text-faint">Obs.</span>
+                      <span className="text-muted">{e.notes}</span>
+                    </div>
+                  )}
+                </div>
+
+                {e.promotedAt && e.promotedLeadId && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/app/crm?lead=${e.promotedLeadId}`)}
+                    className="mt-3 inline-flex items-center gap-1.5 text-body-s text-steel-300 transition-colors hover:text-strong focus-visible:outline-none focus-visible:shadow-focus"
+                  >
+                    Ver lead no CRM <ExternalLink size={14} strokeWidth={1.5} aria-hidden />
+                  </button>
+                )}
+
+                {canManage && (
+                  <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+                    {!e.promotedAt && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="flex-1"
+                        loading={promoting === e.id}
+                        leftIcon={<ArrowUpRight size={15} strokeWidth={1.5} />}
+                        onClick={() => handlePromote(e)}
+                      >
+                        Promover pro CRM
+                      </Button>
+                    )}
+                    <IconButton
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Excluir inscrição"
+                      onClick={() => setToDelete(e)}
+                    >
+                      <Trash2 size={15} strokeWidth={1.5} />
+                    </IconButton>
+                  </div>
+                )}
+              </Card>
+            )
+          })
+        )}
+      </div>
 
       {/* Confirmação de exclusão */}
       <Modal

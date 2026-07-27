@@ -15,9 +15,14 @@ import { cn } from '@/lib/cn'
  *   </Table>
  */
 
-export const Table = forwardRef<HTMLTableElement, React.TableHTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="w-full overflow-auto rounded-lg border border-line">
+export interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
+  /** Classes para a div que envolve a `<table>` (ex.: escondê-la em mobile). */
+  wrapperClassName?: string
+}
+
+export const Table = forwardRef<HTMLTableElement, TableProps>(
+  ({ className, wrapperClassName, ...props }, ref) => (
+    <div className={cn('w-full overflow-auto rounded-lg border border-line', wrapperClassName)}>
       <table
         ref={ref}
         className={cn('w-full border-collapse text-body-s', className)}

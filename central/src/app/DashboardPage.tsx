@@ -177,13 +177,15 @@ function WelcomeBanner({
         </div>
 
         {active.length > 0 && (
-          <div className="flex shrink-0 items-center gap-4 rounded-xl border border-line bg-ink-deep/40 px-5 py-4">
-            <AvatarGroup max={active.length}>
+          <div className="flex w-full min-w-0 shrink-0 items-center gap-4 rounded-xl border border-line bg-ink-deep/40 px-5 py-4 sm:w-auto">
+            {/* min-w-0 + overflow-x-auto: com o time inteiro sem limite de
+                avatares, isso rola em vez de vazar pra fora do card em mobile. */}
+            <AvatarGroup max={active.length} className="min-w-0 overflow-x-auto">
               {active.map((u) => (
                 <Avatar key={u.id} size="md" name={u.name} src={u.avatar ?? undefined} />
               ))}
             </AvatarGroup>
-            <div className="leading-tight">
+            <div className="shrink-0 leading-tight">
               <div className="font-display text-h2 font-semibold tabular-nums text-strong">{active.length}</div>
               <div className="font-mono text-mono-label uppercase text-faint">no time</div>
             </div>
