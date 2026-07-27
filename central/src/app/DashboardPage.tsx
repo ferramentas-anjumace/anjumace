@@ -24,6 +24,7 @@ import {
 import { useSession, ROLE_LABEL } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
 import { useTasks } from './tasks'
+import { isOpenTaskStatus } from './data'
 import { useProfiles } from './profiles'
 import { useAgenda, type AgendaEvent } from './agenda'
 import { useCatalogs, CatalogBadge } from './catalogs'
@@ -204,7 +205,7 @@ function AdminDashboard() {
   const { isOnline } = usePresence()
   const { tasks } = useTasks()
   const firstName = user.name.split(' ')[0]
-  const tarefasAbertas = tasks.filter((t) => t.status !== 'concluida').length
+  const tarefasAbertas = tasks.filter((t) => isOpenTaskStatus(t.status)).length
   const ativos = team.filter((u) => u.status === 'ativo').length
   const { events } = useAgenda()
   const todayAgenda = events.filter((e) => e.date === todayIso())

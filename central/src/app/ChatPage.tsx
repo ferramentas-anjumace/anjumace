@@ -30,6 +30,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { Portal } from '@/lib/Portal'
+import { useLockBodyScroll, useEscapeKey } from '@/lib/overlay'
 import { useSession } from '@/lib/session'
 import { useProfiles, type Member } from './profiles'
 import { useAttachments, type Attachment } from './attachments'
@@ -180,10 +181,12 @@ function DmButton({
   )
 }
 
-/** Miniatura de imagem (resolve a signed URL ao montar). */
+/** Miniatura de imagem (resolve a signed URL ao montar). Clicar abre um
+ *  lightbox no próprio app, em vez de navegar pra uma nova guia. */
 function ImageThumb({ att }: { att: Attachment }) {
   const { getViewUrl } = useAttachments()
   const [url, setUrl] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     let on = true
     getViewUrl(att).then((u) => {
@@ -196,14 +199,67 @@ function ImageThumb({ att }: { att: Attachment }) {
 
   if (!url) return <Skeleton className="h-40 w-56 rounded-lg" />
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block w-fit">
-      <img
-        src={url}
-        alt={att.name}
-        loading="lazy"
-        className="max-h-64 max-w-xs rounded-lg border border-line object-cover"
-      />
-    </a>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="block w-fit rounded-lg focus-visible:outline-none focus-visible:shadow-focus"
+      >
+        <img
+          src={url}
+          alt={att.name}
+          loading="lazy"
+          className="max-h-64 max-w-xs rounded-lg border border-line object-cover transition-opacity hover:opacity-90"
+        />
+      </button>
+      {open && <ImageLightbox att={att} url={url} onClose={() => setOpen(false)} />}
+    </>
+  )
+}
+
+/** Lightbox de imagem — overlay em tela cheia com a imagem em tamanho real,
+ *  fecha no X, Escape ou clique no backdrop. */
+function ImageLightbox({ att, url, onClose }: { att: Attachment; url: string; onClose: () => void }) {
+  useLockBodyScroll(true)
+  useEscapeKey(true, onClose)
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-ink-deep/90 backdrop-blur-sm animate-fade-in"
+          onClick={onClose}
+          aria-hidden
+        />
+        <div className="relative flex max-h-full max-w-full flex-col items-center animate-slide-up">
+          <div className="absolute -top-12 right-0 flex items-center gap-1">
+            <a
+              href={url}
+              download={att.name}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Baixar ${att.name}`}
+              title="Baixar"
+              className="grid size-9 place-items-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <Download size={18} strokeWidth={1.5} />
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar"
+              className="grid size-9 place-items-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <X size={20} strokeWidth={1.5} />
+            </button>
+          </div>
+          <img
+            src={url}
+            alt={att.name}
+            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-e3"
+          />
+        </div>
+      </div>
+    </Portal>
   )
 }
 

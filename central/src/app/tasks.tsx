@@ -108,7 +108,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
 
   const addTask = useCallback(
     async (input: TaskInput) => {
-      const stat = input.status ?? 'a-fazer'
+      const stat = input.status ?? 'backlog'
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -155,13 +155,14 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
       const current = tasks.find((t) => t.id === id)
       if (!current || current.status === status) return
 
-      // Automação de revisão: ao enviar para "Em revisão", a tarefa passa para
-      // os ADMINISTRADORES (quem revisa), guardando em review_from quem era o
-      // responsável. Ao SAIR da revisão (voltar ou concluir), devolvemos a
-      // tarefa a quem executou — assim ela volta no nome certo e o avanço por
-      // pessoa conta para o executor, não para o revisor.
-      const toReview = status === 'em-revisao'
-      const leavingReview = current.status === 'em-revisao' && status !== 'em-revisao'
+      // Automação de revisão: ao enviar para "Em revisão Anju" (só essa —
+      // "Em revisão interna" é uma troca de status normal, sem reatribuir), a
+      // tarefa passa para os ADMINISTRADORES (quem revisa), guardando em
+      // review_from quem era o responsável. Ao SAIR da revisão da Anju (voltar
+      // ou concluir), devolvemos a tarefa a quem executou — assim ela volta no
+      // nome certo e o avanço por pessoa conta para o executor, não o revisor.
+      const toReview = status === 'em-revisao-anju'
+      const leavingReview = current.status === 'em-revisao-anju' && status !== 'em-revisao-anju'
 
       let reviewerIds: string[] = []
       if (toReview) {
@@ -189,7 +190,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
       if (error) return
 
       const text = toReview
-        ? 'enviou para revisão'
+        ? 'enviou para revisão da Anju'
         : status === 'concluida'
           ? 'concluiu a tarefa'
           : current.status === 'concluida'
@@ -204,7 +205,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
           await supabase.from('notifications').insert(
             targets.map((rid) => ({
               user_id: rid,
-              title: 'Tarefa em revisão',
+              title: 'Tarefa em revisão da Anju',
               body: `"${current.title}" foi enviada para revisão por ${user.name}.`,
               task_id: id,
             })),

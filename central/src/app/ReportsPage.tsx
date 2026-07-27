@@ -31,6 +31,8 @@ import { ANJU_ID } from '@/lib/tenant'
 import {
   TASK_STATUS_ORDER,
   TASK_STATUS_META,
+  REVIEW_STATUSES,
+  isOpenTaskStatus,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   STAGE_META,
@@ -218,10 +220,12 @@ export function ReportsPage() {
   const metrics = useMemo(() => {
     const within = (iso: string | undefined) => period === 0 || daysAgo(iso) <= period
 
-    const open = tasks.filter((t) => t.status !== 'concluida')
+    const open = tasks.filter((t) => isOpenTaskStatus(t.status))
     const completed = tasks.filter((t) => t.status === 'concluida')
     const completedInPeriod = completed.filter((t) => within(t.completedAt))
-    const conclusionRate = tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0
+    // Denominador exclui canceladas — não fazem parte do trabalho "a concluir".
+    const towardsCompletion = tasks.filter((t) => t.status !== 'cancelado').length
+    const conclusionRate = towardsCompletion > 0 ? Math.round((completed.length / towardsCompletion) * 100) : 0
 
     // Tarefas por status.
     const byStatus = TASK_STATUS_ORDER.map((s) => ({
@@ -275,8 +279,8 @@ export function ReportsPage() {
         const mine = tasks.filter((t) => taskExecutors(t).includes(m.id))
         return {
           member: m,
-          open: mine.filter((t) => t.status !== 'concluida').length,
-          review: mine.filter((t) => t.status === 'em-revisao').length,
+          open: mine.filter((t) => isOpenTaskStatus(t.status)).length,
+          review: mine.filter((t) => REVIEW_STATUSES.includes(t.status)).length,
           done: mine.filter((t) => t.status === 'concluida').length,
           total: mine.length,
         }

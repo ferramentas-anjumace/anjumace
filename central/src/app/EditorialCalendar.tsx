@@ -824,7 +824,7 @@ function PostDrawer({
         assignees: [memberId],
         due: post.date || undefined,
         clientId,
-        status: 'a-fazer',
+        status: 'pendente',
       })
       if (!id) {
         toast.error('Não foi possível criar a tarefa')

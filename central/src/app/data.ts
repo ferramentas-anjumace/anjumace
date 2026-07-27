@@ -453,22 +453,76 @@ export const MY_TASKS: DailyTask[] = [
 
 /* ---- Tarefas (gestão estilo ClickUp/Asana) ---------------------------- */
 
-/** Status (colunas do quadro). */
-export type TaskStatus = 'a-fazer' | 'em-andamento' | 'em-revisao' | 'concluida'
+/** Status (colunas do quadro) — padrão ClickUp, agrupados em 3 fases. */
+export type TaskStatus =
+  | 'backlog'
+  | 'pendente'
+  | 'em-progresso'
+  | 'em-revisao-interna'
+  | 'em-revisao-anju'
+  | 'em-ajustes'
+  | 'cancelado'
+  | 'concluida'
 /** Prioridade da tarefa. */
 export type TaskPriority = 'baixa' | 'media' | 'alta' | 'urgente'
 /** Categoria — classifica a tarefa por área/tipo de trabalho. */
 
-export const TASK_STATUS_ORDER: TaskStatus[] = ['a-fazer', 'em-andamento', 'em-revisao', 'concluida']
+export const TASK_STATUS_ORDER: TaskStatus[] = [
+  'backlog',
+  'pendente',
+  'em-progresso',
+  'em-revisao-interna',
+  'em-revisao-anju',
+  'em-ajustes',
+  'cancelado',
+  'concluida',
+]
+
+/** Fase do fluxo — agrupa as colunas do quadro em 3 seções (padrão ClickUp). */
+export type TaskPhase = 'nao-iniciado' | 'ativo' | 'concluido'
+
+export const TASK_STATUS_PHASE: Record<TaskStatus, TaskPhase> = {
+  backlog: 'nao-iniciado',
+  pendente: 'ativo',
+  'em-progresso': 'ativo',
+  'em-revisao-interna': 'ativo',
+  'em-revisao-anju': 'ativo',
+  'em-ajustes': 'ativo',
+  cancelado: 'ativo',
+  concluida: 'concluido',
+}
+
+export const TASK_PHASE_ORDER: TaskPhase[] = ['nao-iniciado', 'ativo', 'concluido']
+
+export const TASK_PHASE_META: Record<TaskPhase, { label: string }> = {
+  'nao-iniciado': { label: 'Não iniciado' },
+  ativo: { label: 'Ativo' },
+  concluido: { label: 'Concluído' },
+}
 
 export const TASK_STATUS_META: Record<
   TaskStatus,
-  { label: string; tone: 'neutral' | 'steel' | 'warning' | 'success' }
+  { label: string; tone: 'neutral' | 'steel' | 'sand' | 'warning' | 'success' | 'danger' }
 > = {
-  'a-fazer': { label: 'A fazer', tone: 'neutral' },
-  'em-andamento': { label: 'Em andamento', tone: 'steel' },
-  'em-revisao': { label: 'Em revisão', tone: 'warning' },
-  concluida: { label: 'Concluída', tone: 'success' },
+  backlog: { label: 'Backlog', tone: 'neutral' },
+  pendente: { label: 'Pendente', tone: 'neutral' },
+  'em-progresso': { label: 'Em progresso', tone: 'steel' },
+  'em-revisao-interna': { label: 'Em revisão interna', tone: 'warning' },
+  'em-revisao-anju': { label: 'Em revisão Anju', tone: 'sand' },
+  'em-ajustes': { label: 'Em ajustes', tone: 'warning' },
+  cancelado: { label: 'Cancelado', tone: 'danger' },
+  concluida: { label: 'Concluído', tone: 'success' },
+}
+
+/** Os dois status de revisão — usado onde "está em revisão" precisa valer
+ *  pras duas variantes (ex.: contagem "em andamento" do dashboard). */
+export const REVIEW_STATUSES: TaskStatus[] = ['em-revisao-interna', 'em-revisao-anju']
+
+/** "Em aberto" para fins de contagem/atraso: nem concluída, nem cancelada —
+ *  uma tarefa cancelada não deveria puxar pra baixo a taxa de conclusão nem
+ *  aparecer como atrasada precisando de atenção. */
+export function isOpenTaskStatus(status: TaskStatus): boolean {
+  return status !== 'concluida' && status !== 'cancelado'
 }
 
 export const TASK_PRIORITY_ORDER: TaskPriority[] = ['urgente', 'alta', 'media', 'baixa']
@@ -526,12 +580,13 @@ export interface Task {
 }
 
 /**
- * Responsáveis para fins de avanço/carga por pessoa. Durante a revisão a
- * tarefa fica com o administrador (que só revisa), então o avanço conta para
- * quem executou (review_from), não para o revisor.
+ * Responsáveis para fins de avanço/carga por pessoa. Durante "Em revisão Anju"
+ * a tarefa fica com o administrador (que só revisa), então o avanço conta para
+ * quem executou (review_from), não para o revisor. "Em revisão interna" não
+ * reatribui — os assignees continuam sendo quem executa.
  */
 export function taskExecutors(task: Task): string[] {
-  return task.status === 'em-revisao' && task.reviewFrom && task.reviewFrom.length
+  return task.status === 'em-revisao-anju' && task.reviewFrom && task.reviewFrom.length
     ? task.reviewFrom
     : task.assignees
 }
@@ -539,24 +594,24 @@ export function taskExecutors(task: Task): string[] {
 /** Seed inicial — hidrata o store na primeira carga. */
 const TASKS_SEED: Task[] = [
   {
-    id: 'tk-001', title: 'Revisar plano da Anju Mace', status: 'em-andamento', priority: 'alta',
+    id: 'tk-001', title: 'Revisar plano da Anju Mace', status: 'em-progresso', priority: 'alta',
     assignees: ['USR-1047'], due: '2026-06-24', tag: 'Conteúdo', clientId: 'CLI-06',
     description: 'Revisar o planejamento de soft opening e ajustar entregáveis da semana.',
     createdAt: '2026-06-20T13:00:00.000Z',
     history: [
       { id: 'h1', at: '2026-06-20T13:00:00.000Z', who: 'Ana Lima', text: 'criou a tarefa' },
-      { id: 'h2', at: '2026-06-23T11:30:00.000Z', who: 'Felipe Rocha', text: 'moveu para Em andamento' },
+      { id: 'h2', at: '2026-06-23T11:30:00.000Z', who: 'Felipe Rocha', text: 'moveu para Em progresso' },
     ],
   },
   {
-    id: 'tk-002', title: 'Responder tickets pendentes do Suporte', status: 'a-fazer', priority: 'urgente',
+    id: 'tk-002', title: 'Responder tickets pendentes do Suporte', status: 'pendente', priority: 'urgente',
     assignees: ['USR-1047', 'USR-1043'], due: '2026-06-23', tag: 'Suporte',
     description: 'Fila de atendimento com 12 tickets abertos. Priorizar os de SLA estourando.',
     createdAt: '2026-06-22T09:00:00.000Z',
     history: [{ id: 'h1', at: '2026-06-22T09:00:00.000Z', who: 'Ana Lima', text: 'criou a tarefa' }],
   },
   {
-    id: 'tk-003', title: 'Validar novos acessos da plataforma', status: 'a-fazer', priority: 'media',
+    id: 'tk-003', title: 'Validar novos acessos da plataforma', status: 'pendente', priority: 'media',
     assignees: ['USR-1047'], due: '2026-06-25', tag: 'Suporte',
     description: 'Conferir credenciais cadastradas no cofre da Anju Mace e marcar os que exigem MFA.',
     createdAt: '2026-06-22T15:20:00.000Z',
@@ -581,26 +636,26 @@ const TASKS_SEED: Task[] = [
     ],
   },
   {
-    id: 'tk-006', title: 'Configurar automação de boas-vindas (n8n)', status: 'em-revisao', priority: 'alta',
+    id: 'tk-006', title: 'Configurar automação de boas-vindas (n8n)', status: 'em-revisao-interna', priority: 'alta',
     assignees: ['USR-1042'], due: '2026-06-24', tag: 'Conteúdo', clientId: 'CLI-06',
     description: 'Fluxo de onboarding automático no n8n disparando e-mail + mensagem no WhatsApp.',
     createdAt: '2026-06-19T11:00:00.000Z',
     history: [
       { id: 'h1', at: '2026-06-19T11:00:00.000Z', who: 'Ana Lima', text: 'criou a tarefa' },
-      { id: 'h2', at: '2026-06-23T10:00:00.000Z', who: 'Ana Lima', text: 'moveu para Em revisão' },
+      { id: 'h2', at: '2026-06-23T10:00:00.000Z', who: 'Ana Lima', text: 'moveu para Em revisão interna' },
     ],
   },
   {
-    id: 'tk-007', title: 'Editar lote de vídeos · AV Batch 1', status: 'em-andamento', priority: 'media',
+    id: 'tk-007', title: 'Editar lote de vídeos · AV Batch 1', status: 'em-progresso', priority: 'media',
     assignees: ['USR-1046'], due: '2026-06-26', tag: 'Conteúdo', clientId: 'CLI-06',
     createdAt: '2026-06-21T14:00:00.000Z',
     history: [
       { id: 'h1', at: '2026-06-21T14:00:00.000Z', who: 'Eva Nunes', text: 'criou a tarefa' },
-      { id: 'h2', at: '2026-06-22T09:30:00.000Z', who: 'Eva Nunes', text: 'moveu para Em andamento' },
+      { id: 'h2', at: '2026-06-22T09:30:00.000Z', who: 'Eva Nunes', text: 'moveu para Em progresso' },
     ],
   },
   {
-    id: 'tk-008', title: 'Revisar permissões do time · Suporte', status: 'a-fazer', priority: 'baixa',
+    id: 'tk-008', title: 'Revisar permissões do time · Suporte', status: 'pendente', priority: 'baixa',
     assignees: ['USR-1043'], due: '2026-06-30', tag: 'Suporte',
     createdAt: '2026-06-22T16:00:00.000Z',
     history: [{ id: 'h1', at: '2026-06-22T16:00:00.000Z', who: 'Ana Lima', text: 'criou a tarefa' }],

@@ -54,6 +54,11 @@ import { AttachmentList } from './AttachmentList'
 import {
   TASK_STATUS_ORDER,
   TASK_STATUS_META,
+  TASK_STATUS_PHASE,
+  TASK_PHASE_ORDER,
+  TASK_PHASE_META,
+  REVIEW_STATUSES,
+  isOpenTaskStatus,
   TASK_PRIORITY_ORDER,
   TASK_PRIORITY_META,
   POST_APPROVAL_META,
@@ -303,8 +308,62 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
 
 /* ------------------------------------------------------------- board view -- */
 
+interface TaskColumnProps {
+  group: TaskGroup
+  over: string | null
+  setOver: React.Dispatch<React.SetStateAction<string | null>>
+  canManage: boolean
+  canMove: boolean
+  onOpen: (t: Task) => void
+  onToggle: (t: Task) => void
+  onDropTask: (id: string, key: string) => void
+  onQuickAdd: (key: string, title: string) => void
+}
+
+function TaskColumn({ group: g, over, setOver, canManage, canMove, onOpen, onToggle, onDropTask, onQuickAdd }: TaskColumnProps) {
+  return (
+    <div
+      onDragOver={canMove ? (e) => { e.preventDefault(); setOver(g.key) } : undefined}
+      onDragLeave={canMove ? () => setOver((s) => (s === g.key ? null : s)) : undefined}
+      onDrop={
+        canMove
+          ? (e) => {
+              e.preventDefault()
+              const id = e.dataTransfer.getData('text/plain')
+              if (id) onDropTask(id, g.key)
+              setOver(null)
+            }
+          : undefined
+      }
+      className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
+        over === g.key ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
+      }`}
+    >
+      <div className="flex items-center justify-between px-1">
+        <Badge tone={g.tone} dot>{g.label}</Badge>
+        <span className="font-mono text-mono-data text-faint tabular-nums">{g.items.length}</span>
+      </div>
+      {g.items.map((task) => (
+        <TaskCard
+          key={task.id}
+          task={task}
+          canDrag={canMove}
+          onOpen={() => onOpen(task)}
+          onToggle={() => onToggle(task)}
+          onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+        />
+      ))}
+      {g.items.length === 0 && (
+        <p className="px-1 py-4 text-center text-body-s text-faint">Nada por aqui.</p>
+      )}
+      {canManage && <QuickAdd onAdd={(title) => onQuickAdd(g.key, title)} />}
+    </div>
+  )
+}
+
 function BoardView({
   groups,
+  groupBy,
   canManage,
   canMove,
   onOpen,
@@ -313,6 +372,7 @@ function BoardView({
   onQuickAdd,
 }: {
   groups: TaskGroup[]
+  groupBy: GroupBy
   canManage: boolean
   canMove: boolean
   onOpen: (t: Task) => void
@@ -321,46 +381,35 @@ function BoardView({
   onQuickAdd: (key: string, title: string) => void
 }) {
   const [over, setOver] = useState<string | null>(null)
+  const columnProps = { over, setOver, canManage, canMove, onOpen, onToggle, onDropTask, onQuickAdd }
+
+  // Agrupado por status: as colunas ganham as 3 seções do fluxo (padrão
+  // ClickUp) — Não iniciado / Ativo / Concluído — em vez de uma fileira só.
+  if (groupBy === 'status') {
+    return (
+      <div className="flex flex-col gap-6">
+        {TASK_PHASE_ORDER.map((phase) => {
+          const phaseGroups = groups.filter((g) => TASK_STATUS_PHASE[g.key as TaskStatus] === phase)
+          if (phaseGroups.length === 0) return null
+          return (
+            <section key={phase} className="flex flex-col gap-3">
+              <h3 className="font-mono text-mono-label uppercase text-faint">{TASK_PHASE_META[phase].label}</h3>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {phaseGroups.map((g) => (
+                  <TaskColumn key={g.key} group={g} {...columnProps} />
+                ))}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {groups.map((g) => (
-        <div
-          key={g.key}
-          onDragOver={canMove ? (e) => { e.preventDefault(); setOver(g.key) } : undefined}
-          onDragLeave={canMove ? () => setOver((s) => (s === g.key ? null : s)) : undefined}
-          onDrop={
-            canMove
-              ? (e) => {
-                  e.preventDefault()
-                  const id = e.dataTransfer.getData('text/plain')
-                  if (id) onDropTask(id, g.key)
-                  setOver(null)
-                }
-              : undefined
-          }
-          className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
-            over === g.key ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
-          }`}
-        >
-          <div className="flex items-center justify-between px-1">
-            <Badge tone={g.tone} dot>{g.label}</Badge>
-            <span className="font-mono text-mono-data text-faint tabular-nums">{g.items.length}</span>
-          </div>
-          {g.items.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              canDrag={canMove}
-              onOpen={() => onOpen(task)}
-              onToggle={() => onToggle(task)}
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
-            />
-          ))}
-          {g.items.length === 0 && (
-            <p className="px-1 py-4 text-center text-body-s text-faint">Nada por aqui.</p>
-          )}
-          {canManage && <QuickAdd onAdd={(title) => onQuickAdd(g.key, title)} />}
-        </div>
+        <TaskColumn key={g.key} group={g} {...columnProps} />
       ))}
     </div>
   )
@@ -618,10 +667,12 @@ function PeopleProgress({ tasks }: { tasks: Task[] }) {
 
 function AdminSummary({ tasks }: { tasks: Task[] }) {
   const total = tasks.length
-  const inProgress = tasks.filter((t) => t.status === 'em-andamento' || t.status === 'em-revisao').length
+  const inProgress = tasks.filter((t) =>
+    t.status === 'em-progresso' || t.status === 'em-ajustes' || REVIEW_STATUSES.includes(t.status),
+  ).length
   const done = tasks.filter((t) => t.status === 'concluida').length
   const t = todayIso()
-  const overdue = tasks.filter((x) => x.due && x.due < t && x.status !== 'concluida').length
+  const overdue = tasks.filter((x) => x.due && x.due < t && isOpenTaskStatus(x.status)).length
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -653,7 +704,7 @@ type Draft = {
 }
 
 const EMPTY: Draft = {
-  title: '', description: '', status: 'a-fazer', priority: 'media',
+  title: '', description: '', status: 'pendente', priority: 'media',
   assignees: [], due: '', tag: '',
 }
 
@@ -888,7 +939,7 @@ function TaskDetailModal({
 }) {
   const { getMember } = useProfiles()
   // Status é um rascunho: só é aplicado ao clicar em "Salvar".
-  const [draftStatus, setDraftStatus] = useState<TaskStatus>(task?.status ?? 'a-fazer')
+  const [draftStatus, setDraftStatus] = useState<TaskStatus>(task?.status ?? 'pendente')
   useEffect(() => {
     if (task) setDraftStatus(task.status)
   }, [task?.id, task?.status])
@@ -1116,7 +1167,7 @@ export function TasksPage() {
   const groups = useMemo(() => buildGroups(filtered, groupBy, members), [filtered, groupBy, members])
 
   const toggle = (t: Task) => {
-    const next: TaskStatus = t.status === 'concluida' ? 'a-fazer' : 'concluida'
+    const next: TaskStatus = t.status === 'concluida' ? 'pendente' : 'concluida'
     moveTask(t.id, next)
     toast.success(next === 'concluida' ? 'Tarefa concluída' : 'Tarefa reaberta', t.title)
   }
@@ -1291,6 +1342,7 @@ export function TasksPage() {
       ) : view === 'board' ? (
         <BoardView
           groups={groups}
+          groupBy={groupBy}
           canManage={canManage}
           canMove={canMove}
           onOpen={(t) => setOpenTaskId(t.id)}
