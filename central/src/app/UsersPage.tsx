@@ -48,28 +48,48 @@ function EditMemberModal({
   member,
   onClose,
   onSave,
+  onSaveCredentials,
   onAvatarChange,
   onAvatarError,
 }: {
   member: Member | null
   onClose: () => void
   onSave: (id: string, patch: { name: string; role: MemberRole; status: MemberStatus; team: string | null }) => void
+  onSaveCredentials: (id: string, patch: { email?: string; password?: string }) => void
   onAvatarChange: (id: string, avatar: string | null) => void | Promise<void>
   onAvatarError: (message: string) => void
 }) {
   const [name, setName] = useState('')
   const [role, setRole] = useState<MemberRole>('design')
   const [team, setTeam] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   useMemo(() => {
     if (member) {
       setName(member.name)
       setRole(member.role)
       setTeam(member.team ?? '')
+      setEmail(member.email ?? '')
+      setPassword('')
     }
   }, [member])
 
   if (!member) return null
+
+  const handleSave = () => {
+    onSave(member.id, { name, role, status: member.status, team: team.trim() || null })
+    const nextEmail = email.trim()
+    const emailChanged = nextEmail && nextEmail !== (member.email ?? '')
+    const nextPassword = password.trim()
+    if (emailChanged || nextPassword) {
+      onSaveCredentials(member.id, {
+        email: emailChanged ? nextEmail : undefined,
+        password: nextPassword || undefined,
+      })
+    }
+  }
+
   return (
     <Modal
       open={!!member}
@@ -79,7 +99,7 @@ function EditMemberModal({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(member.id, { name, role, status: member.status, team: team.trim() || null })}>Salvar</Button>
+          <Button onClick={handleSave}>Salvar</Button>
         </>
       }
     >
@@ -106,6 +126,19 @@ function EditMemberModal({
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
         </Select>
+
+        <div className="flex flex-col gap-4 border-t border-line pt-4">
+          <p className="text-body-s font-medium text-strong">Acesso</p>
+          <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            label="Nova senha (opcional)"
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Deixe em branco pra manter a atual"
+            helperText="Mínimo 6 caracteres."
+          />
+        </div>
       </div>
     </Modal>
   )
@@ -178,7 +211,7 @@ export function UsersPage() {
   const toast = useToast()
   const { user } = useSession()
   const { can } = usePermissions()
-  const { members, loading, updateMember, setMemberAvatar, createUser, removeUser } = useProfiles()
+  const { members, loading, updateMember, setMemberAvatar, createUser, updateUserCredentials, removeUser } = useProfiles()
   const isAdmin = can('manage_users')
 
   const [query, setQuery] = useState('')
@@ -213,6 +246,12 @@ export function UsersPage() {
     if (error) toast.error('Falha ao salvar', error)
     else toast.success('Usuário atualizado', patch.name)
     setEditing(null)
+  }
+
+  const saveCredentials = async (id: string, patch: { email?: string; password?: string }) => {
+    const { error } = await updateUserCredentials(id, patch)
+    if (error) toast.error('Falha ao alterar acesso', error)
+    else toast.success('Acesso atualizado', patch.email ? `Novo e-mail: ${patch.email}` : 'Senha alterada')
   }
 
   const changeAvatar = async (id: string, avatar: string | null) => {
@@ -413,6 +452,7 @@ export function UsersPage() {
         member={editing ? members.find((m) => m.id === editing.id) ?? editing : null}
         onClose={() => setEditing(null)}
         onSave={save}
+        onSaveCredentials={saveCredentials}
         onAvatarChange={changeAvatar}
         onAvatarError={(msg) => toast.error('Imagem inválida', msg)}
       />
