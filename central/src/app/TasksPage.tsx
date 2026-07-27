@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus,
@@ -335,7 +335,7 @@ function TaskColumn({ group: g, over, setOver, canManage, canMove, onOpen, onTog
             }
           : undefined
       }
-      className={`flex min-h-[120px] flex-col gap-2.5 rounded-xl border p-3 transition-colors ${
+      className={`flex w-64 shrink-0 flex-col gap-2.5 rounded-xl border p-3 transition-colors md:w-72 ${
         over === g.key ? 'border-steel-500 bg-steel-tint/40' : 'border-subtle bg-ink-deep/30'
       }`}
     >
@@ -343,20 +343,64 @@ function TaskColumn({ group: g, over, setOver, canManage, canMove, onOpen, onTog
         <Badge tone={g.tone} dot>{g.label}</Badge>
         <span className="font-mono text-mono-data text-faint tabular-nums">{g.items.length}</span>
       </div>
-      {g.items.map((task) => (
-        <TaskCard
-          key={task.id}
-          task={task}
-          canDrag={canMove}
-          onOpen={() => onOpen(task)}
-          onToggle={() => onToggle(task)}
-          onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
-        />
-      ))}
-      {g.items.length === 0 && (
-        <p className="px-1 py-4 text-center text-body-s text-faint">Nada por aqui.</p>
-      )}
+      {/* Lista de cards: altura limitada, rola por dentro — uma coluna com
+          muitas tarefas não estica a seção nem a página. */}
+      <div className="-mr-1 flex max-h-[420px] min-h-[80px] flex-col gap-2.5 overflow-y-auto pr-1">
+        {g.items.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            canDrag={canMove}
+            onOpen={() => onOpen(task)}
+            onToggle={() => onToggle(task)}
+            onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
+          />
+        ))}
+        {g.items.length === 0 && (
+          <p className="px-1 py-4 text-center text-body-s text-faint">Nada por aqui.</p>
+        )}
+      </div>
       {canManage && <QuickAdd onAdd={(title) => onQuickAdd(g.key, title)} />}
+    </div>
+  )
+}
+
+/** Fileira de colunas com scroll horizontal — arrasta com o mouse (como o
+ *  quadro do CRM/CS) ou com o dedo/trackpad, sem precisar descer a página. */
+function ScrollRow({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pan = useRef<{ x: number; left: number } | null>(null)
+
+  function onPanDown(e: React.MouseEvent) {
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('input, textarea, button, a, [role="button"], [draggable="true"]')) return
+    const c = scrollRef.current
+    if (!c) return
+    pan.current = { x: e.pageX, left: c.scrollLeft }
+    c.classList.add('cursor-grabbing', 'select-none')
+  }
+  function onPanMove(e: React.MouseEvent) {
+    const c = scrollRef.current
+    if (!pan.current || !c) return
+    e.preventDefault()
+    c.scrollLeft = pan.current.left - (e.pageX - pan.current.x)
+  }
+  function endPan() {
+    if (!pan.current) return
+    pan.current = null
+    scrollRef.current?.classList.remove('cursor-grabbing', 'select-none')
+  }
+
+  return (
+    <div
+      ref={scrollRef}
+      onMouseDown={onPanDown}
+      onMouseMove={onPanMove}
+      onMouseUp={endPan}
+      onMouseLeave={endPan}
+      className="flex cursor-grab gap-4 overflow-x-auto pb-2"
+    >
+      {children}
     </div>
   )
 }
@@ -394,11 +438,11 @@ function BoardView({
           return (
             <section key={phase} className="flex flex-col gap-3">
               <h3 className="font-mono text-mono-label uppercase text-faint">{TASK_PHASE_META[phase].label}</h3>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <ScrollRow>
                 {phaseGroups.map((g) => (
                   <TaskColumn key={g.key} group={g} {...columnProps} />
                 ))}
-              </div>
+              </ScrollRow>
             </section>
           )
         })}
@@ -407,11 +451,11 @@ function BoardView({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <ScrollRow>
       {groups.map((g) => (
         <TaskColumn key={g.key} group={g} {...columnProps} />
       ))}
-    </div>
+    </ScrollRow>
   )
 }
 
