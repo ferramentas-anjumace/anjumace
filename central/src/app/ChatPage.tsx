@@ -78,22 +78,50 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Quebra o texto em nós, destacando "@Nome" de membros conhecidos. */
+const URL_PATTERN = String.raw`(?:https?:\/\/|www\.)[^\s<]+`
+
+/** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs. */
 function renderBody(body: string, names: string[]): React.ReactNode {
-  if (!body || names.length === 0) return body
-  const pattern = names.slice().sort((a, b) => b.length - a.length).map(escapeRe).join('|')
-  const re = new RegExp(`@(${pattern})`, 'g')
+  if (!body) return body
+  const mentionPattern = names.length
+    ? `@(?:${names.slice().sort((a, b) => b.length - a.length).map(escapeRe).join('|')})`
+    : null
+  const re = new RegExp([mentionPattern, URL_PATTERN].filter(Boolean).join('|'), 'g')
   const out: React.ReactNode[] = []
   let last = 0
   let m: RegExpExecArray | null
   let i = 0
   while ((m = re.exec(body)) !== null) {
     if (m.index > last) out.push(body.slice(last, m.index))
-    out.push(
-      <span key={`m-${i++}`} className="rounded bg-steel-500 px-1 font-medium text-accent-fg">
-        {m[0]}
-      </span>,
-    )
-    last = m.index + m[0].length
+    let match = m[0]
+    let end = m.index + match.length
+    if (match.startsWith('@')) {
+      out.push(
+        <span key={`m-${i++}`} className="rounded bg-steel-500 px-1 font-medium text-accent-fg">
+          {match}
+        </span>,
+      )
+    } else {
+      const trail = match.match(/[.,;:!?'")\]]+$/)
+      if (trail) {
+        match = match.slice(0, match.length - trail[0].length)
+        end -= trail[0].length
+      }
+      const href = match.startsWith('www.') ? `https://${match}` : match
+      out.push(
+        <a
+          key={`u-${i++}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent-fg underline underline-offset-2 hover:opacity-80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {match}
+        </a>,
+      )
+    }
+    last = end
   }
   if (last < body.length) out.push(body.slice(last))
   return out
