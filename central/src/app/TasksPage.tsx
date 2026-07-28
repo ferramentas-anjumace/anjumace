@@ -56,7 +56,6 @@ import {
   TASK_STATUS_META,
   TASK_STATUS_PHASE,
   TASK_PHASE_ORDER,
-  TASK_PHASE_META,
   REVIEW_STATUSES,
   isOpenTaskStatus,
   TASK_PRIORITY_ORDER,
@@ -196,13 +195,15 @@ function TaskCard({
         </span>
         <CategoryBadge tag={task.tag} className="shrink-0" />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 pl-[30px]">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+      <div className="flex items-center justify-between gap-x-3 pl-[30px]">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1">
           <PriorityChip priority={task.priority} />
           <DueChip task={task} />
           <SubtaskChip task={task} />
         </div>
-        <Assignees ids={task.assignees} />
+        <div className="shrink-0">
+          <Assignees ids={task.assignees} />
+        </div>
       </div>
     </div>
   )
@@ -427,26 +428,18 @@ function BoardView({
   const [over, setOver] = useState<string | null>(null)
   const columnProps = { over, setOver, canManage, canMove, onOpen, onToggle, onDropTask, onQuickAdd }
 
-  // Agrupado por status: as colunas ganham as 3 seções do fluxo (padrão
-  // ClickUp) — Não iniciado / Ativo / Concluído — em vez de uma fileira só.
+  // Agrupado por status: colunas ordenadas pelas 3 fases do fluxo (Não
+  // iniciado / Ativo / Concluído), mas todas numa única fileira com scroll.
   if (groupBy === 'status') {
+    const orderedGroups = TASK_PHASE_ORDER.flatMap((phase) =>
+      groups.filter((g) => TASK_STATUS_PHASE[g.key as TaskStatus] === phase),
+    )
     return (
-      <div className="flex flex-col gap-6">
-        {TASK_PHASE_ORDER.map((phase) => {
-          const phaseGroups = groups.filter((g) => TASK_STATUS_PHASE[g.key as TaskStatus] === phase)
-          if (phaseGroups.length === 0) return null
-          return (
-            <section key={phase} className="flex flex-col gap-3">
-              <h3 className="font-mono text-mono-label uppercase text-faint">{TASK_PHASE_META[phase].label}</h3>
-              <ScrollRow>
-                {phaseGroups.map((g) => (
-                  <TaskColumn key={g.key} group={g} {...columnProps} />
-                ))}
-              </ScrollRow>
-            </section>
-          )
-        })}
-      </div>
+      <ScrollRow>
+        {orderedGroups.map((g) => (
+          <TaskColumn key={g.key} group={g} {...columnProps} />
+        ))}
+      </ScrollRow>
     )
   }
 
