@@ -13,6 +13,10 @@ import { Nav } from './Nav'
 // mesma oferta do CTA "Templo normal" em /guia/templo.
 const LINK_CHECKOUT_TEMPLO = 'https://anju-mace.circle.so/checkout/plano-templo'
 
+// PDF do e-book "Os cinco tipos de falha", servido como asset estático
+// (design-system/public/ebook-cinco-falhas.pdf) para download direto.
+const LINK_EBOOK_PDF = '/ebook-cinco-falhas.pdf'
+
 const NAV_LINKS = [
   { label: 'Início', href: '#inicio' },
   { label: 'O Método', href: '#metodo' },
@@ -142,7 +146,7 @@ export function AppGuiaDownload() {
             Os cinco tipos de falha, separados um a um, com o que fazer quando cada um aparece.
           </p>
           <div className="flex animate-fade-in-up flex-col items-center gap-3 [animation-delay:440ms]">
-            <CtaPill label="Baixar o guia agora" icon={Download} size="lg" />
+            <CtaPill label="Baixar o guia agora" href={LINK_EBOOK_PDF} download icon={Download} size="lg" />
             <p className="text-center text-caption text-cream-100/45">
               Também mandei uma cópia para o seu e-mail,<br />caso você prefira ler depois.
             </p>
