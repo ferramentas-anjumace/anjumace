@@ -26,6 +26,7 @@ import {
   EmptyState,
   Skeleton,
   SearchField,
+  Tooltip,
   useToast,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -345,12 +346,13 @@ function ReactionBar({
   myId: string
   onToggle: (emoji: string) => void
 }) {
-  // Agrega por emoji: contagem + se eu reagi.
+  const { getMember } = useProfiles()
+  // Agrega por emoji: quem reagiu + se eu reagi.
   const groups = useMemo(() => {
-    const map = new Map<string, { count: number; mine: boolean }>()
+    const map = new Map<string, { userIds: string[]; mine: boolean }>()
     for (const r of reactions) {
-      const g = map.get(r.emoji) ?? { count: 0, mine: false }
-      g.count += 1
+      const g = map.get(r.emoji) ?? { userIds: [], mine: false }
+      g.userIds.push(r.userId)
       if (r.userId === myId) g.mine = true
       map.set(r.emoji, g)
     }
@@ -360,22 +362,25 @@ function ReactionBar({
   if (groups.length === 0) return null
   return (
     <div className="mt-1 flex flex-wrap gap-1">
-      {groups.map(([emoji, g]) => (
-        <button
-          key={emoji}
-          onClick={() => onToggle(emoji)}
-          className={cn(
-            'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[12px] tabular-nums transition-colors',
-            g.mine
-              ? 'border-steel-500/50 bg-steel-tint text-steel-200'
-              : 'border-line bg-slate-900 text-muted hover:border-strong',
-          )}
-          title={g.mine ? 'Remover sua reação' : 'Reagir'}
-        >
-          <span>{emoji}</span>
-          <span>{g.count}</span>
-        </button>
-      ))}
+      {groups.map(([emoji, g]) => {
+        const names = g.userIds.map((id) => (id === myId ? 'Você' : getMember(id)?.name ?? '?'))
+        return (
+          <Tooltip key={emoji} content={names.join(', ')}>
+            <button
+              onClick={() => onToggle(emoji)}
+              className={cn(
+                'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[12px] tabular-nums transition-colors',
+                g.mine
+                  ? 'border-steel-500/50 bg-steel-tint text-steel-200'
+                  : 'border-line bg-slate-900 text-muted hover:border-strong',
+              )}
+            >
+              <span>{emoji}</span>
+              <span>{g.userIds.length}</span>
+            </button>
+          </Tooltip>
+        )
+      })}
     </div>
   )
 }
