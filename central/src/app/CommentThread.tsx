@@ -36,7 +36,10 @@ function timeAgo(iso: string): string {
 const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const URL_PATTERN = String.raw`(?:https?:\/\/|www\.)[^\s<]+`
+const DOMAIN_LABEL = String.raw`[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?`
+const KNOWN_TLDS = 'com|net|org|io|dev|app|co|shop|store|info|biz|xyz|me|ai|gov|edu'
+// Cobre URLs completas (http/https/www) e domínios "nus" tipo anjumace.com.br/guia.
+const URL_PATTERN = String.raw`(?:https?:\/\/|www\.)[^\s<]+|${DOMAIN_LABEL}(?:\.${DOMAIN_LABEL})*\.(?:${KNOWN_TLDS})(?:\.[a-zA-Z]{2,3})?(?:\/[^\s<]*)?`
 
 /** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs. */
 function renderBody(body: string, names: string[]): React.ReactNode {
@@ -66,7 +69,7 @@ function renderBody(body: string, names: string[]): React.ReactNode {
         match = match.slice(0, match.length - trail[0].length)
         end -= trail[0].length
       }
-      const href = match.startsWith('www.') ? `https://${match}` : match
+      const href = /^https?:\/\//i.test(match) ? match : `https://${match}`
       out.push(
         <a
           key={`u-${i++}`}
