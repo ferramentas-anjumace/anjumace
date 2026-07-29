@@ -1,4 +1,5 @@
-import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine, AlertTriangle, Lightbulb, Gauge, ListOrdered } from 'lucide-react'
+import { useEffect } from 'react'
+import { ArrowRight, ClipboardCheck, FileEdit, Video, RotateCcw, Route, PenLine, AlertTriangle, Lightbulb, Gauge, ListOrdered, MailCheck } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 import { Typewriter } from '../singular/Typewriter'
 import { EntregaveisList, EntregaveisCarousel } from './Entregaveis'
@@ -60,7 +61,7 @@ function CtaSecondary({ label, href, tone = 'dark' }) {
   return (
     <a
       href={href}
-      className={`inline-flex h-12 w-full max-w-lg items-center justify-center rounded-full border px-6 text-center text-sm font-medium uppercase tracking-wide transition-colors duration-fast sm:w-auto sm:text-base ${
+      className={`inline-flex h-12 w-full max-w-lg items-center justify-center rounded-full border px-4 text-center text-[11px] font-medium uppercase tracking-normal transition-colors duration-fast sm:w-auto sm:px-6 sm:text-base sm:tracking-wide ${
         light
           ? 'border-graphite-900/20 text-graphite-900/70 hover:border-graphite-900/35 hover:bg-graphite-900/5 hover:text-graphite-900'
           : 'border-cream-100/25 text-cream-100/70 hover:border-cream-100/40 hover:bg-cream-100/10 hover:text-cream-100'
@@ -224,6 +225,10 @@ function MarqueeBand() {
 }
 
 export function AppGuiaObrigado() {
+  useEffect(() => {
+    document.title = 'Anju Mace · Bem-vinda ao Plano Templo Singular'
+  }, [])
+
   return (
     <main className="page-largura-1050 bg-[#FAFFF2] text-graphite-900">
       {/* --------------------------------------------------------- 1 · HERO */}
@@ -242,8 +247,11 @@ export function AppGuiaObrigado() {
         </picture>
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-graphite-950" aria-hidden />
         <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 pb-16 pt-28 text-center sm:pt-32 lg:pt-36">
-          <div className="flex flex-col items-center gap-2 md:gap-4">
-            <Typewriter as="p" text="O e-book já está a caminho do seu e-mail" className="text-label text-sage-400 md:text-[16px]" />
+          <div className="flex flex-col items-center gap-3 md:gap-4">
+            <span className="inline-flex items-center gap-2 rounded-full border border-sage-400/30 bg-sage-400/25 px-4 py-2 backdrop-blur-md">
+              <MailCheck className="size-4 shrink-0 text-cream-100" strokeWidth={1.5} aria-hidden />
+              <Typewriter as="p" text="O E-book já está a caminho do seu e-mail" className="text-[14px] font-medium tracking-wide text-cream-100 md:text-[18px]" />
+            </span>
             <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
               A teoria chega hoje. O corpo que vai recebê-la continua sem ninguém lendo<span className="text-sage-400">.</span>
             </h1>
