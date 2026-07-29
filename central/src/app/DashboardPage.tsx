@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus,
@@ -287,6 +288,13 @@ function TeamCard() {
   const { members: team } = useProfiles()
   const { isOnline } = usePresence()
 
+  // Online primeiro — sem isso, quem está online agora podia nem aparecer
+  // nos 6 exibidos aqui (pedido do usuário 29/07).
+  const sorted = useMemo(
+    () => [...team].sort((a, b) => Number(isOnline(b.id)) - Number(isOnline(a.id))),
+    [team, isOnline],
+  )
+
   return (
     <Card className="border-steel-500/30 bg-steel-300/45">
       <CardHeader>
@@ -305,7 +313,7 @@ function TeamCard() {
         {team.length === 0 && (
           <li className="px-2 py-3 text-body-s text-faint">Nenhum usuário cadastrado ainda.</li>
         )}
-        {team.slice(0, 6).map((u) => (
+        {sorted.slice(0, 6).map((u) => (
           <li key={u.id}>
             <button
               onClick={() => navigate('/app/usuarios')}
