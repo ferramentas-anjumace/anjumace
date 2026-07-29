@@ -39,7 +39,7 @@ function readUtms() {
   }
 }
 
-async function enviarLead({ name, email, whatsapp, utm }) {
+async function enviarParaSupabase({ name, email, whatsapp, utm }) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hotseat_ordem_signup`, {
     method: 'POST',
     headers: {
@@ -59,12 +59,40 @@ async function enviarLead({ name, email, whatsapp, utm }) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
   if (!data?.ok) throw new Error(data?.error || 'invalid')
-  // ActiveCampaign em segundo plano — nunca bloqueia a conversão.
-  fetch('/api/ac-sync', {
+}
+
+/* Envio direto pro formulário do Active Campaign que o responsável de
+   infra mandou (form id 1, conta anjumace58987) — os campos ocultos abaixo
+   identificam esse formulário específico no Active e disparam a automação
+   de lembrete por SMS já configurada lá. Front-end só reaproveita os
+   parâmetros do embed; todo o CSS/JS de estilização original foi
+   descartado a favor dos componentes já usados no resto da página. Nunca
+   bloqueia a confirmação da vaga — o Supabase é a fonte de verdade. */
+const ACTIVE_CAMPAIGN_ENDPOINT = 'https://anjumace58987.activehosted.com/proc.php'
+const ACTIVE_CAMPAIGN_HIDDEN_FIELDS = {
+  u: '1',
+  f: '1',
+  s: '',
+  c: '0',
+  m: '0',
+  act: 'sub',
+  v: '2',
+  or: 'eac7aa95-72f5-496e-83bf-a108eb66e27f',
+}
+
+async function enviarParaActiveCampaign({ name, email, whatsapp }) {
+  const body = new FormData()
+  for (const [key, value] of Object.entries(ACTIVE_CAMPAIGN_HIDDEN_FIELDS)) body.append(key, value)
+  body.append('fullname', name)
+  body.append('email', email)
+  body.append('phone', whatsapp)
+  body.append('sms_consent', '1')
+  const res = await fetch(ACTIVE_CAMPAIGN_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, phone: whatsapp, utm, source: 'aordem' }),
-  }).catch(() => {})
+    headers: { Accept: 'application/json' },
+    body,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
 }
 
 /* Máscaras de WhatsApp — mesma lógica de ../lista-espera/AppListaEspera. */
@@ -412,12 +440,13 @@ const FAQ_ITEMS = [
 ]
 
 export function AppAordemCaptura() {
-  const utm = useMemo(readUtms, [])
+  const utm = useMemo(() => readUtms(), [])
   const formRef = useRef(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [country, setCountry] = useState(BRASIL)
+  const [smsConsent, setSmsConsent] = useState(false)
   const [status, setStatus] = useState('idle') // idle | loading | error | done
   const [errorField, setErrorField] = useState(null)
 
@@ -439,15 +468,23 @@ export function AppAordemCaptura() {
     if (name.trim().length < 2) { setErrorField('nome'); return }
     if (!emailValido(email)) { setErrorField('email'); return }
     if (whatsapp.replace(/\D/g, '').length < whatsappMinDigits) { setErrorField('whatsapp'); return }
+    if (!smsConsent) { setErrorField('sms'); return }
     setErrorField(null)
     setStatus('loading')
     try {
-      await enviarLead({
+      await enviarParaSupabase({
         name: name.trim(),
         email: email.trim(),
         whatsapp: `+${country.dial} ${whatsapp}`,
         utm,
       })
+      // Active Campaign dispara a automação de lembrete por SMS, mas
+      // roda em segundo plano — nunca bloqueia a confirmação da vaga.
+      enviarParaActiveCampaign({
+        name: name.trim(),
+        email: email.trim(),
+        whatsapp: `+${country.dial} ${whatsapp}`,
+      }).catch(() => {})
       setStatus('done')
     } catch {
       setStatus('error')
@@ -816,6 +853,22 @@ export function AppAordemCaptura() {
                         />
                       </div>
                       {errorField === 'whatsapp' && <p className="text-caption text-red-400">Confere o número — é nele que chega o lembrete.</p>}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="aordem-sms-consent" className="flex items-start gap-3">
+                        <input
+                          id="aordem-sms-consent"
+                          type="checkbox"
+                          checked={smsConsent}
+                          onChange={(e) => setSmsConsent(e.target.checked)}
+                          className="mt-0.5 size-4 shrink-0 rounded border-graphite-900/30 accent-sage-500"
+                        />
+                        <span className="text-caption leading-relaxed text-graphite-900/60">
+                          Ao enviar este formulário, você concorda em receber mensagens de texto da Anju Mace no número informado (o lembrete do encontro, por exemplo). O consentimento não é condição de compra. Taxas de mensagem e dados podem se aplicar. Cancele quando quiser respondendo STOP.
+                        </span>
+                      </label>
+                      {errorField === 'sms' && <p className="text-caption text-red-400">Marque a caixa pra gente poder te avisar por SMS.</p>}
                     </div>
 
                     <CtaPill type="submit" label="Reservar meu lugar na sala" loading={status === 'loading'} />
