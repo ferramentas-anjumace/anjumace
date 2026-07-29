@@ -2,6 +2,7 @@ import { ArrowRight, Dumbbell, PlayCircle, ClipboardList, LayoutGrid, Activity, 
 import { Reveal } from '../singular/Reveal'
 import { EntregaveisList, EntregaveisCarousel } from './Entregaveis'
 import { Nav } from './Nav'
+import { cn } from '../../lib/cn'
 
 /* Página de downsell OTO do Plano Templo (/guia/templo) — 30 dias grátis.
    Copy verbatim do documento do funil (Página de Downsell · One Time Offer).
@@ -41,19 +42,34 @@ function CtaPill({ label, href }) {
   )
 }
 
+/** Botão secundário de negativa — pill com contorno, real o suficiente pra
+    ver e tocar, mas sem competir com o gradiente do CtaPill primário. Mesmo
+    tratamento aplicado em /guia/obrigado (pedido do usuário 29/07). */
+function CtaSecondary({ label, href, tone = 'dark', className }) {
+  const light = tone === 'light'
+  return (
+    <a
+      href={href}
+      className={cn(
+        'inline-flex h-12 w-full max-w-lg items-center justify-center rounded-full border px-6 text-center text-sm font-medium uppercase tracking-wide transition-colors duration-fast sm:w-auto sm:text-base',
+        light
+          ? 'border-graphite-900/20 text-graphite-900/70 hover:border-graphite-900/35 hover:bg-graphite-900/5 hover:text-graphite-900'
+          : 'border-cream-100/25 text-cream-100/70 hover:border-cream-100/40 hover:bg-cream-100/10 hover:text-cream-100',
+        className,
+      )}
+    >
+      {label}
+    </a>
+  )
+}
+
 /** Par primário+recusa — fragment sem wrapper próprio (ver gotcha de
     /guia/obrigado: um <div> aqui quebra o w-full do CtaPill no mobile). */
 function CtaRow({ tone = 'dark', primaryLabel = 'Sim, quero meus trinta dias abertos', secondaryLabel = 'Não, prefiro pagar desde o primeiro dia, depois' }) {
-  const light = tone === 'light'
   return (
     <>
       <CtaPill label={primaryLabel} href={LINK_CHECKOUT_TEMPLO_TRIAL} />
-      <a
-        href={LINK_CHECKOUT_TEMPLO_NORMAL}
-        className={`text-caption underline underline-offset-4 transition-colors ${light ? 'text-graphite-900/45 hover:text-graphite-900/70' : 'text-cream-100/45 hover:text-cream-100/70'}`}
-      >
-        {secondaryLabel}
-      </a>
+      <CtaSecondary label={secondaryLabel} href={LINK_CHECKOUT_TEMPLO_NORMAL} tone={tone} />
     </>
   )
 }
@@ -160,9 +176,7 @@ export function AppGuiaTemplo() {
           <div className="flex animate-fade-in-up flex-col items-center gap-2 [animation-delay:440ms] sm:gap-4">
             <CtaPill label="Sim, quero meus trinta dias abertos" href={LINK_CHECKOUT_TEMPLO_TRIAL} />
             <p className="text-center text-caption text-cream-100/45">Acesso liberado em minutos. Nenhuma cobrança hoje.</p>
-            <a href={LINK_CHECKOUT_TEMPLO_NORMAL} className="text-caption text-cream-100/45 underline underline-offset-4 transition-colors hover:text-cream-100/70">
-              Não, prefiro pagar desde o primeiro dia, depois
-            </a>
+            <CtaSecondary label="Não, prefiro pagar desde o primeiro dia, depois" href={LINK_CHECKOUT_TEMPLO_NORMAL} />
           </div>
         </div>
       </section>
@@ -244,14 +258,14 @@ export function AppGuiaTemplo() {
           <Reveal delay={100}>
             <p className="font-display text-h2 text-graphite-900 md:text-[48px]">Seu corpo em movimento,<br className="hidden md:block" /> seu <span className="text-sage-700">poder em liberdade</span>.</p>
           </Reveal>
-          <Reveal delay={150} className="flex flex-col items-center gap-4 pt-2">
+          <Reveal delay={150} className="flex w-full flex-col items-center gap-4 px-6 pt-2 sm:px-0">
             <CtaPill label="Sim, quero meus trinta dias abertos" href={LINK_CHECKOUT_TEMPLO_TRIAL} />
-            <a
+            <CtaSecondary
+              label="Não, obrigada. Prefiro gastar mais um ciclo decidindo sozinha."
               href={LINK_CHECKOUT_TEMPLO_NORMAL}
-              className="text-caption text-graphite-900/45 underline underline-offset-4 transition-colors hover:text-graphite-900/70"
-            >
-              Não, obrigada. Prefiro gastar mais um ciclo decidindo sozinha.
-            </a>
+              tone="light"
+              className="h-auto py-2.5 leading-snug sm:whitespace-nowrap"
+            />
           </Reveal>
         </div>
       </section>
