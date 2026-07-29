@@ -138,7 +138,7 @@ export function AppGuiaDownload() {
           />
         </picture>
         <div className="absolute inset-0 bg-graphite-950/55" aria-hidden />
-        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
+        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 pb-16 pt-28 text-center sm:pt-32 lg:pt-36">
           <h1 className="animate-fade-in-up text-h1 text-cream-100 md:text-[62px] [animation-delay:120ms]">
             Pronto. Está aqui<span className="text-cream-100">.</span>
           </h1>
