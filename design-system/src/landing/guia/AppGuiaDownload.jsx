@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ArrowRight, Download, LayoutGrid, Dumbbell, PlayCircle, ClipboardList, Activity, Users, Gift } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 import { Typewriter } from '../singular/Typewriter'
@@ -123,6 +124,10 @@ function PilarSection({ letter, headline, sub, tone, z, children }) {
 }
 
 export function AppGuiaDownload() {
+  useEffect(() => {
+    document.title = 'Pronto. Está aqui. · Anju Mace'
+  }, [])
+
   return (
     <main className="page-largura-1050 bg-[#FAFFF2] text-graphite-900">
       {/* ------------------------------------------------ DOBRA 0 · A RECOMPENSA */}

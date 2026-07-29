@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ArrowRight, Dumbbell, PlayCircle, ClipboardList, LayoutGrid, Activity, Users } from 'lucide-react'
 import { Reveal } from '../singular/Reveal'
 import { EntregaveisList, EntregaveisCarousel } from './Entregaveis'
@@ -156,6 +157,10 @@ function MarqueeBand() {
 }
 
 export function AppGuiaTemplo() {
+  useEffect(() => {
+    document.title = 'Anju Mace · 30 dias grátis no Plano Templo'
+  }, [])
+
   return (
     <main className="page-largura-1050 bg-[#FAFFF2] text-graphite-900">
       {/* --------------------------------------------------------- 1 · HERO */}

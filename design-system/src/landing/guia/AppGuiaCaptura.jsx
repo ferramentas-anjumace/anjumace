@@ -296,6 +296,10 @@ function Callout({ children, tone = 'dark' }) {
 }
 
 export function AppGuiaCaptura() {
+  useEffect(() => {
+    document.title = 'Os cinco tipos de falha · Guia gratuito · Anju Mace'
+  }, [])
+
   const utm = useMemo(() => readUtms(), [])
   const formRef = useRef(null)
   const [name, setName] = useState('')
