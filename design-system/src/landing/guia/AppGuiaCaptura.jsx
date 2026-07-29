@@ -1,13 +1,17 @@
-import { useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, Lightbulb } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Check, ChevronDown, Lightbulb } from 'lucide-react'
+import 'flag-icons/css/flag-icons.min.css'
 import { ImagePlaceholder } from '../singular/ImagePlaceholder'
 import { Reveal } from '../singular/Reveal'
 import { Nav } from './Nav'
+import { PAISES, BRASIL } from '../lista-espera/paises'
 
 /* Página de captura do guia "Os cinco tipos de falha" (/guia).
    Copy verbatim do documento do funil (Página de Convite).
-   Lead: RPC funil_guia_signup no Supabase (migration 0051) + sync
-   ActiveCampaign via /api/ac-sync (fire-and-forget). Sucesso → /guia/download.
+   Lead: RPC funil_guia_signup no Supabase (migration 0051 + WhatsApp na
+   0057) + sync ActiveCampaign via /api/ac-sync (fire-and-forget). Sucesso
+   → /guia/obrigado (o e-book em si chega só por e-mail — a página
+   /guia/download saiu do fluxo de cliques, pedido do usuário 29/07).
    Revisão (24/07) pra alinhar com as outras 3 páginas do funil (download,
    obrigado, templo): nav (desktop + hamburguer mobile), só a dobra 1 escura
    (resto alterna FAFFF2/F5F5DD), tamanhos de texto explícitos (16→18,
@@ -46,7 +50,7 @@ function readUtms() {
   }
 }
 
-async function enviarLead({ name, email, utm }) {
+async function enviarLead({ name, email, whatsapp, utm }) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/funil_guia_signup`, {
     method: 'POST',
     headers: {
@@ -57,6 +61,7 @@ async function enviarLead({ name, email, utm }) {
     body: JSON.stringify({
       p_name: name,
       p_email: email,
+      p_whatsapp: whatsapp,
       p_utm: utm,
       p_referrer: document.referrer || null,
       p_page: '/guia',
@@ -69,8 +74,36 @@ async function enviarLead({ name, email, utm }) {
   fetch('/api/ac-sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, utm }),
+    body: JSON.stringify({ name, email, phone: whatsapp, utm }),
   }).catch(() => {})
+}
+
+/* Bandeira de verdade via flag-icons (SVG) — emoji de bandeira não renderiza
+   no Windows (as fontes do sistema não têm os glifos, só mostram a sigla). */
+function Flag({ code, className = '' }) {
+  return (
+    <span
+      className={`fi fi-${code.toLowerCase()} shrink-0 rounded-[3px] ${className}`}
+      style={{ width: '1.25rem', height: '0.875rem' }}
+      aria-hidden
+    />
+  )
+}
+
+/* Máscaras de WhatsApp — mesma lógica de ../lista-espera/AppListaEspera. */
+function maskWhatsappBR(value) {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 2) return d
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+function maskWhatsappGenerico(value) {
+  const d = value.replace(/\D/g, '').slice(0, 14)
+  return d.replace(/(\d{3})(?=\d)/g, '$1 ')
+}
+function maskWhatsapp(value, country) {
+  return country.code === 'BR' ? maskWhatsappBR(value) : maskWhatsappGenerico(value)
 }
 
 const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
@@ -93,6 +126,99 @@ function CtaPill({ label, onClick, type = 'button', loading = false }) {
         <ArrowRight className={`size-5 ${loading ? 'animate-pulse' : ''}`} strokeWidth={1.5} aria-hidden />
       </span>
     </button>
+  )
+}
+
+/** Seletor de país (bandeira + DDI) pro campo de WhatsApp — mesmo padrão de
+    ../lista-espera/AppListaEspera, adaptado pro pill creme desta página. */
+function CountrySelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onPointerDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return PAISES
+    return PAISES.filter((p) => p.name.toLowerCase().includes(q) || p.dial.includes(q))
+  }, [query])
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Selecionar país"
+        className="flex h-14 items-center gap-1.5 rounded-full bg-graphite-900/5 pl-5 pr-3 text-graphite-900 transition-colors duration-fast hover:bg-graphite-900/10"
+      >
+        <Flag code={value.code} />
+        <span className="text-[14px] font-medium text-graphite-900/60">+{value.dial}</span>
+        <ChevronDown
+          className={`size-4 text-graphite-900/50 transition-transform duration-fast ${open ? 'rotate-180' : ''}`}
+          strokeWidth={1.5}
+          aria-hidden
+        />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-[calc(100%+0.5rem)] z-dropdown w-72 animate-scale-in overflow-hidden rounded-2xl bg-cream-50 shadow-xl"
+          role="listbox"
+        >
+          <div className="border-b border-graphite-900/10 p-2">
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar país..."
+              className="h-10 w-full rounded-full bg-graphite-900/5 px-4 text-[14px] text-graphite-900 outline-none placeholder:text-graphite-900/45"
+            />
+          </div>
+          <ul className="max-h-64 overflow-y-auto py-1" data-lenis-prevent>
+            {filtered.length === 0 && (
+              <li className="px-4 py-3 text-[14px] text-graphite-900/50">Nenhum país encontrado.</li>
+            )}
+            {filtered.map((p) => (
+              <li key={p.code}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={p.code === value.code}
+                  onClick={() => {
+                    onChange(p)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-[14px] transition-colors duration-fast hover:bg-graphite-900/5 ${
+                    p.code === value.code ? 'bg-sage-400/15 text-graphite-900' : 'text-graphite-900/80'
+                  }`}
+                >
+                  <Flag code={p.code} />
+                  <span className="flex-1 truncate">{p.name}</span>
+                  <span className="text-graphite-900/50">+{p.dial}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -170,24 +296,41 @@ function Callout({ children, tone = 'dark' }) {
 }
 
 export function AppGuiaCaptura() {
-  const utm = useMemo(readUtms, [])
+  const utm = useMemo(() => readUtms(), [])
   const formRef = useRef(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [country, setCountry] = useState(BRASIL)
   const [status, setStatus] = useState('idle') // idle | loading | error
   const [errorField, setErrorField] = useState(null)
 
   const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
+  const handleCountryChange = (next) => {
+    setCountry(next)
+    setWhatsapp((v) => maskWhatsapp(v, next))
+  }
+
+  const whatsappMinDigits = country.code === 'BR' ? 10 : 7
+
   const submit = async (e) => {
     e.preventDefault()
     if (name.trim().length < 2) { setErrorField('nome'); return }
     if (!emailValido(email)) { setErrorField('email'); return }
+    if (whatsapp.replace(/\D/g, '').length < whatsappMinDigits) { setErrorField('whatsapp'); return }
     setErrorField(null)
     setStatus('loading')
     try {
-      await enviarLead({ name: name.trim(), email: email.trim(), utm })
-      window.location.assign('/guia/download')
+      await enviarLead({
+        name: name.trim(),
+        email: email.trim(),
+        whatsapp: `+${country.dial} ${whatsapp}`,
+        utm,
+      })
+      // O e-book chega só por e-mail — /guia/download saiu do fluxo de
+      // cliques (pedido do usuário 29/07). Próximo passo é o Obrigado.
+      window.location.assign('/guia/obrigado')
     } catch {
       setStatus('error')
     }
@@ -211,7 +354,7 @@ export function AppGuiaCaptura() {
         </picture>
         <div className="absolute inset-0 bg-graphite-950/55" aria-hidden />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-graphite-950" aria-hidden />
-        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
+        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 pb-16 pt-28 text-center sm:pt-32 lg:pt-36">
           <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
             As três repetições que você deixa para trás são exatamente as que constroem<span className="text-sage-400">.</span>
           </h1>
@@ -323,6 +466,22 @@ export function AppGuiaCaptura() {
                 inputMode="email"
               />
               {errorField === 'email' && <p className="text-caption text-red-400">Confere o e-mail — é nele que o guia chega.</p>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="guia-whatsapp" className="whitespace-nowrap text-[10px] uppercase tracking-wide text-graphite-900/60 sm:text-caption sm:tracking-wider">WhatsApp</label>
+              <div className="flex items-center gap-2">
+                <CountrySelect value={country} onChange={handleCountryChange} />
+                <input
+                  id="guia-whatsapp"
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(maskWhatsapp(e.target.value, country))}
+                  className={inputPill}
+                  autoComplete="tel-national"
+                  inputMode="numeric"
+                />
+              </div>
+              {errorField === 'whatsapp' && <p className="text-caption text-red-400">Confere o número do WhatsApp.</p>}
             </div>
             <CtaPill type="submit" label="Enviar o guia para mim" loading={status === 'loading'} />
             {status === 'error' && (
