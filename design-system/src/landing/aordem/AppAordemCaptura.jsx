@@ -600,13 +600,20 @@ export function AppAordemCaptura() {
   }, [formOpen, surveyOpen])
 
   // Trava a rolagem da página por trás dos pop-ups (senão dá pra rolar o
-  // conteúdo desfocado ao fundo enquanto o modal está aberto).
+  // conteúdo desfocado ao fundo enquanto o modal está aberto). Precisa
+  // travar o <html> também, não só o <body>: sem altura/overflow própria
+  // no body, quem rola de fato é o documentElement — travar só o body não
+  // tinha efeito nenhum (relatado pelo usuário 29/07).
   useEffect(() => {
     if (!formOpen && !surveyOpen) return
-    const prevOverflow = document.body.style.overflow
+    const root = document.documentElement
+    const prevRootOverflow = root.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+    root.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = prevOverflow
+      root.style.overflow = prevRootOverflow
+      document.body.style.overflow = prevBodyOverflow
     }
   }, [formOpen, surveyOpen])
 
@@ -1113,15 +1120,17 @@ export function AppAordemCaptura() {
       {/* ---------------------------------------- PESQUISA (POP-UP) */}
       {surveyOpen && (
         <div
-          className="fixed inset-0 z-modal flex bg-graphite-950/60 p-5 backdrop-blur-sm"
+          className="fixed inset-0 z-modal flex overflow-y-auto bg-graphite-950/60 p-5 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Pesquisa rápida"
           onClick={(e) => e.target === e.currentTarget && setSurveyOpen(false)}
         >
-          {/* Sem rolagem: tudo (inclusive o botão) precisa caber na mesma
-              tela — espaçamentos compactos de propósito (pedido do usuário
-              29/07). */}
+          {/* No desktop (wizard de passos) tudo cabe na mesma tela, sem
+              rolagem — espaçamentos compactos de propósito (pedido do
+              usuário 29/07). No mobile (abaixo) as perguntas vêm todas
+              juntas, então o pop-up rola normalmente (pedido do usuário
+              29/07, 2ª rodada) — por isso o overflow-y-auto no fundo. */}
           <div className="relative m-auto w-full max-w-xl animate-scale-in rounded-3xl border border-graphite-900/10 bg-cream-50 p-4 shadow-2xl md:p-9">
             <button
               type="button"
@@ -1152,21 +1161,24 @@ export function AppAordemCaptura() {
                   Pra Anju levar suas respostas pra dentro do encontro.
                 </p>
 
-                <div className="flex flex-col gap-4">
-                  {SURVEY_QUESTIONS.filter((q) => q.step === surveyStep).map((item) => (
-                    <SurveyQuestion
-                      key={item.id}
-                      item={item}
-                      value={surveyValue(item.id, item.type === 'multi' ? [] : '')}
-                      onChange={(v) => setSurveyValue(item.id, v)}
-                    />
+                {/* Mobile: todas as perguntas numa tela só, separadas por
+                    linha divisória, rolando dentro do próprio pop-up, com um
+                    único botão Finalizar no fim (pedido do usuário 29/07,
+                    substitui o wizard de passos só nesse breakpoint). */}
+                <div className="flex flex-col divide-y divide-graphite-900/10 sm:hidden">
+                  {SURVEY_QUESTIONS.map((item) => (
+                    <div key={item.id} className="py-4 first:pt-0">
+                      <SurveyQuestion
+                        item={item}
+                        value={surveyValue(item.id, item.type === 'multi' ? [] : '')}
+                        onChange={(v) => setSurveyValue(item.id, v)}
+                      />
+                    </div>
                   ))}
-                </div>
 
-                {surveyStep === surveyStepCount && (
-                  <label htmlFor="survey-sms-consent" className="mt-3 flex items-start gap-2">
+                  <label htmlFor="survey-sms-consent-mobile" className="flex items-start gap-2 pt-4">
                     <input
-                      id="survey-sms-consent"
+                      id="survey-sms-consent-mobile"
                       type="checkbox"
                       checked={surveySmsConsent}
                       onChange={(e) => setSurveySmsConsent(e.target.checked)}
@@ -1176,14 +1188,47 @@ export function AppAordemCaptura() {
                       Ao enviar este formulário e se inscrever para receber mensagens de texto, você concorda em receber mensagens de texto de marketing (por exemplo, promoções, lembretes de carrinho) da Anju Mace no número informado. O consentimento não é uma condição de compra. Taxas de mensagens e dados podem ser aplicadas. A frequência das mensagens varia. Cancele a inscrição a qualquer momento respondendo STOP.
                     </span>
                   </label>
-                )}
 
-                <div className="mt-4">
-                  {surveyStep < surveyStepCount ? (
-                    <CtaPill label="Continuar" onClick={() => setSurveyStep((s) => s + 1)} fullWidth />
-                  ) : (
+                  <div className="pt-4">
                     <CtaPill label="Finalizar" onClick={submitSurvey} loading={surveySubmitting} fullWidth />
+                  </div>
+                </div>
+
+                {/* sm+ : wizard de passos original, sem rolagem. */}
+                <div className="hidden sm:block">
+                  <div className="flex flex-col gap-4">
+                    {SURVEY_QUESTIONS.filter((q) => q.step === surveyStep).map((item) => (
+                      <SurveyQuestion
+                        key={item.id}
+                        item={item}
+                        value={surveyValue(item.id, item.type === 'multi' ? [] : '')}
+                        onChange={(v) => setSurveyValue(item.id, v)}
+                      />
+                    ))}
+                  </div>
+
+                  {surveyStep === surveyStepCount && (
+                    <label htmlFor="survey-sms-consent" className="mt-3 flex items-start gap-2">
+                      <input
+                        id="survey-sms-consent"
+                        type="checkbox"
+                        checked={surveySmsConsent}
+                        onChange={(e) => setSurveySmsConsent(e.target.checked)}
+                        className="mt-0.5 size-4 shrink-0 rounded border-graphite-900/30 accent-sage-500"
+                      />
+                      <span className="text-[12px] leading-snug text-graphite-900/60">
+                        Ao enviar este formulário e se inscrever para receber mensagens de texto, você concorda em receber mensagens de texto de marketing (por exemplo, promoções, lembretes de carrinho) da Anju Mace no número informado. O consentimento não é uma condição de compra. Taxas de mensagens e dados podem ser aplicadas. A frequência das mensagens varia. Cancele a inscrição a qualquer momento respondendo STOP.
+                      </span>
+                    </label>
                   )}
+
+                  <div className="mt-4">
+                    {surveyStep < surveyStepCount ? (
+                      <CtaPill label="Continuar" onClick={() => setSurveyStep((s) => s + 1)} fullWidth />
+                    ) : (
+                      <CtaPill label="Finalizar" onClick={submitSurvey} loading={surveySubmitting} fullWidth />
+                    )}
+                  </div>
                 </div>
               </>
             )}
