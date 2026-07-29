@@ -19,7 +19,7 @@
                               Default "3" (mesma lista do funil de atração).
 
      # Origem "aordem" (Hotseat A Ordem, evento ao vivo)
-     AC_TAG_AORDEM           opcional — default "Hotseat A Ordem"
+     AC_TAG_AORDEM           opcional — default "Captação - A Ordem"
      AC_LIST_ID_AORDEM       opcional — default "3" (mesma lista padrão até
                               existir uma lista dedicada pro evento).
 
@@ -40,7 +40,7 @@ const SOURCES = {
     noteLabel: 'Origem da lista de espera',
   },
   aordem: {
-    tag: process.env.AC_TAG_AORDEM || 'Hotseat A Ordem',
+    tag: process.env.AC_TAG_AORDEM || 'Captação - A Ordem',
     tagDescription: 'Lead do Hotseat A Ordem (evento ao vivo)',
     listId: process.env.AC_LIST_ID_AORDEM || '3',
     noteLabel: 'Origem do Hotseat A Ordem',

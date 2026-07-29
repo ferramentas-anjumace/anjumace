@@ -61,36 +61,19 @@ async function enviarParaSupabase({ name, email, whatsapp, utm }) {
   if (!data?.ok) throw new Error(data?.error || 'invalid')
 }
 
-/* Envio direto pro formulário do Active Campaign que o responsável de
-   infra mandou (form id 1, conta anjumace58987) — os campos ocultos abaixo
-   identificam esse formulário específico no Active e disparam a automação
-   de lembrete por SMS já configurada lá. Front-end só reaproveita os
-   parâmetros do embed; todo o CSS/JS de estilização original foi
-   descartado a favor dos componentes já usados no resto da página. Nunca
-   bloqueia a confirmação da vaga — o Supabase é a fonte de verdade. */
-const ACTIVE_CAMPAIGN_ENDPOINT = 'https://anjumace58987.activehosted.com/proc.php'
-const ACTIVE_CAMPAIGN_HIDDEN_FIELDS = {
-  u: '1',
-  f: '1',
-  s: '',
-  c: '0',
-  m: '0',
-  act: 'sub',
-  v: '2',
-  or: 'eac7aa95-72f5-496e-83bf-a108eb66e27f',
-}
-
+/* Envio pro formulário do Active Campaign que o responsável de infra
+   mandou (form id 1, conta anjumace58987) — dispara a automação de
+   lembrete por SMS já configurada lá. Passa por /api/aordem-ac-form (ver
+   design-system/api/) em vez de chamar o Active direto do navegador: o
+   endpoint de formulário do Active é feito pra POST clássico de <form>
+   com redirect, e via fetch() do browser esbarra em CORS — o front engole
+   o erro silenciosamente e o lead nunca chega lá. Nunca bloqueia a
+   confirmação da vaga — o Supabase é a fonte de verdade. */
 async function enviarParaActiveCampaign({ name, email, whatsapp }) {
-  const body = new FormData()
-  for (const [key, value] of Object.entries(ACTIVE_CAMPAIGN_HIDDEN_FIELDS)) body.append(key, value)
-  body.append('fullname', name)
-  body.append('email', email)
-  body.append('phone', whatsapp)
-  body.append('sms_consent', '1')
-  const res = await fetch(ACTIVE_CAMPAIGN_ENDPOINT, {
+  const res = await fetch('/api/aordem-ac-form', {
     method: 'POST',
-    headers: { Accept: 'application/json' },
-    body,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, phone: whatsapp }),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 }
@@ -478,12 +461,25 @@ export function AppAordemCaptura() {
         whatsapp: `+${country.dial} ${whatsapp}`,
         utm,
       })
-      // Active Campaign dispara a automação de lembrete por SMS, mas
-      // roda em segundo plano — nunca bloqueia a confirmação da vaga.
+      // Active Campaign: duas chamadas em paralelo, ambas em segundo plano
+      // (nunca bloqueiam a confirmação da vaga). A do form dispara a
+      // automação de lembrete por SMS; a do /api/ac-sync garante a tag
+      // "Captação - A Ordem" via API (reforço caso o form não aplique).
       enviarParaActiveCampaign({
         name: name.trim(),
         email: email.trim(),
         whatsapp: `+${country.dial} ${whatsapp}`,
+      }).catch(() => {})
+      fetch('/api/ac-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: `+${country.dial} ${whatsapp}`,
+          utm,
+          source: 'aordem',
+        }),
       }).catch(() => {})
       setStatus('done')
     } catch {
