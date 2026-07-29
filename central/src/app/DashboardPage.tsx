@@ -22,7 +22,6 @@ import {
   ProgressBar,
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
-import { usePermissions } from '@/lib/permissions'
 import { useTasks } from './tasks'
 import { isOpenTaskStatus } from './data'
 import { useProfiles } from './profiles'
@@ -199,8 +198,7 @@ function WelcomeBanner({
 
 function AdminDashboard() {
   const navigate = useNavigate()
-  const { user } = useSession()
-  const { can } = usePermissions()
+  const { user, role } = useSession()
   const { members: team } = useProfiles()
   const { isOnline } = usePresence()
   const { tasks } = useTasks()
@@ -264,11 +262,13 @@ function AdminDashboard() {
 
         {/* Coluna lateral */}
         <div className="flex flex-col gap-4">
-          {/* Follow-ups do CRM (só para quem opera o comercial) */}
-          {can('manage_crm') && <FollowupsCard />}
+          {/* Follow-ups do CRM — só Comercial e Administrador enxergam,
+              mesmo Liderança (que tem manage_crm liberado no resto do app)
+              fica de fora aqui (pedido do usuário 29/07). */}
+          {(role === 'admin' || role === 'comercial') && <FollowupsCard />}
 
-          {/* Pendências do CS (mesma capacidade do comercial) */}
-          {can('manage_crm') && <CsHomeCard />}
+          {/* Pendências do CS — mesma regra do card acima. */}
+          {(role === 'admin' || role === 'comercial') && <CsHomeCard />}
 
           {/* Integrantes do time */}
           <Card className="border-steel-500/30 bg-steel-300/45">
@@ -332,8 +332,7 @@ function AdminDashboard() {
 
 function CollaboratorDashboard() {
   const navigate = useNavigate()
-  const { user } = useSession()
-  const { can } = usePermissions()
+  const { user, role } = useSession()
   const { tasks: allTasks } = useTasks()
   const { tone: catTone, label: catLabel } = useCatalogs()
   const firstName = user.name.split(' ')[0]
@@ -455,11 +454,13 @@ function CollaboratorDashboard() {
 
         {/* Coluna lateral */}
         <div className="flex flex-col gap-4">
-          {/* Follow-ups do CRM (só para quem opera o comercial) */}
-          {can('manage_crm') && <FollowupsCard />}
+          {/* Follow-ups do CRM — só Comercial e Administrador enxergam,
+              inclusive o papel "CRM" (mesma capacidade de manage_crm no
+              resto do app) fica de fora aqui (pedido do usuário 29/07). */}
+          {(role === 'admin' || role === 'comercial') && <FollowupsCard />}
 
-          {/* Pendências do CS (mesma capacidade do comercial) */}
-          {can('manage_crm') && <CsHomeCard />}
+          {/* Pendências do CS — mesma regra do card acima. */}
+          {(role === 'admin' || role === 'comercial') && <CsHomeCard />}
 
           {/* Ecossistema Anju — atalhos */}
           <EcossistemaCard />
