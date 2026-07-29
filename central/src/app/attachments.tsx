@@ -125,9 +125,27 @@ export function AttachmentsProvider({ children }: { children: React.ReactNode })
     if (status === 'authed') {
       setLoading(true)
       fetchAttachments()
+      // Aplica cada evento direto no estado local (insert/update/delete só
+      // da linha que mudou) em vez de re-buscar a tabela inteira: como
+      // `attachments` é compartilhada por tarefas, editorial e chat, um
+      // refetch completo a cada anexo novo em QUALQUER lugar do app (ex.:
+      // uma imagem enviada no chat de outra pessoa) travava a lista por um
+      // instante pra todo mundo conectado — a causa dos "atrasos no
+      // carregamento" relatados na reunião do time (29/07).
       const channel = supabase
         .channel('attachments:sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'attachments' }, () => fetchAttachments())
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attachments' }, (payload) => {
+          const row = payload.new as AttachmentRow
+          setItems((prev) => (prev.some((a) => a.id === row.id) ? prev : [...prev, rowToAttachment(row)]))
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'attachments' }, (payload) => {
+          const row = payload.new as AttachmentRow
+          setItems((prev) => prev.map((a) => (a.id === row.id ? rowToAttachment(row) : a)))
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'attachments' }, (payload) => {
+          const id = (payload.old as { id: string }).id
+          setItems((prev) => prev.filter((a) => a.id !== id))
+        })
         .subscribe()
       return () => {
         supabase.removeChannel(channel)

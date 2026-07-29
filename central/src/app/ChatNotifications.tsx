@@ -21,6 +21,39 @@ const snippet = (body: string) => {
   return text.length > 90 ? `${text.slice(0, 90)}…` : text
 }
 
+/* Beep curto de duas notas (sem arquivo de áudio — sintetizado via Web
+   Audio API). Um AudioContext por sessão, reaproveitado a cada aviso;
+   qualquer falha (autoplay bloqueado, API ausente) é silenciosa — som é
+   um extra, nunca pode quebrar o chat. Pedido do time (29/07): faltava
+   aviso sonoro de mensagem nova. */
+let pingCtx: AudioContext | null = null
+function playPing() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctx) return
+    pingCtx ??= new Ctx()
+    if (pingCtx.state === 'suspended') pingCtx.resume()
+    const now = pingCtx.currentTime
+    const gain = pingCtx.createGain()
+    gain.gain.setValueAtTime(0.001, now)
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
+    gain.connect(pingCtx.destination)
+    const notes = [880, 1108.73]
+    notes.forEach((freq, i) => {
+      const osc = pingCtx!.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, now)
+      osc.connect(gain)
+      const start = now + i * 0.09
+      osc.start(start)
+      osc.stop(start + 0.28)
+    })
+  } catch {
+    // silencioso — som é um extra
+  }
+}
+
 export function ChatNotifications() {
   const { channels, dms, chatOpen, setActiveId, totalUnread, onIncoming } = useChat()
   const { getMember } = useProfiles()
@@ -55,6 +88,10 @@ export function ChatNotifications() {
         setActiveId(m.channelId)
         navigate('/app/chat')
       }
+
+      // Bipe curto pra toda mensagem de outra pessoa (o firehose já filtra
+      // as próprias) — antes o chat era mudo, sem nenhum aviso sonoro.
+      playPing()
 
       // Aba em segundo plano → notificação do navegador (uma por conversa),
       // com a foto de quem mandou (data URL) quando houver.

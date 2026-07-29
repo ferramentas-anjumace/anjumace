@@ -215,7 +215,12 @@ export function AppShell() {
   return (
     // overflow-hidden: nada pode estourar o shell — sem ele, qualquer
     // transbordo estica o body e a janela inteira rola, cortando o app.
-    <div className="flex h-screen flex-col overflow-hidden bg-ink text-fg">
+    // h-dvh (não h-screen/100vh): no mobile, 100vh fica travado na maior
+    // altura possível e não encolhe quando o teclado abre — o layout não
+    // reagia e a caixa de digitação do chat ficava escondida atrás do
+    // teclado ou sobreposta pela lista de mensagens (pedido do usuário
+    // 29/07, relatado na reunião do time).
+    <div className="flex h-dvh flex-col overflow-hidden bg-ink text-fg">
       <ChatNotifications />
       <Topbar
         className="relative z-sticky"
