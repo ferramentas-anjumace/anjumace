@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MessageSquare, Send, Trash2 } from 'lucide-react'
 import { Avatar, Button, Textarea } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -6,6 +7,7 @@ import { useSession } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
 import { useProfiles } from './profiles'
 import { useComments, type CommentEntity, type Comment } from './comments'
+import { useChat } from './chat'
 import type { Member } from './profiles'
 
 /* ----------------------------------------------------------------------------
@@ -41,8 +43,10 @@ const KNOWN_TLDS = 'com|net|org|io|dev|app|co|shop|store|info|biz|xyz|me|ai|gov|
 // Cobre URLs completas (http/https/www) e domínios "nus" tipo anjumace.com.br/guia.
 const URL_PATTERN = String.raw`(?:https?:\/\/|www\.)[^\s<]+|${DOMAIN_LABEL}(?:\.${DOMAIN_LABEL})*\.(?:${KNOWN_TLDS})(?:\.[a-zA-Z]{2,3})?(?:\/[^\s<]*)?`
 
-/** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs. */
-function renderBody(body: string, names: string[]): React.ReactNode {
+/** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs.
+    Menções ficam clicáveis quando `onMentionClick` é passado — abre a DM com a
+    pessoa mencionada (pedido do usuário 29/07, mesmo tratamento do chat). */
+function renderBody(body: string, names: string[], onMentionClick?: (name: string) => void): React.ReactNode {
   if (!body) return body
   // Nomes mais longos primeiro, para casar "@Maria Silva" antes de "@Maria".
   const mentionPattern = names.length
@@ -58,10 +62,19 @@ function renderBody(body: string, names: string[]): React.ReactNode {
     let match = m[0]
     let end = m.index + match.length
     if (match.startsWith('@')) {
+      const mentionName = match.slice(1)
       out.push(
-        <span key={`m-${i++}`} className="rounded bg-steel-500 px-1 font-medium text-accent-fg">
+        <button
+          key={`m-${i++}`}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onMentionClick?.(mentionName)
+          }}
+          className="rounded-full border border-steel-500/30 bg-steel-tint px-1.5 font-medium text-steel-700 transition-colors hover:bg-steel-500/25"
+        >
           {match}
-        </span>,
+        </button>,
       )
     } else {
       const trail = match.match(/[.,;:!?'")\]]+$/)
@@ -94,11 +107,13 @@ function CommentItem({
   names,
   canDelete,
   onDelete,
+  onMentionClick,
 }: {
   comment: Comment
   names: string[]
   canDelete: boolean
   onDelete: () => void
+  onMentionClick?: (name: string) => void
 }) {
   const { getMember } = useProfiles()
   const member = getMember(comment.authorId)
@@ -121,7 +136,7 @@ function CommentItem({
           )}
         </div>
         <p className="mt-0.5 whitespace-pre-wrap break-words text-body-s text-fg">
-          {renderBody(comment.body, names)}
+          {renderBody(comment.body, names, onMentionClick)}
         </p>
       </div>
     </li>
@@ -147,8 +162,10 @@ export function CommentThread({
   taskId?: string
 }) {
   const { user } = useSession()
+  const navigate = useNavigate()
   const { can } = usePermissions()
   const { members } = useProfiles()
+  const { openDm } = useChat()
   const { getComments, addComment, removeComment } = useComments()
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
@@ -161,6 +178,14 @@ export function CommentThread({
   const comments = getComments(entityType, entityId)
   const isModerator = can('manage_users')
   const names = useMemo(() => members.map((m) => m.name).filter(Boolean), [members])
+
+  // Clique numa "@Menção" no corpo de um comentário — abre a DM com a pessoa.
+  const handleMentionClick = (name: string) => {
+    const target = members.find((m) => m.name === name)
+    if (!target) return
+    openDm(target.id)
+    navigate('/app/chat')
+  }
 
   // Sugestões filtradas pela query atual.
   const suggestions = useMemo(() => {
@@ -294,6 +319,7 @@ export function CommentThread({
               names={names}
               canDelete={c.authorId === user.userId || isModerator}
               onDelete={() => removeComment(c.id)}
+              onMentionClick={handleMentionClick}
             />
           ))}
         </ul>

@@ -85,8 +85,10 @@ const KNOWN_TLDS = 'com|net|org|io|dev|app|co|shop|store|info|biz|xyz|me|ai|gov|
 // Cobre URLs completas (http/https/www) e domínios "nus" tipo anjumace.com.br/guia.
 const URL_PATTERN = String.raw`(?:https?:\/\/|www\.)[^\s<]+|${DOMAIN_LABEL}(?:\.${DOMAIN_LABEL})*\.(?:${KNOWN_TLDS})(?:\.[a-zA-Z]{2,3})?(?:\/[^\s<]*)?`
 
-/** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs. */
-function renderBody(body: string, names: string[]): React.ReactNode {
+/** Quebra o texto em nós, destacando "@Nome" de membros conhecidos e linkando URLs.
+    Menções ficam clicáveis quando `onMentionClick` é passado — abre a DM com a
+    pessoa mencionada (pedido do usuário 29/07). */
+function renderBody(body: string, names: string[], onMentionClick?: (name: string) => void): React.ReactNode {
   if (!body) return body
   const mentionPattern = names.length
     ? `@(?:${names.slice().sort((a, b) => b.length - a.length).map(escapeRe).join('|')})`
@@ -101,10 +103,19 @@ function renderBody(body: string, names: string[]): React.ReactNode {
     let match = m[0]
     let end = m.index + match.length
     if (match.startsWith('@')) {
+      const mentionName = match.slice(1)
       out.push(
-        <span key={`m-${i++}`} className="rounded bg-steel-500 px-1 font-medium text-accent-fg">
+        <button
+          key={`m-${i++}`}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onMentionClick?.(mentionName)
+          }}
+          className="rounded-full border border-steel-500/30 bg-steel-tint px-1.5 font-medium text-steel-700 transition-colors hover:bg-steel-500/25"
+        >
           {match}
-        </span>,
+        </button>,
       )
     } else {
       const trail = match.match(/[.,;:!?'")\]]+$/)
@@ -523,6 +534,7 @@ function MessageItem({
   onToggleReaction,
   replyMeta,
   onOpenThread,
+  onMentionClick,
 }: {
   message: ChatMessage
   grouped: boolean
@@ -536,8 +548,11 @@ function MessageItem({
   replyMeta?: ReplyMeta
   /** Abre a thread desta mensagem (só no canal; ausente dentro da thread). */
   onOpenThread?: () => void
+  /** Clique numa "@Menção" no corpo da mensagem — abre a DM com a pessoa. */
+  onMentionClick?: (name: string) => void
 }) {
   const { getMember } = useProfiles()
+  const { isOnline } = usePresence()
   const member = getMember(message.authorId)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
@@ -554,7 +569,12 @@ function MessageItem({
         {grouped ? (
           <span className="block w-10" aria-hidden />
         ) : (
-          <Avatar size="md" name={message.authorName} src={member?.avatar ?? undefined} />
+          <Avatar
+            size="md"
+            name={message.authorName}
+            src={member?.avatar ?? undefined}
+            status={message.authorId ? (isOnline(message.authorId) ? 'online' : 'offline') : undefined}
+          />
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -569,7 +589,7 @@ function MessageItem({
           <div className="min-w-0">
             {message.body && (
               <p className="mt-1 whitespace-pre-wrap break-words text-body-l leading-relaxed text-fg">
-                {renderBody(message.body, names)}
+                {renderBody(message.body, names, onMentionClick)}
                 {message.editedAt && (
                   <span className="ml-1 align-baseline font-mono text-[12px] text-faint">(editado)</span>
                 )}
@@ -972,7 +992,13 @@ function ThreadPanel() {
     deleteMessage,
     toggleReaction,
     activeChannel,
+    openDm,
   } = useChat()
+
+  const handleMentionClick = (name: string) => {
+    const target = members.find((m) => m.name === name)
+    if (target) openDm(target.id)
+  }
 
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -1021,6 +1047,7 @@ function ThreadPanel() {
             canDelete={threadParent.authorId === user.userId || isManager}
             onDelete={() => deleteMessage(threadParent.id)}
             onToggleReaction={(emoji) => toggleReaction(threadParent.id, emoji)}
+            onMentionClick={handleMentionClick}
           />
         </ul>
 
@@ -1045,6 +1072,7 @@ function ThreadPanel() {
               canDelete={message.authorId === user.userId || isManager}
               onDelete={() => deleteMessage(message.id)}
               onToggleReaction={(emoji) => toggleReaction(message.id, emoji)}
+              onMentionClick={handleMentionClick}
             />
           ))}
           <div ref={bottomRef} />
@@ -1080,6 +1108,7 @@ export function ChatPage() {
     sendMessage,
     deleteMessage,
     toggleReaction,
+    openDm,
   } = useChat()
   const toast = useToast()
   const [newChannelOpen, setNewChannelOpen] = useState(false)
@@ -1135,6 +1164,12 @@ export function ChatPage() {
         if (err) toast.error('Falha ao anexar', `${f.name}: ${err}`)
       }
     }
+  }
+
+  // Clique numa "@Menção" no corpo de uma mensagem — abre a DM com a pessoa.
+  const handleMentionClick = (name: string) => {
+    const target = members.find((m) => m.name === name)
+    if (target) openDm(target.id)
   }
 
   return (
@@ -1303,6 +1338,7 @@ export function ChatPage() {
                       onToggleReaction={(emoji) => toggleReaction(message.id, emoji)}
                       replyMeta={replyMeta[message.id]}
                       onOpenThread={() => openThread(message.id)}
+                      onMentionClick={handleMentionClick}
                     />
                   ))}
                   <div ref={bottomRef} />
