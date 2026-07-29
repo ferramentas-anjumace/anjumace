@@ -264,7 +264,7 @@ export function AppGuiaTemplo() {
               label="Não, obrigada. Prefiro gastar mais um ciclo decidindo sozinha."
               href={LINK_CHECKOUT_TEMPLO_NORMAL}
               tone="light"
-              className="h-auto py-2.5 leading-snug sm:whitespace-nowrap"
+              className="h-auto max-w-2xl py-2.5 leading-snug"
             />
           </Reveal>
         </div>
