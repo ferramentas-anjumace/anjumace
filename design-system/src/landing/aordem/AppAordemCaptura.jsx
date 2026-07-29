@@ -524,7 +524,7 @@ export function AppAordemCaptura() {
                 <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
                 <span className="inline-flex items-center gap-0.5 sm:gap-1.5">
                   <Calendar className="size-2.5 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
-                  Quinta-feira, 30 de julho, às 20h
+                  Quinta-feira, 6 de agosto, às 19h37
                 </span>
                 <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
                 <span className="inline-flex items-center gap-0.5 sm:gap-1.5">
@@ -580,7 +580,7 @@ export function AppAordemCaptura() {
             <PathArrow />
             <Reveal variant="scale" delay={100} className="lg:flex-1"><NightPathStep icon={ShieldCheck} n="02" accent="gold" title="Nada a explicar">Um corpo forte e feminino que se sustenta no tempo. E uma identidade que não pede licença, não pede desculpa e não precisa de legenda embaixo.</NightPathStep></Reveal>
             <PathArrow />
-            <Reveal variant="scale" delay={200} className="lg:flex-1"><NightPathStep icon={Moon} n="03" title="Existe uma ordem" isLast>A Ordem. <strong className="font-medium text-graphite-900">Quinta-feira, 30 de julho, às 20h.</strong> Uma hora e meia sobre a sequência que constrói o corpo, e sobre a identidade que ele comunica.</NightPathStep></Reveal>
+            <Reveal variant="scale" delay={200} className="lg:flex-1"><NightPathStep icon={Moon} n="03" title="Existe uma ordem" isLast>A Ordem. <strong className="font-medium text-graphite-900">Quinta-feira, 6 de agosto, às 19h37.</strong> Uma hora e meia sobre a sequência que constrói o corpo, e sobre a identidade que ele comunica.</NightPathStep></Reveal>
           </div>
 
           <Reveal delay={100}>
@@ -779,7 +779,7 @@ export function AppAordemCaptura() {
               <Clock className="size-5" strokeWidth={1.5} aria-hidden />
             </span>
             <p className="text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900">
-              <strong className="font-medium">A recomendação prática é simples:</strong> entre 19h50 e 20h. Quem chega às 20h30 depende de quem já está dentro.
+              <strong className="font-medium">A recomendação prática é simples:</strong> entre 19h27 e 19h37. Quem chega às 20h00 depende de quem já está dentro.
             </p>
           </Reveal>
         </div>
@@ -896,7 +896,7 @@ export function AppAordemCaptura() {
             <Reveal delay={100} className="flex flex-col items-center gap-3">
               <CtaPill label="Reservar meu lugar na sala" onClick={scrollToForm} />
               <p className="text-center text-caption text-cream-100/50">
-                Quinta-feira, 30 de julho, às 20h. Uma hora e meia.<br /> Gratuito, enquanto houver lugar na sala.
+                Quinta-feira, 6 de agosto, às 19h37. Uma hora e meia.<br /> Gratuito, enquanto houver lugar na sala.
               </p>
             </Reveal>
           </div>
