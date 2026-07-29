@@ -22,7 +22,10 @@ import { Nav } from './Nav'
 
 // Link real de checkout na Circle (planilha "Ofertas na Circle", 20/07).
 const LINK_CHECKOUT_SINGULAR = 'https://anju-mace.circle.so/checkout/plano-templo-singular'
-const LINK_GUIA_DOWNLOAD = '/guia/download'
+// Quem recusa a oferta principal vai pro downsell (/guia/templo) — não mais
+// pra página de entrega do e-book, que saiu do fluxo de cliques: o e-book
+// agora chega só por e-mail (pedido do usuário 29/07).
+const LINK_GUIA_TEMPLO = '/guia/templo'
 
 const NAV_LINKS = [
   { label: 'Início', href: '#inicio' },
@@ -48,21 +51,35 @@ function CtaPill({ label, href }) {
   )
 }
 
+/** Botão secundário de negativa — pill com contorno, real o suficiente pra
+    ver e tocar, mas sem competir com o gradiente do CtaPill primário. Trocado
+    de linkzinho sublinhado pra botão de verdade (pedido do usuário 29/07:
+    o "não" precisa ser fácil de usar, não só "visível"). */
+function CtaSecondary({ label, href, tone = 'dark' }) {
+  const light = tone === 'light'
+  return (
+    <a
+      href={href}
+      className={`inline-flex h-12 w-full max-w-lg items-center justify-center rounded-full border px-6 text-center text-sm font-medium uppercase tracking-wide transition-colors duration-fast sm:w-auto sm:text-base ${
+        light
+          ? 'border-graphite-900/20 text-graphite-900/70 hover:border-graphite-900/35 hover:bg-graphite-900/5 hover:text-graphite-900'
+          : 'border-cream-100/25 text-cream-100/70 hover:border-cream-100/40 hover:bg-cream-100/10 hover:text-cream-100'
+      }`}
+    >
+      {label}
+    </a>
+  )
+}
+
 /** Par primário+secundário repetido ao fim de cada bloco — o "não" sempre
     visível ao lado do "sim", nunca escondido. Sem <div> próprio (fragment):
     quem chama precisa envolver em flex flex-col items-center — um wrapper
     extra aqui quebrava a base percentual do w-full do CtaPill no mobile. */
-function CtaRow({ tone = 'dark', secondaryLabel = 'Não, quero apenas o e-book', secondaryHref = LINK_GUIA_DOWNLOAD }) {
-  const light = tone === 'light'
+function CtaRow({ tone = 'dark', secondaryLabel = 'Prefiro conhecer o Plano Templo primeiro', secondaryHref = LINK_GUIA_TEMPLO }) {
   return (
     <>
       <CtaPill label="Quero a leitura do meu corpo" href={LINK_CHECKOUT_SINGULAR} />
-      <a
-        href={secondaryHref}
-        className={`text-caption underline underline-offset-4 transition-colors ${light ? 'text-graphite-900/45 hover:text-graphite-900/70' : 'text-cream-100/45 hover:text-cream-100/70'}`}
-      >
-        {secondaryLabel}
-      </a>
+      <CtaSecondary label={secondaryLabel} href={secondaryHref} tone={tone} />
     </>
   )
 }
@@ -224,11 +241,13 @@ export function AppGuiaObrigado() {
           />
         </picture>
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-graphite-950" aria-hidden />
-        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
-          <Typewriter as="p" text="O e-book já está a caminho do seu e-mail" className="text-label text-sage-400 md:text-[16px]" />
-          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
-            A teoria chega hoje. O corpo que vai recebê-la continua sem ninguém lendo<span className="text-sage-400">.</span>
-          </h1>
+        <div className="container relative flex flex-1 flex-col items-center justify-center gap-8 pb-16 pt-28 text-center sm:pt-32 lg:pt-36">
+          <div className="flex flex-col items-center gap-2 md:gap-4">
+            <Typewriter as="p" text="O e-book já está a caminho do seu e-mail" className="text-label text-sage-400 md:text-[16px]" />
+            <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[36px] text-cream-100 md:text-[62px] [animation-delay:120ms]">
+              A teoria chega hoje. O corpo que vai recebê-la continua sem ninguém lendo<span className="text-sage-400">.</span>
+            </h1>
+          </div>
           <p className="max-w-2xl animate-fade-in-up text-[18px] leading-relaxed tracking-tight lg:text-[20px] text-cream-100/75 [animation-delay:280ms]">
             Nas próximas semanas você vai treinar de qualquer forma.<br className="hidden md:block" />
             A pergunta que esta página faz é uma só: esse ciclo vai acontecer<br className="hidden md:block" />
@@ -429,12 +448,7 @@ export function AppGuiaObrigado() {
           </Reveal>
           <Reveal delay={150} className="flex flex-col items-center gap-4">
             <CtaPill label="Quero a leitura do meu corpo" href={LINK_CHECKOUT_SINGULAR} />
-            <a
-              href={LINK_GUIA_DOWNLOAD}
-              className="text-caption text-graphite-900/45 underline underline-offset-4 transition-colors hover:text-graphite-900/70"
-            >
-              Prefiro conhecer o Plano Templo primeiro
-            </a>
+            <CtaSecondary label="Prefiro conhecer o Plano Templo primeiro" href={LINK_GUIA_TEMPLO} tone="light" />
           </Reveal>
         </div>
       </section>
