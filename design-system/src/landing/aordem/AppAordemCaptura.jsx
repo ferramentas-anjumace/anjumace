@@ -61,6 +61,29 @@ async function enviarParaSupabase({ name, email, whatsapp, utm }) {
   if (!data?.ok) throw new Error(data?.error || 'invalid')
 }
 
+/* Respostas da pesquisa "leads core" (migration 0059) — mesmo padrão de
+   RPC dedicada acima, dedupe por e-mail (reenvio atualiza as respostas). */
+async function enviarPesquisaParaSupabase({ email, name, phone, answers, smsConsent }) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hotseat_ordem_pesquisa_submit`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      p_email: email,
+      p_name: name,
+      p_phone: phone,
+      p_answers: answers,
+      p_sms_consent: smsConsent,
+    }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json()
+  if (!data?.ok) throw new Error(data?.error || 'invalid')
+}
+
 /* Envio pro formulário do Active Campaign que o responsável de infra
    mandou (form id 1, conta anjumace58987) — dispara a automação de
    lembrete por SMS já configurada lá. Passa por /api/aordem-ac-form (ver
@@ -576,6 +599,17 @@ export function AppAordemCaptura() {
     return () => window.removeEventListener('keydown', onKey)
   }, [formOpen, surveyOpen])
 
+  // Trava a rolagem da página por trás dos pop-ups (senão dá pra rolar o
+  // conteúdo desfocado ao fundo enquanto o modal está aberto).
+  useEffect(() => {
+    if (!formOpen && !surveyOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [formOpen, surveyOpen])
+
   const openForm = () => setFormOpen(true)
 
   const surveyValue = (id, fallback) => surveyAnswers[id] ?? fallback
@@ -583,22 +617,24 @@ export function AppAordemCaptura() {
 
   const submitSurvey = async () => {
     setSurveySubmitting(true)
-    try {
-      await fetch('/api/aordem-pesquisa-form', {
+    const payload = {
+      email: email.trim(),
+      name: name.trim().split(' ')[0],
+      phone: `+${country.dial} ${whatsapp}`,
+      answers: surveyAnswers,
+      smsConsent: surveySmsConsent,
+    }
+    // Supabase e Active Campaign em paralelo — pesquisa é informação extra, a
+    // vaga já está confirmada, então um erro em qualquer um dos dois nunca
+    // trava a tela de agradecimento.
+    await Promise.allSettled([
+      enviarPesquisaParaSupabase(payload),
+      fetch('/api/aordem-pesquisa-form', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim(),
-          name: name.trim().split(' ')[0],
-          phone: `+${country.dial} ${whatsapp}`,
-          answers: surveyAnswers,
-          smsConsent: surveySmsConsent,
-        }),
-      })
-    } catch {
-      // Pesquisa é informação extra — a vaga já está confirmada, então um
-      // erro aqui nunca deve travar a pessoa.
-    }
+        body: JSON.stringify(payload),
+      }),
+    ])
     setSurveySubmitting(false)
     setSurveyDone(true)
   }
