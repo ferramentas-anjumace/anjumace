@@ -953,7 +953,6 @@ function ChecklistSection({ task, onChange }: { task: Task; onChange: (items: Ch
 function TaskDetailModal({
   task,
   canManage,
-  allowComplete,
   editorialApproval,
   onClose,
   onMove,
@@ -963,9 +962,6 @@ function TaskDetailModal({
 }: {
   task: Task | null
   canManage: boolean
-  /** Se a origem permite concluir pelo popup (lista/calendário — onde não há
-   *  arrastar). No quadro fica false: concluir é só arrastando. */
-  allowComplete: boolean
   /** Status do Editorial (derivado das etapas copy/arte), quando a tarefa veio de uma postagem vinculada. */
   editorialApproval?: PostApprovalState
   onClose: () => void
@@ -1007,8 +1003,7 @@ function TaskDetailModal({
             </>
           )}
           {/* Salvar aplica o status escolhido (rascunho) e fecha. Checklist,
-              anexos e discussão já persistem ao vivo. No quadro, concluir é só
-              arrastando; na lista/calendário, escolha "Concluída" e Salvar. */}
+              anexos e discussão já persistem ao vivo. */}
           <Button variant="primary" leftIcon={<Save size={16} strokeWidth={1.5} />} onClick={save}>
             Salvar
           </Button>
@@ -1058,13 +1053,8 @@ function TaskDetailModal({
           <div>
             <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status</div>
             {canManage ? (
-              // "Concluída" só aparece quando a origem permite concluir pelo popup
-              // (lista/calendário) ou quando a tarefa já está concluída (para o
-              // select renderizar o valor atual). No quadro, conclua arrastando.
               <Select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as TaskStatus)}>
-                {TASK_STATUS_ORDER.filter(
-                  (s) => s !== 'concluida' || allowComplete || task.status === 'concluida',
-                ).map((s) => (
+                {TASK_STATUS_ORDER.map((s) => (
                   <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
                 ))}
               </Select>
@@ -1407,7 +1397,6 @@ export function TasksPage() {
       <TaskDetailModal
         task={openTask}
         canManage={canManage}
-        allowComplete={view !== 'board'}
         editorialApproval={openTask ? approvalByTask[openTask.id] : undefined}
         onClose={() => setOpenTaskId(null)}
         onMove={(status) => openTask && moveTask(openTask.id, status)}
