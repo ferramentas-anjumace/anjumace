@@ -29,6 +29,7 @@ import {
 } from '@/components/ui'
 import { useSession, ROLE_LABEL } from '@/lib/session'
 import { usePermissions } from '@/lib/permissions'
+import { usePresence } from '@/lib/presence'
 import { useProfiles, type Member, type MemberRole, type MemberStatus } from './profiles'
 import { AvatarUploader } from './AvatarUploader'
 
@@ -39,6 +40,7 @@ const ROLE_TONE: Record<MemberRole, 'steel' | 'success' | 'neutral' | 'sand' | '
   crm: 'danger',
   social: 'warning',
   design: 'neutral',
+  infra: 'neutral',
 }
 /** Administrador e Liderança são gestores — recebem o ponto de destaque. */
 const MANAGER_ROLES: MemberRole[] = ['admin', 'lideranca']
@@ -123,6 +125,7 @@ function EditMemberModal({
           <option value="comercial">Comercial</option>
           <option value="crm">CRM</option>
           <option value="social">Social Media</option>
+          <option value="infra">Infra</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
         </Select>
@@ -198,6 +201,7 @@ function CreateUserModal({
           <option value="comercial">Comercial</option>
           <option value="crm">CRM</option>
           <option value="social">Social Media</option>
+          <option value="infra">Infra</option>
           <option value="lideranca">Liderança</option>
           <option value="admin">Administrador</option>
         </Select>
@@ -212,6 +216,7 @@ export function UsersPage() {
   const { user } = useSession()
   const { can } = usePermissions()
   const { members, loading, updateMember, setMemberAvatar, createUser, updateUserCredentials, removeUser } = useProfiles()
+  const { isOnline } = usePresence()
   const isAdmin = can('manage_users')
 
   const [query, setQuery] = useState('')
@@ -239,6 +244,7 @@ export function UsersPage() {
     crm: members.filter((u) => u.role === 'crm').length,
     social: members.filter((u) => u.role === 'social').length,
     design: members.filter((u) => u.role === 'design').length,
+    infra: members.filter((u) => u.role === 'infra').length,
   }
 
   const save = async (id: string, patch: { name: string; role: MemberRole; status: MemberStatus; team: string | null }) => {
@@ -318,6 +324,7 @@ export function UsersPage() {
           <Tab value="crm" badge={<Badge tone="danger">{counts.crm}</Badge>}>CRM</Tab>
           <Tab value="social" badge={<Badge tone="warning">{counts.social}</Badge>}>Social Media</Tab>
           <Tab value="design" badge={<Badge tone="neutral">{counts.design}</Badge>}>Design</Tab>
+          <Tab value="infra" badge={<Badge tone="neutral">{counts.infra}</Badge>}>Infra</Tab>
         </TabList>
       </Tabs>
 
@@ -359,7 +366,7 @@ export function UsersPage() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
+                        <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} status={isOnline(u.id) ? 'online' : 'offline'} />
                         <div className="min-w-0">
                           <div className="truncate font-medium text-strong">{u.name || '—'}</div>
                           <div className="truncate font-mono text-[11px] text-faint">{u.email}</div>
@@ -408,7 +415,7 @@ export function UsersPage() {
                 <Card key={u.id} className="p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
+                      <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} status={isOnline(u.id) ? 'online' : 'offline'} />
                       <div className="min-w-0">
                         <div className="truncate font-medium text-strong">{u.name || '—'}</div>
                         <div className="truncate font-mono text-[11px] text-faint">{u.email}</div>

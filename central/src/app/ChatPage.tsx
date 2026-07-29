@@ -33,6 +33,7 @@ import { cn } from '@/lib/cn'
 import { Portal } from '@/lib/Portal'
 import { useLockBodyScroll, useEscapeKey } from '@/lib/overlay'
 import { useSession } from '@/lib/session'
+import { usePresence } from '@/lib/presence'
 import { useProfiles, type Member } from './profiles'
 import { useAttachments, type Attachment } from './attachments'
 import {
@@ -195,6 +196,7 @@ function DmButton({
   onClick: () => void
 }) {
   const { getMember } = useProfiles()
+  const { isOnline } = usePresence()
   const other = dm.otherUserId ? getMember(dm.otherUserId) : undefined
   const name = other?.name ?? 'Conversa'
   const hasUnread = unread > 0 && !active
@@ -206,7 +208,12 @@ function DmButton({
         active ? 'bg-slate-800 text-strong' : 'text-muted hover:bg-slate-800/60 hover:text-strong',
       )}
     >
-      <Avatar size="sm" name={name} src={other?.avatar ?? undefined} />
+      <Avatar
+        size="sm"
+        name={name}
+        src={other?.avatar ?? undefined}
+        status={dm.otherUserId ? (isOnline(dm.otherUserId) ? 'online' : 'offline') : undefined}
+      />
       <span className={cn('min-w-0 flex-1 truncate', hasUnread && 'font-medium text-strong')}>{name}</span>
       {hasUnread && <UnreadPill count={unread} />}
     </button>
@@ -1052,6 +1059,7 @@ function ThreadPanel() {
 export function ChatPage() {
   const { user, isManager } = useSession()
   const { getMember, members } = useProfiles()
+  const { isOnline } = usePresence()
   const { addAttachment } = useAttachments()
   const {
     loading,
@@ -1209,12 +1217,22 @@ export function ChatPage() {
                 <ChevronLeft size={18} strokeWidth={1.5} />
               </IconButton>
               {activeChannel.kind === 'dm' ? (
-                <Avatar size="sm" name={activeTitle} src={dmOther?.avatar ?? undefined} />
+                <Avatar
+                  size="sm"
+                  name={activeTitle}
+                  src={dmOther?.avatar ?? undefined}
+                  status={dmOther ? (isOnline(dmOther.id) ? 'online' : 'offline') : undefined}
+                />
               ) : (
                 <Hash size={18} strokeWidth={1.5} className="text-steel-400" aria-hidden />
               )}
               <div className="min-w-0">
                 <h1 className="truncate text-body-l font-semibold text-strong">{activeTitle}</h1>
+                {activeChannel.kind === 'dm' && dmOther && (
+                  <p className={cn('truncate text-body-s', isOnline(dmOther.id) ? 'text-ok' : 'text-faint')}>
+                    {isOnline(dmOther.id) ? 'online' : 'offline'}
+                  </p>
+                )}
                 {activeChannel.kind !== 'dm' && activeChannel.description && (
                   <p className="truncate text-body-s text-muted">{activeChannel.description}</p>
                 )}
