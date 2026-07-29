@@ -200,7 +200,6 @@ function AdminDashboard() {
   const navigate = useNavigate()
   const { user, role } = useSession()
   const { members: team } = useProfiles()
-  const { isOnline } = usePresence()
   const { tasks } = useTasks()
   const firstName = user.name.split(' ')[0]
   const tarefasAbertas = tasks.filter((t) => isOpenTaskStatus(t.status)).length
@@ -270,59 +269,71 @@ function AdminDashboard() {
           {/* Pendências do CS — mesma regra do card acima. */}
           {(role === 'admin' || role === 'comercial') && <CsHomeCard />}
 
-          {/* Integrantes do time */}
-          <Card className="border-steel-500/30 bg-steel-300/45">
-            <CardHeader>
-              <div className="flex items-center gap-2.5">
-                <CardIcon tone="sage"><UsersIcon size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
-                <CardTitle>Time</CardTitle>
-              </div>
-              <button
-                onClick={() => navigate('/app/usuarios')}
-                className="font-mono text-mono-data text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
-              >
-                ver todos
-              </button>
-            </CardHeader>
-            <ul className="flex flex-col gap-1">
-              {team.length === 0 && (
-                <li className="px-2 py-3 text-body-s text-faint">Nenhum usuário cadastrado ainda.</li>
-              )}
-              {team.slice(0, 6).map((u) => (
-                <li key={u.id}>
-                  <button
-                    onClick={() => navigate('/app/usuarios')}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
-                  >
-                    <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-body-s font-medium text-strong">{u.name}</div>
-                      <div className="truncate font-mono text-[11px] text-faint">
-                        {ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}
-                      </div>
-                    </div>
-                    <span
-                      className={`flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase ${
-                        isOnline(u.id) ? 'text-ok' : 'text-faint'
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${isOnline(u.id) ? 'bg-ok' : 'bg-slate-600'}`}
-                        aria-hidden
-                      />
-                      {isOnline(u.id) ? 'online' : 'offline'}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          {/* Integrantes do time — quem está online agora */}
+          <TeamCard />
 
           {/* Ecossistema Anju — atalhos */}
           <EcossistemaCard />
         </div>
       </div>
     </div>
+  )
+}
+
+/** Card "Time" com presença (online/offline) — compartilhado entre a visão
+    de gestor e a de colaborador, pra todo mundo ver quem está online. */
+function TeamCard() {
+  const navigate = useNavigate()
+  const { members: team } = useProfiles()
+  const { isOnline } = usePresence()
+
+  return (
+    <Card className="border-steel-500/30 bg-steel-300/45">
+      <CardHeader>
+        <div className="flex items-center gap-2.5">
+          <CardIcon tone="sage"><UsersIcon size={18} strokeWidth={1.5} aria-hidden /></CardIcon>
+          <CardTitle>Time</CardTitle>
+        </div>
+        <button
+          onClick={() => navigate('/app/usuarios')}
+          className="font-mono text-mono-data text-steel-300 transition-colors hover:text-steel-400 focus-visible:outline-none focus-visible:shadow-focus"
+        >
+          ver todos
+        </button>
+      </CardHeader>
+      <ul className="flex flex-col gap-1">
+        {team.length === 0 && (
+          <li className="px-2 py-3 text-body-s text-faint">Nenhum usuário cadastrado ainda.</li>
+        )}
+        {team.slice(0, 6).map((u) => (
+          <li key={u.id}>
+            <button
+              onClick={() => navigate('/app/usuarios')}
+              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:shadow-focus"
+            >
+              <Avatar size="sm" name={u.name} src={u.avatar ?? undefined} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-body-s font-medium text-strong">{u.name}</div>
+                <div className="truncate font-mono text-[11px] text-faint">
+                  {ROLE_LABEL[u.role]}{u.team ? ` · ${u.team}` : ''}
+                </div>
+              </div>
+              <span
+                className={`flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase ${
+                  isOnline(u.id) ? 'text-ok' : 'text-faint'
+                }`}
+              >
+                <span
+                  className={`size-1.5 rounded-full ${isOnline(u.id) ? 'bg-ok' : 'bg-slate-600'}`}
+                  aria-hidden
+                />
+                {isOnline(u.id) ? 'online' : 'offline'}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
   )
 }
 
@@ -461,6 +472,10 @@ function CollaboratorDashboard() {
 
           {/* Pendências do CS — mesma regra do card acima. */}
           {(role === 'admin' || role === 'comercial') && <CsHomeCard />}
+
+          {/* Integrantes do time — quem está online agora (antes só o
+              Administrador via, pedido do usuário 29/07). */}
+          <TeamCard />
 
           {/* Ecossistema Anju — atalhos */}
           <EcossistemaCard />
