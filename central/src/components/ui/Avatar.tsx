@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
 const avatar = cva(
-  'relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-slate-700 font-mono font-medium uppercase text-strong',
+  'relative inline-flex shrink-0 select-none items-center justify-center',
   {
     variants: {
       size: {
@@ -53,22 +53,27 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
     const showImg = src && !errored
     return (
       <span ref={ref} className={cn(avatar({ size }), className)} {...props}>
-        {showImg ? (
-          <img
-            src={src}
-            alt={name}
-            draggable={false}
-            className="size-full rounded-full object-cover"
-            onError={() => setErrored(true)}
-          />
-        ) : (
-          <span aria-hidden>{initials(name)}</span>
-        )}
+        {/* Recorte circular isolado do avatar em si — o ponto de status é
+            irmão desta span (não filho), pra poder ficar meio pra fora do
+            círculo sem ser cortado pelo overflow-hidden da foto. */}
+        <span className="size-full overflow-hidden rounded-full bg-slate-700 font-mono font-medium uppercase text-strong">
+          {showImg ? (
+            <img
+              src={src}
+              alt={name}
+              draggable={false}
+              className="size-full rounded-full object-cover"
+              onError={() => setErrored(true)}
+            />
+          ) : (
+            <span className="flex size-full items-center justify-center" aria-hidden>{initials(name)}</span>
+          )}
+        </span>
         {status && (
           <span
             className={cn(
-              'absolute bottom-0 right-0 rounded-full ring-2 ring-[var(--ink)]',
-              size === 'xs' || size === 'sm' ? 'size-2' : 'size-2.5',
+              'absolute rounded-full ring-2 ring-[var(--ink)]',
+              size === 'xs' || size === 'sm' ? '-bottom-px -right-px size-2' : '-bottom-0.5 -right-0.5 size-2.5',
               statusColor[status],
             )}
             title={status}
