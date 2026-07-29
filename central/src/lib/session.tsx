@@ -18,7 +18,7 @@ import { supabase } from './supabase'
                 usado para "Minhas tarefas". Sem ele, o id é o uuid do Supabase.
 ---------------------------------------------------------------------------- */
 
-export type Role = 'admin' | 'lideranca' | 'comercial' | 'crm' | 'social' | 'design'
+export type Role = 'admin' | 'lideranca' | 'comercial' | 'crm' | 'social' | 'design' | 'infra'
 
 /** Rótulo exibido para cada papel. */
 export const ROLE_LABEL: Record<Role, string> = {
@@ -28,6 +28,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   crm: 'CRM',
   social: 'Social Media',
   design: 'Design',
+  infra: 'Infra',
 }
 
 /** Gestores (acesso administrativo): Administrador e Liderança. */
@@ -61,6 +62,7 @@ function profileFromSession(session: Session | null): { profile: Profile; role: 
     : meta.role === 'comercial' ? 'comercial'
     : meta.role === 'crm' ? 'crm'
     : meta.role === 'social' ? 'social'
+    : meta.role === 'infra' ? 'infra'
     : 'design' // fallback de menor privilégio (cobre 'design' e o legado 'time')
   const email = u.email ?? ''
   return {
@@ -135,6 +137,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             : r === 'crm' ? 'crm'
             : r === 'social' ? 'social'
             : r === 'design' ? 'design'
+            : r === 'infra' ? 'infra'
             : null,
           )
         })

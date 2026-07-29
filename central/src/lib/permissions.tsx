@@ -41,6 +41,8 @@ const DEFAULT_MATRIX: PermissionMatrix = {
   social: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: true, manage_crm: false, manage_social: true },
   // Design: base de menor privilégio (só mover tarefas). Ajustável na tela de Permissões.
   design: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: false, manage_social: false },
+  // Infra: mesma base mínima do Design. Ajustável na tela de Permissões.
+  infra: { create_task: false, move_task: true, manage_users: false, manage_resources: false, manage_catalogs: false, manage_crm: false, manage_social: false },
 }
 
 interface PermissionRow {
