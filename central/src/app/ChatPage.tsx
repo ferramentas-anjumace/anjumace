@@ -755,7 +755,7 @@ function Composer({
   }
 
   return (
-    <div className="border-t border-line px-4 py-3">
+    <div className="border-t border-line px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       {files.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {files.map((f, i) => (
