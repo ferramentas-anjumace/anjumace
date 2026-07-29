@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowRight, Calendar, Check, ChevronDown, Clock, Eye, Lightbulb, Moon, Plus, ShieldCheck, Video } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Calendar, Check, ChevronDown, Clock, Eye, Lightbulb, Moon, Plus, ShieldCheck, Video, X } from 'lucide-react'
 import 'flag-icons/css/flag-icons.min.css'
 import { Reveal } from '../singular/Reveal'
 import { PAISES, BRASIL } from '../lista-espera/paises'
@@ -103,8 +103,9 @@ const gradient =
    do resto do funil) dá o contraste que faltava sem sair da identidade. */
 const darkGradient =
   'bg-gradient-to-r from-graphite-800 to-graphite-950 text-cream-100 shadow-lg shadow-graphite-900/20 hover:shadow-xl transition-[box-shadow,transform] duration-slow ease-out'
-const inputPill =
-  'h-14 w-full rounded-full border border-transparent bg-graphite-900/5 px-6 text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900 placeholder:text-graphite-900/40 outline-none transition-[border-color,box-shadow] duration-fast focus:border-sage-400 focus:shadow-focus'
+/* Input compacto — pop-ups sem rolagem (formulário + pesquisa). */
+const inputPillCompact =
+  'h-11 w-full rounded-full border border-transparent bg-graphite-900/5 px-5 text-[15px] leading-relaxed tracking-tight text-graphite-900 placeholder:text-graphite-900/40 outline-none transition-[border-color,box-shadow] duration-fast focus:border-sage-400 focus:shadow-focus'
 
 /** Bandeira via flag-icons (SVG) — emoji não renderiza no Windows. */
 function Flag({ code, className = '' }) {
@@ -117,14 +118,14 @@ function Flag({ code, className = '' }) {
   )
 }
 
-function CtaPill({ label, onClick, type = 'button', loading = false, variant = 'sage' }) {
+function CtaPill({ label, onClick, type = 'button', loading = false, variant = 'sage', fullWidth = false }) {
   const dark = variant === 'dark'
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={loading}
-      className={`group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-6 pr-2 font-medium uppercase tracking-normal disabled:pointer-events-none disabled:opacity-60 sm:gap-3 sm:tracking-wide md:gap-4 md:pl-8 ${dark ? darkGradient : gradient}`}
+      className={`group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-6 pr-2 font-medium uppercase tracking-normal disabled:pointer-events-none disabled:opacity-60 sm:gap-3 sm:tracking-wide md:gap-4 md:pl-8 ${fullWidth ? 'w-full' : ''} ${dark ? darkGradient : gradient}`}
     >
       <span className="flex-1 whitespace-nowrap text-center text-sm sm:text-base">{loading ? 'Enviando…' : label}</span>
       <span className={`inline-grid size-12 shrink-0 place-items-center rounded-full transition-transform duration-moderate ease-spring group-hover:translate-x-0.5 ${dark ? 'bg-sage-400 text-graphite-900' : 'bg-cream-100/80 text-graphite-900'}`}>
@@ -321,7 +322,7 @@ function CountrySelect({ value, onChange }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Selecionar país"
-        className="flex h-14 items-center gap-1.5 rounded-full bg-graphite-900/5 pl-5 pr-3 text-graphite-900 transition-colors duration-fast hover:bg-graphite-900/10"
+        className="flex h-11 items-center gap-1.5 rounded-full bg-graphite-900/5 pl-4 pr-2.5 text-graphite-900 transition-colors duration-fast hover:bg-graphite-900/10"
       >
         <Flag code={value.code} />
         <span className="text-[14px] font-medium text-graphite-900/60">+{value.dial}</span>
@@ -422,22 +423,185 @@ const FAQ_ITEMS = [
   },
 ]
 
+/* --------------------------------------------------------------------------
+   Pesquisa "leads core" — estrutura reaproveitada do formulário que a
+   Miranda montou no Active Campaign (form id 5); design descartado, usa os
+   componentes desta página (pedido do usuário, 29/07). Perguntas e opções
+   verbatim do script dela. */
+const SURVEY_QUESTIONS = [
+  { id: '18', step: 1, type: 'scale', question: 'De zero a dez, o quanto você está satisfeita com o que o seu treino vem entregando hoje?' },
+  { id: '31', step: 1, type: 'multi', question: 'Nas últimas quatro semanas, o que fez você faltar ou encurtar um treino? Marque quantas quiser.', options: ['Cansaço no fim do dia', 'A rotina de trabalho', 'Filhos, casa ou família', 'A vontade não apareceu naquele dia', 'Dor ou desconforto físico', 'Não faltei nem encurtei nenhum treino', 'Outro motivo'] },
+  { id: '32', step: 1, type: 'multi', question: 'Em quais destes movimentos você sente mais dificuldade de executar com técnica?', options: ['Agachamento e suas variações', 'Levantamento terra e puxadas', 'Exercícios de glúteo', 'Membros superiores (ombro, costas, braço)', 'Abdômen e core', 'Sinto dificuldade em quase tudo', 'Não sinto dificuldade em nenhum'] },
+  { id: '21', step: 2, type: 'text', question: 'O que mais te incomoda hoje quando você pensa no seu treino? Escreva do jeito que vier.' },
+  { id: '22', step: 2, type: 'text', question: 'Se o seu treino desse exatamente certo, o que teria mudado na sua vida daqui a um ano? Vale o que você estaria fazendo, como estaria se sentindo e o que estaria vendo. Pode escrever do jeito mais honesto: aqui não existe resposta errada nem resposta' },
+  { id: '33', step: 2, type: 'multi', question: 'O que é importante para você em um treino? (marque quantas quiser)', options: ['Executar os movimentos com técnica', 'Voltar a evoluir depois de um período parada no mesmo lugar', 'Manter a constância sem sumir', 'Treinar sem dor', 'Ter mais energia no dia a dia', 'Gostar mais do que eu vejo no espelho'] },
+  { id: '23', step: 2, type: 'text', question: 'Conte alguma coisa que você já tentou e que não funcionou. O que aconteceu?' },
+  { id: '34', step: 3, type: 'multi', question: 'Pensando em investir num acompanhamento de treino, o quanto cada uma destas coisas pesa para você?', options: ['Medo de começar e não dar conta', 'Já investi antes e me arrependi', 'O valor do investimento', 'A minha rotina não deixa', 'Receio de receber algo genérico, igual para todo mundo', 'Acredito que consigo por conta própria'] },
+  { id: '24', step: 3, type: 'text', question: 'Se você pudesse fazer uma pergunta à Anju na noite do encontro, qual seria? As perguntas mais frequentes entram no bloco ao vivo do final.' },
+  { id: '35', step: 3, type: 'multi', question: 'Se você fosse contratar um acompanhamento de treino hoje, o que ele precisaria ter para você considerar que valeu? Marque até três. É a ordem de prioridade que interessa, não a lista completa.', options: ['Um programa montado para o meu nível e a minha frequência', 'Alguém que olhe como eu executo e me corrija', 'Vídeo de cada exercício, com o porquê de cada detalhe', 'Contato direto com quem prescreve, para tirar dúvida', 'Uma prescrição feita para o meu corpo, e não para um corpo qualquer', 'Um grupo de mulheres treinando junto comigo', 'Poder testar antes de me comprometer', 'Outro'] },
+  { id: '26', step: 4, type: 'single', question: 'Quando você procura informação sobre treino, onde você olha primeiro?', options: ['Instagram', 'YouTube', 'TikTok', 'Busca no Google', 'Pergunto a alguém na academia', 'Pergunto a uma amiga'] },
+  { id: '27', step: 4, type: 'single', question: 'Qual destas fases você está vivendo hoje? Escolha a que mais pesa na sua rotina.', options: ['Gestação', 'Pós-parto, até dois anos', 'Rotina com filhos pequenos', 'Perimenopausa ou menopausa', 'Nenhuma dessas no momento', 'Prefiro não responder'] },
+]
+
+const SURVEY_SCALE = Array.from({ length: 10 }, (_, i) => String(i + 1))
+
+function SurveyCheckboxRow({ id, checked, onChange, children }) {
+  // accent-color força o navegador a desenhar o quadradinho nativo dele
+  // (ignora border-radius do autor) — pra ficar redonda de verdade,
+  // desliga a aparência nativa (appearance-none) e desenha o check por cima.
+  return (
+    <label htmlFor={id} className="flex cursor-pointer items-start gap-2 py-0.5">
+      <span className="relative mt-0.5 grid size-4 shrink-0 place-items-center">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          className="absolute inset-0 size-4 cursor-pointer appearance-none rounded-full border border-graphite-900/30 bg-transparent transition-colors checked:border-sage-500 checked:bg-sage-500"
+        />
+        <Check className={`relative size-3 text-cream-100 transition-opacity ${checked ? 'opacity-100' : 'opacity-0'}`} strokeWidth={3} aria-hidden />
+      </span>
+      <span className="text-[12px] leading-snug text-graphite-900/80 md:text-[14px]">{children}</span>
+    </label>
+  )
+}
+
+/** Uma pergunta da pesquisa — o tipo decide o controle (escala, múltipla
+    escolha, única escolha ou texto livre). */
+function SurveyQuestion({ item, value, onChange }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-[14px] font-medium leading-snug text-graphite-900">{item.question}</p>
+      {item.type === 'scale' && (
+        <div className="flex flex-wrap gap-1">
+          {SURVEY_SCALE.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(n)}
+              aria-pressed={value === n}
+              className={`grid size-8 shrink-0 place-items-center rounded-full border text-[13px] font-medium transition-colors ${
+                value === n
+                  ? 'border-sage-500 bg-sage-500 text-graphite-900'
+                  : 'border-graphite-900/15 text-graphite-900/60 hover:border-sage-400'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
+      {item.type === 'multi' && (
+        <div className="flex flex-col">
+          {item.options.map((opt) => (
+            <SurveyCheckboxRow
+              key={opt}
+              id={`survey-${item.id}-${opt}`}
+              checked={value.includes(opt)}
+              onChange={() =>
+                onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt])
+              }
+            >
+              {opt}
+            </SurveyCheckboxRow>
+          ))}
+        </div>
+      )}
+      {item.type === 'single' && (
+        <div className="flex flex-col">
+          {item.options.map((opt) => (
+            <label key={opt} htmlFor={`survey-${item.id}-${opt}`} className="flex items-center gap-2 py-0.5">
+              <input
+                id={`survey-${item.id}-${opt}`}
+                type="radio"
+                name={`survey-${item.id}`}
+                checked={value === opt}
+                onChange={() => onChange(opt)}
+                className="size-4 shrink-0 border-graphite-900/30 accent-sage-500"
+              />
+              <span className="text-[12px] leading-snug text-graphite-900/80 md:text-[14px]">{opt}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {item.type === 'text' && (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputPillCompact}
+        />
+      )}
+    </div>
+  )
+}
+
 export function AppAordemCaptura() {
   const utm = useMemo(() => readUtms(), [])
-  const formRef = useRef(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [country, setCountry] = useState(BRASIL)
   const [smsConsent, setSmsConsent] = useState(false)
-  const [status, setStatus] = useState('idle') // idle | loading | error | done
+  const [status, setStatus] = useState('idle') // idle | loading | error
   const [errorField, setErrorField] = useState(null)
+  // Formulário virou pop-up (pedido do usuário, 29/07) — antes era uma
+  // dobra própria da página, aberta rolando até ela; agora qualquer CTA
+  // abre o mesmo formulário por cima do conteúdo, sem sair da página.
+  const [formOpen, setFormOpen] = useState(false)
+  // Ao reservar a vaga, o pop-up da pesquisa abre no lugar (não aparece
+  // mais a tela de "vaga reservada" — pedido do usuário 29/07).
+  const [surveyOpen, setSurveyOpen] = useState(false)
+  const [surveyAnswers, setSurveyAnswers] = useState({})
+  const [surveySmsConsent, setSurveySmsConsent] = useState(false)
+  const [surveySubmitting, setSurveySubmitting] = useState(false)
+  const [surveyDone, setSurveyDone] = useState(false)
+  // Pesquisa em várias telas (pedido do usuário 29/07) — step 1, 2, 3...
+  // conforme SURVEY_QUESTIONS.step; a ordem/divisão vai sendo ajustada aos poucos.
+  const [surveyStep, setSurveyStep] = useState(1)
+  const surveyStepCount = Math.max(...SURVEY_QUESTIONS.map((q) => q.step))
 
   useEffect(() => {
     document.title = 'A Ordem — Hotseat com Anju Mace'
   }, [])
 
-  const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  useEffect(() => {
+    if (!formOpen && !surveyOpen) return
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      setFormOpen(false)
+      setSurveyOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [formOpen, surveyOpen])
+
+  const openForm = () => setFormOpen(true)
+
+  const surveyValue = (id, fallback) => surveyAnswers[id] ?? fallback
+  const setSurveyValue = (id, value) => setSurveyAnswers((prev) => ({ ...prev, [id]: value }))
+
+  const submitSurvey = async () => {
+    setSurveySubmitting(true)
+    try {
+      await fetch('/api/aordem-pesquisa-form', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: name.trim().split(' ')[0],
+          phone: `+${country.dial} ${whatsapp}`,
+          answers: surveyAnswers,
+          smsConsent: surveySmsConsent,
+        }),
+      })
+    } catch {
+      // Pesquisa é informação extra — a vaga já está confirmada, então um
+      // erro aqui nunca deve travar a pessoa.
+    }
+    setSurveySubmitting(false)
+    setSurveyDone(true)
+  }
 
   const handleCountryChange = (next) => {
     setCountry(next)
@@ -481,7 +645,11 @@ export function AppAordemCaptura() {
           source: 'aordem',
         }),
       }).catch(() => {})
-      setStatus('done')
+      setStatus('idle')
+      setFormOpen(false)
+      setSurveyStep(1)
+      setSurveyDone(false)
+      setSurveyOpen(true)
     } catch {
       setStatus('error')
     }
@@ -554,7 +722,7 @@ export function AppAordemCaptura() {
           </p>
 
           <div className="animate-fade-in-up [animation-delay:440ms]">
-            <CtaBlock onClick={scrollToForm} align="left" tone="light" variant="dark" />
+            <CtaBlock onClick={openForm} align="left" tone="light" variant="dark" />
           </div>
         </div>
       </section>
@@ -584,7 +752,7 @@ export function AppAordemCaptura() {
           </div>
 
           <Reveal delay={100}>
-            <CtaBlock onClick={scrollToForm} tone="light" />
+            <CtaBlock onClick={openForm} tone="light" />
           </Reveal>
         </div>
       </section>
@@ -646,7 +814,7 @@ export function AppAordemCaptura() {
             </Reveal>
 
             <Reveal delay={100}>
-              <CtaBlock onClick={scrollToForm} align="left" />
+              <CtaBlock onClick={openForm} align="left" />
             </Reveal>
           </div>
         </div>
@@ -671,7 +839,7 @@ export function AppAordemCaptura() {
           </div>
 
           <Reveal delay={100}>
-            <CtaBlock onClick={scrollToForm} tone="light" />
+            <CtaBlock onClick={openForm} tone="light" />
           </Reveal>
         </div>
       </section>
@@ -695,7 +863,7 @@ export function AppAordemCaptura() {
           </Reveal>
 
           <Reveal delay={100}>
-            <CtaBlock onClick={scrollToForm} tone="light" />
+            <CtaBlock onClick={openForm} tone="light" />
           </Reveal>
         </div>
       </section>
@@ -785,105 +953,181 @@ export function AppAordemCaptura() {
         </div>
       </section>
 
-      {/* -------------------------------------------------- 8 · FORMULÁRIO */}
-      <section id="formulario" className="scroll-mt-16 border-t border-graphite-900/10 bg-[#FAFFF2] py-20 md:py-28">
-        <div className="container max-w-xl">
-          <Reveal variant="scale">
-            <div ref={formRef} className="rounded-3xl border border-graphite-900/10 bg-cream-50 p-8 shadow-sm md:p-10">
-              {status === 'done' ? (
-                <div className="flex flex-col items-center gap-5 py-6 text-center">
-                  <span className="relative inline-grid animate-scale-in place-items-center">
-                    <span className="absolute inset-0 animate-float-slow rounded-full bg-sage-400/30 blur-xl" aria-hidden />
-                    <span className="relative inline-grid size-16 place-items-center rounded-full bg-sage-400 text-graphite-900 shadow-lg">
-                      <Check className="size-8" strokeWidth={2} aria-hidden />
-                    </span>
-                  </span>
-                  <h3 className="text-h3 text-graphite-900">Sua vaga está reservada.</h3>
-                  <p className="max-w-sm text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900/70">
-                    O link de acesso chega no seu e-mail, e o lembrete chega no seu WhatsApp uma hora antes do encontro.
-                  </p>
+      {/* -------------------------------------------------- FORMULÁRIO (POP-UP) */}
+      {formOpen && (
+        <div
+          className="fixed inset-0 z-modal flex bg-graphite-950/60 p-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reserve seu lugar na sala"
+          onClick={(e) => e.target === e.currentTarget && setFormOpen(false)}
+        >
+          {/* Sem rolagem: tudo (inclusive o botão) precisa caber na mesma
+              tela — espaçamentos compactos de propósito (pedido do usuário
+              29/07). */}
+          <div className="relative m-auto w-full max-w-xl animate-scale-in rounded-3xl border border-graphite-900/10 bg-cream-50 p-4 shadow-2xl md:p-8">
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              aria-label="Fechar"
+              className="absolute right-4 top-4 grid size-8 place-items-center rounded-full text-graphite-900/40 transition-colors hover:bg-graphite-900/5 hover:text-graphite-900"
+            >
+              <X className="size-5" strokeWidth={1.5} aria-hidden />
+            </button>
+
+            <h2 className="mb-4 text-h4 text-graphite-900">Reserve seu lugar na sala</h2>
+            <form onSubmit={submit} noValidate className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="aordem-nome" className="text-[10px] uppercase tracking-wide text-graphite-900/60">Seu nome</label>
+                <input
+                  id="aordem-nome"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputPillCompact}
+                  autoComplete="name"
+                />
+                {errorField === 'nome' && <p className="text-caption text-red-400">Escreve seu nome pra eu saber como te chamar.</p>}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="aordem-email" className="text-[10px] uppercase tracking-wide text-graphite-900/60">Seu melhor e-mail <span className="normal-case tracking-normal opacity-70">(é para lá que vai o link)</span></label>
+                <input
+                  id="aordem-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputPillCompact}
+                  autoComplete="email"
+                  inputMode="email"
+                />
+                {errorField === 'email' && <p className="text-caption text-red-400">Confere o e-mail — é nele que o link chega.</p>}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="aordem-whatsapp" className="text-[10px] uppercase tracking-wide text-graphite-900/60">
+                  Seu WhatsApp <span className="normal-case tracking-normal opacity-70">(chega o lembrete)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <CountrySelect value={country} onChange={handleCountryChange} />
+                  <input
+                    id="aordem-whatsapp"
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(maskWhatsapp(e.target.value, country))}
+                    className={inputPillCompact}
+                    autoComplete="tel-national"
+                    inputMode="numeric"
+                  />
                 </div>
-              ) : (
-                <>
-                  <h2 className="mb-2 text-h3 text-graphite-900">Reserve seu lugar na sala</h2>
-                  <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-5">
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="aordem-nome" className="text-[10px] uppercase tracking-wide text-graphite-900/60 sm:text-caption sm:tracking-wider">Seu nome</label>
-                      <input
-                        id="aordem-nome"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className={inputPill}
-                        autoComplete="name"
-                      />
-                      {errorField === 'nome' && <p className="text-caption text-red-400">Escreve seu nome pra eu saber como te chamar.</p>}
-                    </div>
+                {errorField === 'whatsapp' && <p className="text-caption text-red-400">Confere o número — é nele que chega o lembrete.</p>}
+              </div>
 
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="aordem-email" className="text-[10px] uppercase tracking-wide text-graphite-900/60 sm:text-caption sm:tracking-wider">Seu melhor e-mail (é para lá que vai o link de acesso)</label>
-                      <input
-                        id="aordem-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={inputPill}
-                        autoComplete="email"
-                        inputMode="email"
-                      />
-                      {errorField === 'email' && <p className="text-caption text-red-400">Confere o e-mail — é nele que o link chega.</p>}
-                    </div>
+              <label htmlFor="aordem-sms-consent" className="flex items-start gap-2">
+                <input
+                  id="aordem-sms-consent"
+                  type="checkbox"
+                  checked={smsConsent}
+                  onChange={(e) => setSmsConsent(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 rounded border-graphite-900/30 accent-sage-500"
+                />
+                <span className="text-[11px] leading-snug text-graphite-900/60">
+                  Ao enviar, você concorda em receber mensagens de texto da Anju Mace no número informado (o lembrete, por exemplo). Cancele quando quiser respondendo STOP.
+                </span>
+              </label>
+              {errorField === 'sms' && <p className="text-caption text-red-400">Marque a caixa pra gente poder te avisar por SMS.</p>}
 
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="aordem-whatsapp" className="text-[10px] uppercase tracking-wide text-graphite-900/60 sm:text-caption sm:tracking-wider">Seu WhatsApp (é por lá que chega o lembrete, uma hora antes de começar)</label>
-                      <div className="flex items-center gap-2">
-                        <CountrySelect value={country} onChange={handleCountryChange} />
-                        <input
-                          id="aordem-whatsapp"
-                          type="tel"
-                          value={whatsapp}
-                          onChange={(e) => setWhatsapp(maskWhatsapp(e.target.value, country))}
-                          className={inputPill}
-                          autoComplete="tel-national"
-                          inputMode="numeric"
-                        />
-                      </div>
-                      {errorField === 'whatsapp' && <p className="text-caption text-red-400">Confere o número — é nele que chega o lembrete.</p>}
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="aordem-sms-consent" className="flex items-start gap-3">
-                        <input
-                          id="aordem-sms-consent"
-                          type="checkbox"
-                          checked={smsConsent}
-                          onChange={(e) => setSmsConsent(e.target.checked)}
-                          className="mt-0.5 size-4 shrink-0 rounded border-graphite-900/30 accent-sage-500"
-                        />
-                        <span className="text-caption leading-relaxed text-graphite-900/60">
-                          Ao enviar este formulário, você concorda em receber mensagens de texto da Anju Mace no número informado (o lembrete do encontro, por exemplo). O consentimento não é condição de compra. Taxas de mensagem e dados podem se aplicar. Cancele quando quiser respondendo STOP.
-                        </span>
-                      </label>
-                      {errorField === 'sms' && <p className="text-caption text-red-400">Marque a caixa pra gente poder te avisar por SMS.</p>}
-                    </div>
-
-                    <CtaPill type="submit" label="Reservar meu lugar na sala" loading={status === 'loading'} />
-                    {status === 'error' && (
-                      <p className="text-caption text-red-400">Algo falhou por aqui. Tenta de novo em instantes.</p>
-                    )}
-                    <p className="flex items-start gap-2 text-caption text-graphite-900/45">
-                      <Check className="mt-0.5 size-4 shrink-0 text-sage-700" strokeWidth={1.5} aria-hidden />
-                      Encontro gratuito, sem cobrança agora nem depois. Seus dados não são compartilhados com ninguém, e você sai da lista com um clique, quando quiser.
-                    </p>
-                  </form>
-                </>
+              <CtaPill type="submit" label="Reservar meu lugar na sala" loading={status === 'loading'} fullWidth />
+              {status === 'error' && (
+                <p className="text-caption text-red-400">Algo falhou por aqui. Tenta de novo em instantes.</p>
               )}
-            </div>
-          </Reveal>
+            </form>
+          </div>
         </div>
-      </section>
+      )}
 
-      {/* --------------------------------------- 9 · FECHAMENTO + 10 · FAQ */}
+      {/* ---------------------------------------- PESQUISA (POP-UP) */}
+      {surveyOpen && (
+        <div
+          className="fixed inset-0 z-modal flex bg-graphite-950/60 p-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pesquisa rápida"
+          onClick={(e) => e.target === e.currentTarget && setSurveyOpen(false)}
+        >
+          {/* Sem rolagem: tudo (inclusive o botão) precisa caber na mesma
+              tela — espaçamentos compactos de propósito (pedido do usuário
+              29/07). */}
+          <div className="relative m-auto w-full max-w-xl animate-scale-in rounded-3xl border border-graphite-900/10 bg-cream-50 p-4 shadow-2xl md:p-9">
+            <button
+              type="button"
+              onClick={() => setSurveyOpen(false)}
+              aria-label="Fechar"
+              className="absolute right-4 top-4 grid size-8 place-items-center rounded-full text-graphite-900/40 transition-colors hover:bg-graphite-900/5 hover:text-graphite-900"
+            >
+              <X className="size-5" strokeWidth={1.5} aria-hidden />
+            </button>
+
+            {surveyDone ? (
+              <div className="flex flex-col items-center gap-5 py-6 text-center">
+                <span className="relative inline-grid animate-scale-in place-items-center">
+                  <span className="absolute inset-0 animate-float-slow rounded-full bg-sage-400/30 blur-xl" aria-hidden />
+                  <span className="relative inline-grid size-16 place-items-center rounded-full bg-sage-400 text-graphite-900 shadow-lg">
+                    <Check className="size-8" strokeWidth={2} aria-hidden />
+                  </span>
+                </span>
+                <h3 className="text-h3 text-graphite-900">Recebido, obrigada.</h3>
+                <p className="max-w-sm text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900/70">
+                  Suas respostas vão ajudar a Anju a preparar<br className="hidden md:block" /> o encontro pensando em você.<br className="hidden md:block" /> A gente se vê na sala.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h2 className="mb-1 text-h3 text-graphite-900">Pesquisa rápida</h2>
+                <p className="mb-3 text-[15px] leading-snug text-graphite-900/60">
+                  Pra Anju levar suas respostas pra dentro do encontro.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                  {SURVEY_QUESTIONS.filter((q) => q.step === surveyStep).map((item) => (
+                    <SurveyQuestion
+                      key={item.id}
+                      item={item}
+                      value={surveyValue(item.id, item.type === 'multi' ? [] : '')}
+                      onChange={(v) => setSurveyValue(item.id, v)}
+                    />
+                  ))}
+                </div>
+
+                {surveyStep === surveyStepCount && (
+                  <label htmlFor="survey-sms-consent" className="mt-3 flex items-start gap-2">
+                    <input
+                      id="survey-sms-consent"
+                      type="checkbox"
+                      checked={surveySmsConsent}
+                      onChange={(e) => setSurveySmsConsent(e.target.checked)}
+                      className="mt-0.5 size-4 shrink-0 rounded border-graphite-900/30 accent-sage-500"
+                    />
+                    <span className="text-[12px] leading-snug text-graphite-900/60">
+                      Ao enviar este formulário e se inscrever para receber mensagens de texto, você concorda em receber mensagens de texto de marketing (por exemplo, promoções, lembretes de carrinho) da Anju Mace no número informado. O consentimento não é uma condição de compra. Taxas de mensagens e dados podem ser aplicadas. A frequência das mensagens varia. Cancele a inscrição a qualquer momento respondendo STOP.
+                    </span>
+                  </label>
+                )}
+
+                <div className="mt-4">
+                  {surveyStep < surveyStepCount ? (
+                    <CtaPill label="Continuar" onClick={() => setSurveyStep((s) => s + 1)} fullWidth />
+                  ) : (
+                    <CtaPill label="Finalizar" onClick={submitSurvey} loading={surveySubmitting} fullWidth />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --------------------------------------- 8 · FECHAMENTO + 9 · FAQ */}
       <section id="faq" className="relative scroll-mt-16 overflow-hidden bg-graphite-950 py-20 text-cream-100 md:py-28">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-[36rem] -translate-x-1/2 -translate-y-1/2 animate-float-slow rounded-full bg-sage-500/15 blur-3xl" aria-hidden />
         <div className="container relative max-w-3xl">
@@ -894,7 +1138,7 @@ export function AppAordemCaptura() {
               <p className="text-cream-100"><strong className="font-medium">A diferença entre as duas noites de quinta-feira é essa.</strong></p>
             </Reveal>
             <Reveal delay={100} className="flex flex-col items-center gap-3">
-              <CtaPill label="Reservar meu lugar na sala" onClick={scrollToForm} />
+              <CtaPill label="Reservar meu lugar na sala" onClick={openForm} />
               <p className="text-center text-caption text-cream-100/50">
                 Quinta-feira, 6 de agosto, às 19h37. Uma hora e meia.<br /> Gratuito, enquanto houver lugar na sala.
               </p>
