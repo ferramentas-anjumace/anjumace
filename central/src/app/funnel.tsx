@@ -15,6 +15,7 @@ export interface FunnelLead {
   id: string
   name: string
   email: string
+  whatsapp?: string | null
   utmSource?: string | null
   utmMedium?: string | null
   utmCampaign?: string | null
@@ -31,6 +32,7 @@ interface FunnelRow {
   id: string
   name: string
   email: string
+  whatsapp: string | null
   utm_source: string | null
   utm_medium: string | null
   utm_campaign: string | null
@@ -48,6 +50,7 @@ function rowToLead(r: FunnelRow): FunnelLead {
     id: r.id,
     name: r.name ?? '',
     email: r.email,
+    whatsapp: r.whatsapp,
     utmSource: r.utm_source,
     utmMedium: r.utm_medium,
     utmCampaign: r.utm_campaign,

@@ -138,6 +138,7 @@ export function FunnelPage() {
           <TableRow>
             <TableHeaderCell>Nome</TableHeaderCell>
             <TableHeaderCell>E-mail</TableHeaderCell>
+            <TableHeaderCell>WhatsApp</TableHeaderCell>
             <TableHeaderCell>Origem (UTM)</TableHeaderCell>
             <TableHeaderCell>Capturado em</TableHeaderCell>
             <TableHeaderCell>Recapturas</TableHeaderCell>
@@ -147,11 +148,11 @@ export function FunnelPage() {
         </TableHead>
         <TableBody>
           {loading ? (
-            <TableEmpty colSpan={canManage ? 7 : 6}>
+            <TableEmpty colSpan={canManage ? 8 : 7}>
               <span className="text-body-s text-muted">Carregando capturas…</span>
             </TableEmpty>
           ) : filtered.length === 0 ? (
-            <TableEmpty colSpan={canManage ? 7 : 6}>
+            <TableEmpty colSpan={canManage ? 8 : 7}>
               <span className="text-body-s text-muted">
                 {leads.length === 0
                   ? 'Nenhuma captura ainda — os leads da página /guia aparecem aqui.'
@@ -163,6 +164,7 @@ export function FunnelPage() {
               <TableRow key={l.id}>
                 <TableCell className="font-medium text-strong">{l.name}</TableCell>
                 <TableCell mono>{l.email}</TableCell>
+                <TableCell mono>{l.whatsapp || '—'}</TableCell>
                 <TableCell>
                   <span className="font-mono text-mono-data text-muted" title={l.referrer ?? undefined}>
                     {fmtOrigem(l)}
@@ -248,6 +250,12 @@ export function FunnelPage() {
               </div>
 
               <div className="mt-3 flex flex-col gap-1.5 text-body-s">
+                {l.whatsapp && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-24 shrink-0 font-mono text-mono-label uppercase text-faint">WhatsApp</span>
+                    <span className="font-mono text-muted">{l.whatsapp}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="w-24 shrink-0 font-mono text-mono-label uppercase text-faint">Origem</span>
                   <span className="min-w-0 truncate font-mono text-muted" title={l.referrer ?? undefined}>
