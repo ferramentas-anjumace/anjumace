@@ -27,9 +27,17 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
+    /* Trava contra overflow horizontal residual (1 elemento passando alguns
+       px da viewport já é o suficiente pra alguns navegadores Android/MIUI
+       ampliarem o viewport de layout e abrirem a página com zoom-out — o
+       usuário relatou isso no Redmi Note 12 Pro, 29/07). Nenhuma página
+       aqui tem scroll horizontal intencional, então isso só corta sobras
+       acidentais sem afetar layout nenhum. */
+    overflow-x: hidden;
   }
 
   body {
+    overflow-x: hidden;
     background-color: var(--surface-base);
     color: var(--text-primary);
     font-family: var(--font-sans);
