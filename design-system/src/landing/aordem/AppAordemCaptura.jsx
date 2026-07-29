@@ -658,7 +658,13 @@ export function AppAordemCaptura() {
   return (
     <main className="page-largura-1050 bg-[#FAFFF2] text-graphite-900">
       {/* ---------------------------------------------------------- 1 · HERO */}
-      <section id="inicio" className="relative flex min-h-dvh scroll-mt-16 flex-col overflow-hidden bg-[#F5F5DD] text-graphite-900 lg:min-h-0">
+      {/* Sem min-h forçado (removido o min-h-svh, 29/07): a seção agora tem
+          a altura natural do conteúdo (igual o desktop já fazia com
+          min-h-0), sem sobra de creme vazio embaixo do botão. A foto usa
+          object-top, então encurtar a caixa dela só corta menos da cauda
+          já-esmaecida pro creme (indistinguível do fundo #F5F5DD) — o
+          enquadramento do rosto no topo não muda. */}
+      <section id="inicio" className="relative flex scroll-mt-16 flex-col overflow-hidden bg-[#F5F5DD] text-graphite-900">
         {/* Foto de fundo — já vem com o fade pro creme embutido na própria
             imagem, então cola direto no fundo #F5F5DD da dobra sem precisar
             de véu por cima. Crop próprio por breakpoint: retrato no mobile
@@ -680,7 +686,7 @@ export function AppAordemCaptura() {
             nos mesmos cortes "·" do texto original. */}
         <div className="relative z-10 w-full border-b border-cream-100/10 bg-graphite-900/70">
           <Reveal variant="fade">
-            <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-1.5 px-7 py-3.5 text-center text-[13px] text-cream-100/70 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2 sm:px-6 md:py-4 md:text-[14px] lg:py-[18px] lg:text-[16px]">
+            <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-1.5 px-3 py-3.5 text-center text-[13px] text-cream-100/70 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2 sm:px-6 md:py-4 md:text-[14px] lg:py-[18px] lg:text-[16px]">
               <span className="inline-flex items-center gap-2">
                 <span className="relative flex size-2 shrink-0 lg:size-3" aria-hidden>
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-sage-400 opacity-60" />
@@ -688,20 +694,25 @@ export function AppAordemCaptura() {
                 </span>
                 <span className="font-medium text-cream-100">Encontro ao vivo e gratuito com Anju Mace</span>
               </span>
-              <div className="flex flex-nowrap items-center justify-center gap-x-2 text-[12px] sm:flex-wrap sm:gap-x-6 sm:gap-y-2 sm:text-[13px] md:text-[14px] lg:text-[16px]">
+              {/* flex-wrap (não flex-col forçado): itens curtos como "Zoom" e
+                  "Uma hora e meia" se encaixam na mesma linha sozinhos,
+                  só a data (mais longa) quebra pra linha própria — menos
+                  altura total no mobile que empilhar tudo (pedido do
+                  usuário 29/07, depois de ver o resultado do fix anterior). */}
+              <div className="flex flex-row flex-nowrap items-center justify-center gap-x-1 text-[9px] sm:flex-wrap sm:gap-x-6 sm:gap-y-2 sm:text-[13px] md:text-[14px] lg:text-[16px]">
                 <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
-                <span className="inline-flex items-center gap-0.5 sm:gap-1.5">
-                  <Calendar className="size-2.5 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
+                <span className="inline-flex items-center gap-0.5 whitespace-nowrap sm:gap-1.5">
+                  <Calendar className="size-2 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
                   Quinta-feira, 6 de agosto, às 19h37
                 </span>
                 <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
-                <span className="inline-flex items-center gap-0.5 sm:gap-1.5">
-                  <Video className="size-2.5 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
+                <span className="inline-flex items-center gap-0.5 whitespace-nowrap sm:gap-1.5">
+                  <Video className="size-2 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
                   Zoom
                 </span>
                 <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
-                <span className="inline-flex items-center gap-0.5 sm:gap-1.5">
-                  <Clock className="size-2.5 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
+                <span className="inline-flex items-center gap-0.5 whitespace-nowrap sm:gap-1.5">
+                  <Clock className="size-2 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
                   Uma hora e meia
                 </span>
               </div>
@@ -709,14 +720,31 @@ export function AppAordemCaptura() {
           </Reveal>
         </div>
 
-        <div className="container relative flex flex-1 flex-col items-center justify-end gap-8 pb-10 pt-[185px] text-center lg:items-start lg:justify-start lg:pb-20 lg:pt-12 lg:text-left">
-          <img src="/logo-ordem.svg" alt="A Ordem" className="h-10 w-auto animate-fade-in md:h-12" />
+        {/* Espaçamento vertical bem mais justo no mobile (gap/padding/fonte
+            menores) — o botão precisa caber na primeira dobra assim que a
+            página abre, em qualquer celular, sem precisar rolar (pedido do
+            usuário 29/07). */}
+        {/* pt-[185px] é fixo de propósito (não reduzir): a foto de fundo já
+            vem com o fade pro creme embutido numa posição vertical
+            específica — diminuir o padding empurra o texto pra cima da
+            parte "cheia" da foto e corta o enquadramento (pedido do
+            usuário 29/07). O respiro pro botão caber vem do gap/pb/fonte
+            menores abaixo, não daqui.
 
-          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[30px] text-graphite-900 md:text-[42px] lg:max-w-md lg:text-[46px] [animation-delay:120ms]">
+            Sem flex-1/justify-end (removido 29/07): isso esticava o bloco
+            pra preencher toda a sobra de altura da seção (min-h-svh) e
+            "empurrava" o conteúdo pro fundo dela — dava a impressão de foto
+            e texto arrastando em velocidades diferentes ao rolar. Sem isso,
+            o conteúdo cai direto no ponto calibrado pelo pt-185 (logo
+            depois do fim do fade da foto), mais pra cima. */}
+        <div className="container relative flex flex-col items-center gap-3 pb-5 pt-[185px] text-center sm:gap-5 sm:pb-8 lg:items-start lg:pb-20 lg:pt-12 lg:text-left">
+          <img src="/logo-ordem.svg" alt="A Ordem" className="h-8 w-auto animate-fade-in sm:h-10 md:h-12" />
+
+          <h1 className="max-w-3xl animate-fade-in-up text-h1 text-[24px] text-graphite-900 sm:text-[30px] md:text-[42px] lg:max-w-md lg:text-[46px] [animation-delay:120ms]">
             Construa um corpo (e uma identidade) <strong className="font-medium">que comunica quem você é</strong>, sem pedir licença e sem pedir desculpa.
           </h1>
 
-          <p className="-mt-4 max-w-2xl animate-fade-in-up text-[18px] leading-relaxed tracking-tight text-graphite-900/70 lg:mt-0 lg:max-w-md lg:text-[20px] [animation-delay:280ms]">
+          <p className="max-w-2xl animate-fade-in-up text-[14px] leading-snug tracking-tight text-graphite-900/70 sm:-mt-4 sm:text-[18px] sm:leading-relaxed lg:mt-0 lg:max-w-md lg:text-[20px] [animation-delay:280ms]">
             Em uma hora e meia, Anju Mace mostra como o treino e a execução dos exercícios se tornam a porta de
             entrada para um corpo forte e feminino, e para uma identidade que você não precisa explicar.
           </p>
