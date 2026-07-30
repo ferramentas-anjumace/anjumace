@@ -14,7 +14,6 @@ import {
   X,
   Download,
   FileText,
-  File as FileIcon,
   Users,
   Mic,
   Square,
@@ -699,16 +698,36 @@ function MessageItem({
 function StagedFile({ file, onRemove }: { file: File; onRemove: () => void }) {
   const isImg = file.type.startsWith('image/')
   const isAud = file.type.startsWith('audio/')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isImg) return
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file, isImg])
+
+  if (isImg) {
+    return (
+      <div className="relative size-24 shrink-0 overflow-hidden rounded-md border border-line bg-slate-900">
+        {previewUrl && (
+          <img src={previewUrl} alt={file.name} className="size-full object-cover" />
+        )}
+        <button
+          onClick={onRemove}
+          className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-ink-deep/80 text-white transition-colors hover:bg-err"
+          aria-label={`Remover ${file.name}`}
+        >
+          <X size={13} strokeWidth={2.5} />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-2 rounded-md border border-line bg-slate-900 py-1 pl-2 pr-1">
       <span className="grid size-6 shrink-0 place-items-center rounded text-steel-300">
-        {isAud ? (
-          <Mic size={14} strokeWidth={1.5} />
-        ) : isImg ? (
-          <FileIcon size={14} strokeWidth={1.5} />
-        ) : (
-          <FileText size={14} strokeWidth={1.5} />
-        )}
+        {isAud ? <Mic size={14} strokeWidth={1.5} /> : <FileText size={14} strokeWidth={1.5} />}
       </span>
       <span className="max-w-[10rem] truncate text-[12px] text-muted">{file.name}</span>
       <button
