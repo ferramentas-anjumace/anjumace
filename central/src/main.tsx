@@ -35,6 +35,7 @@ import { PaidTrafficProvider } from './app/paidTraffic'
 import { CrmProvider } from './app/crm'
 import { WaitlistProvider } from './app/waitlist'
 import { FunnelProvider } from './app/funnel'
+import { HotseatOrdemProvider } from './app/hotseatOrdem'
 import { CsProvider } from './app/cs'
 import { ChatProvider } from './app/chat'
 import { StyleguidePage } from './pages/Styleguide'
@@ -50,6 +51,7 @@ import { PaidTrafficPage } from './app/PaidTrafficPage'
 import { CrmPage } from './app/CrmPage'
 import { WaitlistPage } from './app/WaitlistPage'
 import { FunnelPage } from './app/FunnelPage'
+import { HotseatOrdemPage } from './app/HotseatOrdemPage'
 import { CsPage } from './app/CsPage'
 import { AccessPage } from './app/AccessPage'
 import { EditorialPage } from './app/EditorialPage'
@@ -77,6 +79,7 @@ const router = createBrowserRouter([
       { path: 'crm', element: <CrmPage /> },
       { path: 'lista-de-espera', element: <WaitlistPage /> },
       { path: 'guia', element: <FunnelPage /> },
+      { path: 'hotseat-ordem', element: <HotseatOrdemPage /> },
       { path: 'cs', element: <CsPage /> },
       { path: 'acessos', element: <AccessPage /> },
       { path: 'usuarios', element: <UsersPage /> },
@@ -99,6 +102,7 @@ createRoot(document.getElementById('root')!).render(
           <CrmProvider>
           <WaitlistProvider>
           <FunnelProvider>
+          <HotseatOrdemProvider>
           <CsProvider>
           <EditorialProvider>
             <ProfilesProvider>
@@ -118,6 +122,7 @@ createRoot(document.getElementById('root')!).render(
             </ProfilesProvider>
           </EditorialProvider>
           </CsProvider>
+          </HotseatOrdemProvider>
           </FunnelProvider>
           </WaitlistProvider>
           </CrmProvider>
