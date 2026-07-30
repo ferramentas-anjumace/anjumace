@@ -1178,7 +1178,7 @@ export function AppAordemCaptura() {
                 <h3 className="text-h3 text-graphite-900">Recebido, obrigada.</h3>
                 <div className="flex max-w-sm flex-col gap-3 text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900/70">
                   <p>Suas respostas vão ajudar a Anju a preparar<br className="hidden md:block" /> o encontro pensando em você.</p>
-                  <p>Agora falta um passo: entrar no grupo do WhatsApp, onde vão sair os<br className="hidden md:block" /> lembretes e o link da sala.</p>
+                  <p>Agora falta um passo:<br className="md:hidden" /> <strong className="font-medium text-graphite-900">entrar no grupo do WhatsApp</strong>,<br className="md:hidden" /> onde vão sair os<br className="hidden md:block" /> lembretes e o link da sala.</p>
                 </div>
                 <CtaPill
                   label="Entrar no grupo do WhatsApp"
