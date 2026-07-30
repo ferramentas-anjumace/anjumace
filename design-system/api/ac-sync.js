@@ -47,6 +47,22 @@ const SOURCES = {
   },
 }
 
+const UTM_FIELD_TITLES = ['utm_source', 'utm_medium', 'utm_term', 'utm_campaign', 'utm_content']
+let utmFieldIdsCache = null
+
+async function getUtmFieldIds(base, headers) {
+  if (utmFieldIdsCache) return utmFieldIdsCache
+  const res = await fetch(`${base}/api/3/fields?limit=100`, { headers })
+  if (!res.ok) return {}
+  const { fields } = await res.json()
+  const map = {}
+  for (const title of UTM_FIELD_TITLES) {
+    const f = fields?.find((x) => x.title === title)
+    if (f) map[title] = f.id
+  }
+  return (utmFieldIdsCache = map)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' })
 
@@ -68,6 +84,11 @@ export default async function handler(req, res) {
     // Upsert do contato
     const contactPayload = { email, firstName, lastName }
     if (phone) contactPayload.phone = phone
+    const utmFieldIds = await getUtmFieldIds(base, headers)
+    const fieldValues = Object.entries(utm)
+      .filter(([k, v]) => v && utmFieldIds[k])
+      .map(([k, v]) => ({ field: utmFieldIds[k], value: v }))
+    if (fieldValues.length > 0) contactPayload.fieldValues = fieldValues
     const syncRes = await fetch(`${base}/api/3/contact/sync`, {
       method: 'POST',
       headers,
