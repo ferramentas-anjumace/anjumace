@@ -15,6 +15,7 @@ import {
   Download,
   FileText,
   File as FileIcon,
+  Users,
 } from 'lucide-react'
 import {
   Avatar,
@@ -104,6 +105,7 @@ function renderBody(body: string, names: string[], onMentionClick?: (name: strin
     let end = m.index + match.length
     if (match.startsWith('@')) {
       const mentionName = match.slice(1)
+      const isAll = mentionName === 'todos'
       out.push(
         <button
           key={`m-${i++}`}
@@ -112,7 +114,12 @@ function renderBody(body: string, names: string[], onMentionClick?: (name: strin
             e.stopPropagation()
             onMentionClick?.(mentionName)
           }}
-          className="rounded-full border border-steel-500/30 bg-steel-tint px-1.5 font-medium text-steel-700 transition-colors hover:bg-steel-500/25"
+          className={cn(
+            'rounded-full border px-1.5 font-medium transition-colors',
+            isAll
+              ? 'border-warn/40 bg-warn/20 text-warn hover:bg-warn/30'
+              : 'border-steel-500/30 bg-steel-tint text-steel-700 hover:bg-steel-500/25',
+          )}
         >
           {match}
         </button>,
@@ -674,6 +681,10 @@ function StagedFile({ file, onRemove }: { file: File; onRemove: () => void }) {
   )
 }
 
+/** Uma sugestão de menção é um membro real ou a opção especial "todos"
+    (menciona todo mundo relevante da conversa — ver `mentionAll` em `submit`). */
+type MentionSuggestion = { kind: 'all' } | { kind: 'member'; member: Member }
+
 function Composer({
   placeholder,
   members,
@@ -681,7 +692,7 @@ function Composer({
 }: {
   placeholder: string
   members: Member[]
-  onSend: (text: string, files: File[], mentionIds: string[]) => Promise<void> | void
+  onSend: (text: string, files: File[], mentionIds: string[], mentionAll: boolean) => Promise<void> | void
 }) {
   const [draft, setDraft] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -691,10 +702,16 @@ function Composer({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const caretToSet = useRef<number | null>(null)
 
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo<MentionSuggestion[]>(() => {
     if (!mention) return []
     const q = norm(mention.query)
-    return members.filter((m) => m.name && (q === '' || norm(m.name).includes(q))).slice(0, MAX_SUGGESTIONS)
+    const matches: MentionSuggestion[] = []
+    if ('todos'.includes(q)) matches.push({ kind: 'all' })
+    for (const m of members) {
+      if (matches.length >= MAX_SUGGESTIONS) break
+      if (m.name && (q === '' || norm(m.name).includes(q))) matches.push({ kind: 'member', member: m })
+    }
+    return matches.slice(0, MAX_SUGGESTIONS)
   }, [mention, members])
 
   useLayoutEffect(() => {
@@ -719,12 +736,13 @@ function Composer({
     syncMention(value, e.target.selectionStart ?? value.length)
   }
 
-  const pickMention = (m: Member) => {
+  const pick = (s: MentionSuggestion) => {
+    const label = s.kind === 'all' ? 'todos' : s.member.name
     const el = textareaRef.current
     const caret = el?.selectionStart ?? draft.length
     const before = draft.slice(0, caret)
     const after = draft.slice(caret)
-    const newBefore = before.replace(/@(\S*)$/, `@${m.name} `)
+    const newBefore = before.replace(/@(\S*)$/, `@${label} `)
     setDraft(newBefore + after)
     caretToSet.current = newBefore.length
     setMention(null)
@@ -741,9 +759,10 @@ function Composer({
     const mentionIds = text
       ? members.filter((m) => m.name && text.includes(`@${m.name}`)).map((m) => m.id)
       : []
+    const mentionAll = /(?:^|\s)@todos\b/i.test(text)
     setBusy(true)
     try {
-      await onSend(text, files, mentionIds)
+      await onSend(text, files, mentionIds, mentionAll)
       setDraft('')
       setFiles([])
       setMention(null)
@@ -766,7 +785,7 @@ function Composer({
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault()
-        pickMention(suggestions[Math.min(mention.index, suggestions.length - 1)])
+        pick(suggestions[Math.min(mention.index, suggestions.length - 1)])
         return
       }
       if (e.key === 'Escape') {
@@ -794,22 +813,34 @@ function Composer({
         {/* Seletor de @menção (ancorado acima do composer) */}
         {mention && suggestions.length > 0 && (
           <div className="absolute bottom-full left-0 z-dropdown mb-1 w-64 overflow-hidden rounded-lg border border-strong bg-slate-700 py-1 shadow-e2 animate-slide-up">
-            {suggestions.map((m, i) => (
+            {suggestions.map((s, i) => (
               <button
-                key={m.id}
+                key={s.kind === 'all' ? '__all__' : s.member.id}
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault()
-                  pickMention(m)
+                  pick(s)
                 }}
                 className={cn(
                   'flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left transition-colors',
                   i === mention.index ? 'bg-slate-800' : 'hover:bg-slate-800',
                 )}
               >
-                <Avatar size="sm" name={m.name} src={m.avatar ?? undefined} />
-                <span className="min-w-0 flex-1 truncate text-body-s text-strong">{m.name}</span>
-                {m.team && <span className="shrink-0 font-mono text-[11px] text-faint">{m.team}</span>}
+                {s.kind === 'all' ? (
+                  <>
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-warn/20 text-warn">
+                      <Users size={14} strokeWidth={1.5} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-body-s text-strong">todos</span>
+                    <span className="shrink-0 font-mono text-[11px] text-faint">menciona todo mundo</span>
+                  </>
+                ) : (
+                  <>
+                    <Avatar size="sm" name={s.member.name} src={s.member.avatar ?? undefined} />
+                    <span className="min-w-0 flex-1 truncate text-body-s text-strong">{s.member.name}</span>
+                    {s.member.team && <span className="shrink-0 font-mono text-[11px] text-faint">{s.member.team}</span>}
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -992,6 +1023,7 @@ function ThreadPanel() {
     deleteMessage,
     toggleReaction,
     activeChannel,
+    dms,
     openDm,
   } = useChat()
 
@@ -1000,12 +1032,22 @@ function ThreadPanel() {
     if (target) openDm(target.id)
   }
 
+  /** Ids pra "@todos": só o outro lado numa DM (sempre 1:1), ou todo perfil
+      ativo num canal público. */
+  const resolveMentionAllIds = () => {
+    if (activeChannel?.kind === 'dm') {
+      const otherId = dms.find((d) => d.id === activeChannel.id)?.otherUserId
+      return otherId ? [otherId] : []
+    }
+    return members.filter((m) => m.status === 'ativo').map((m) => m.id)
+  }
+
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [threadMessages, threadParent?.id])
 
-  const names = useMemo(() => members.map((m) => m.name).filter(Boolean), [members])
+  const names = useMemo(() => [...members.map((m) => m.name).filter(Boolean), 'todos'], [members])
   const replyItems = useMemo(
     () => threadMessages.map((m, i) => ({ message: m, grouped: isGrouped(threadMessages[i - 1], m) })),
     [threadMessages],
@@ -1015,9 +1057,10 @@ function ThreadPanel() {
 
   const count = threadMessages.length
 
-  const handleReply = async (text: string, files: File[], mentionIds: string[]) => {
+  const handleReply = async (text: string, files: File[], mentionIds: string[], mentionAll: boolean) => {
     const label = activeChannel?.kind === 'dm' ? 'uma conversa' : `#${activeChannel?.name ?? ''}`
-    const msg = await sendReply(threadParent.id, text, mentionIds.length ? { ids: mentionIds, label } : undefined)
+    const ids = mentionAll ? resolveMentionAllIds() : mentionIds
+    const msg = await sendReply(threadParent.id, text, ids.length ? { ids, label } : undefined)
     if (msg && files.length) {
       for (const f of files) {
         const err = await addAttachment('chat_message', msg.id, f)
@@ -1140,7 +1183,7 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, activeId])
 
-  const names = useMemo(() => members.map((m) => m.name).filter(Boolean), [members])
+  const names = useMemo(() => [...members.map((m) => m.name).filter(Boolean), 'todos'], [members])
   const items = useMemo(
     () => messages.map((m, i) => ({ message: m, grouped: isGrouped(messages[i - 1], m) })),
     [messages],
@@ -1155,9 +1198,14 @@ export function ChatPage() {
       : `Mensagem para #${activeChannel.name}…`
     : ''
 
-  const handleSend = async (text: string, files: File[], mentionIds: string[]) => {
+  const handleSend = async (text: string, files: File[], mentionIds: string[], mentionAll: boolean) => {
     const label = activeChannel?.kind === 'dm' ? 'uma conversa' : `#${activeChannel?.name ?? ''}`
-    const msg = await sendMessage(text, mentionIds.length ? { ids: mentionIds, label } : undefined)
+    const ids = mentionAll
+      ? activeDm
+        ? (activeDm.otherUserId ? [activeDm.otherUserId] : [])
+        : members.filter((m) => m.status === 'ativo').map((m) => m.id)
+      : mentionIds
+    const msg = await sendMessage(text, ids.length ? { ids, label } : undefined)
     if (msg && files.length) {
       for (const f of files) {
         const err = await addAttachment('chat_message', msg.id, f)
