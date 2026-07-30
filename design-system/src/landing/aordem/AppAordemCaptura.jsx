@@ -1149,7 +1149,7 @@ export function AppAordemCaptura() {
           className="fixed inset-0 z-modal flex overflow-y-auto bg-graphite-950/60 p-5 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label="Pesquisa rápida"
+          aria-label="Só mais um minutinho"
           onClick={(e) => e.target === e.currentTarget && setSurveyOpen(false)}
         >
           {/* No desktop (wizard de passos) tudo cabe na mesma tela, sem
@@ -1157,7 +1157,7 @@ export function AppAordemCaptura() {
               usuário 29/07). No mobile (abaixo) as perguntas vêm todas
               juntas, então o pop-up rola normalmente (pedido do usuário
               29/07, 2ª rodada) — por isso o overflow-y-auto no fundo. */}
-          <div className="relative m-auto w-full max-w-xl animate-scale-in rounded-3xl border border-graphite-900/10 bg-cream-50 p-4 shadow-2xl md:p-9">
+          <div className="relative m-auto w-full max-w-xl animate-scale-in rounded-3xl border border-graphite-900/10 bg-cream-50 px-4 py-6 shadow-2xl max-sm:rounded-2xl md:p-9">
             <button
               type="button"
               onClick={() => setSurveyOpen(false)}
@@ -1188,10 +1188,31 @@ export function AppAordemCaptura() {
               </div>
             ) : (
               <>
-                <h2 className="mb-1 text-h3 text-graphite-900">Pesquisa rápida</h2>
+                <h2 className="mb-1 text-h3 text-graphite-900 max-sm:text-[23px]">Só mais um minutinho</h2>
                 <p className="mb-3 text-[15px] leading-snug text-graphite-900/60">
-                  Pra Anju levar suas respostas pra dentro do encontro.
+                  Suas respostas ajudam a Anju a te conhecer antes do encontro.
                 </p>
+
+                {/* Convite pro grupo já na abertura do pop-up (não só no
+                    final) — quem fecha a pesquisa no meio do caminho ainda
+                    teve a chance de entrar no grupo (pedido do usuário 30/07,
+                    a pesquisa é opcional e não pode travar o convite). */}
+                <a
+                  href="https://chat.whatsapp.com/EC0ZhtpVdLhHFm3AAucb0Q?s=cl&p=i&ilr=2&amv=2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group mb-4 flex items-center gap-3 rounded-full bg-[#25D366] py-2 pl-3 pr-2 shadow-md transition-[transform,box-shadow] duration-slow ease-out hover:scale-[1.01] hover:shadow-lg"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/25 text-white">
+                    <WhatsappIcon className="size-5" strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <span className="flex-1 text-left text-[13px] font-medium leading-snug text-white">
+                    Enquanto isso, entra no grupo do WhatsApp — é lá que chegam os lembretes até o dia do encontro.
+                  </span>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/25 text-white transition-transform duration-moderate ease-spring group-hover:translate-x-0.5">
+                    <ArrowRight className="size-4" strokeWidth={1.75} aria-hidden />
+                  </span>
+                </a>
 
                 {/* Mobile: todas as perguntas numa tela só, separadas por
                     linha divisória, rolando dentro do próprio pop-up, com um
