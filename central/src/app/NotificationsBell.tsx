@@ -28,8 +28,10 @@ export function NotificationsBell() {
 
   const open = (n: AppNotification) => {
     if (!n.read) markRead(n.id)
-    // Menção de chat leva direto ao canal; o resto vai para Tarefas.
+    // Menção de chat leva direto ao canal; notificação de tarefa abre a
+    // tarefa específica (TasksPage já lê ?task=<id>); o resto vai pra lista.
     if (n.chatChannelId) navigate(`/app/chat?c=${n.chatChannelId}`)
+    else if (n.taskId) navigate(`/app/tarefas?task=${n.taskId}`)
     else navigate('/app/tarefas')
   }
 
