@@ -16,6 +16,9 @@ import {
   FileText,
   File as FileIcon,
   Users,
+  Mic,
+  Square,
+  Trash,
 } from 'lucide-react'
 import {
   Avatar,
@@ -165,6 +168,34 @@ function humanSize(bytes: number | null): string {
 }
 
 const isImage = (a: Attachment) => (a.mime ?? '').startsWith('image/')
+const isAudio = (a: Attachment) => (a.mime ?? '').startsWith('audio/')
+
+function formatDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** Player de mensagem de voz (resolve a signed URL ao montar, como ImageThumb). */
+function AudioPlayer({ att }: { att: Attachment }) {
+  const { getViewUrl } = useAttachments()
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let on = true
+    getViewUrl(att).then((u) => {
+      if (on) setUrl(u)
+    })
+    return () => {
+      on = false
+    }
+  }, [att, getViewUrl])
+
+  if (!url) return <Skeleton className="h-10 w-64 rounded-full" />
+  return (
+    // eslint-disable-next-line jsx-a11y/media-has-caption
+    <audio controls src={url} preload="metadata" className="h-10 w-64 max-w-full" />
+  )
+}
 
 function UnreadPill({ count }: { count: number }) {
   if (count <= 0) return null
@@ -341,7 +372,10 @@ function MessageAttachments({ messageId }: { messageId: string }) {
       {atts.filter(isImage).map((att) => (
         <ImageThumb key={att.id} att={att} />
       ))}
-      {atts.filter((a) => !isImage(a)).map((att) => (
+      {atts.filter(isAudio).map((att) => (
+        <AudioPlayer key={att.id} att={att} />
+      ))}
+      {atts.filter((a) => !isImage(a) && !isAudio(a)).map((att) => (
         <button
           key={att.id}
           onClick={() => download(att)}
@@ -664,10 +698,17 @@ function MessageItem({
 
 function StagedFile({ file, onRemove }: { file: File; onRemove: () => void }) {
   const isImg = file.type.startsWith('image/')
+  const isAud = file.type.startsWith('audio/')
   return (
     <div className="flex items-center gap-2 rounded-md border border-line bg-slate-900 py-1 pl-2 pr-1">
       <span className="grid size-6 shrink-0 place-items-center rounded text-steel-300">
-        {isImg ? <FileIcon size={14} strokeWidth={1.5} /> : <FileText size={14} strokeWidth={1.5} />}
+        {isAud ? (
+          <Mic size={14} strokeWidth={1.5} />
+        ) : isImg ? (
+          <FileIcon size={14} strokeWidth={1.5} />
+        ) : (
+          <FileText size={14} strokeWidth={1.5} />
+        )}
       </span>
       <span className="max-w-[10rem] truncate text-[12px] text-muted">{file.name}</span>
       <button
@@ -694,13 +735,72 @@ function Composer({
   members: Member[]
   onSend: (text: string, files: File[], mentionIds: string[], mentionAll: boolean) => Promise<void> | void
 }) {
+  const toast = useToast()
   const [draft, setDraft] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
   const [mention, setMention] = useState<{ query: string; index: number } | null>(null)
+  const [recordingElapsed, setRecordingElapsed] = useState<number | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const caretToSet = useRef<number | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingStreamRef = useRef<MediaStream | null>(null)
+  const audioChunksRef = useRef<BlobPart[]>([])
+  const recordingTimerRef = useRef<number | null>(null)
+  const discardRecordingRef = useRef(false)
+
+  const stopRecordingStream = () => {
+    recordingStreamRef.current?.getTracks().forEach((t) => t.stop())
+    recordingStreamRef.current = null
+    if (recordingTimerRef.current != null) {
+      window.clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+  }
+
+  useEffect(() => stopRecordingStream, [])
+
+  const startRecording = async () => {
+    if (mediaRecorderRef.current) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      recordingStreamRef.current = stream
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      audioChunksRef.current = []
+      discardRecordingRef.current = false
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        stopRecordingStream()
+        if (!discardRecordingRef.current && audioChunksRef.current.length) {
+          const type = recorder.mimeType || 'audio/webm'
+          const blob = new Blob(audioChunksRef.current, { type })
+          const ext = type.includes('ogg') ? 'ogg' : 'webm'
+          const file = new File([blob], `audio-${Date.now()}.${ext}`, { type })
+          setFiles((prev) => [...prev, file])
+        }
+        audioChunksRef.current = []
+        mediaRecorderRef.current = null
+        setRecordingElapsed(null)
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setRecordingElapsed(0)
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingElapsed((prev) => (prev == null ? prev : prev + 1))
+      }, 1000)
+    } catch {
+      toast.error('Não foi possível acessar o microfone', 'Verifique a permissão do navegador')
+    }
+  }
+
+  const finishRecording = (discard: boolean) => {
+    discardRecordingRef.current = discard
+    mediaRecorderRef.current?.stop()
+  }
 
   const suggestions = useMemo<MentionSuggestion[]>(() => {
     if (!mention) return []
@@ -751,6 +851,25 @@ function Composer({
   const addFiles = (picked: FileList | null) => {
     if (!picked?.length) return
     setFiles((prev) => [...prev, ...Array.from(picked)])
+  }
+
+  /** Cola imagem da área de transferência (Ctrl+V) direto no composer,
+      sem precisar anexar arquivo manualmente (pedido do Evandro 30/07). */
+  const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items?.length) return
+    const pasted: File[] = []
+    for (const item of items) {
+      if (item.kind !== 'file' || !item.type.startsWith('image/')) continue
+      const file = item.getAsFile()
+      if (!file) continue
+      const ext = item.type.split('/')[1] || 'png'
+      pasted.push(new File([file], `imagem-colada-${Date.now()}-${pasted.length}.${ext}`, { type: item.type }))
+    }
+    if (pasted.length) {
+      e.preventDefault()
+      setFiles((prev) => [...prev, ...pasted])
+    }
   }
 
   const submit = async () => {
@@ -846,33 +965,72 @@ function Composer({
           </div>
         )}
 
-        <IconButton
-          size="sm"
-          variant="ghost"
-          aria-label="Anexar arquivo"
-          title="Anexar arquivo"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Paperclip size={18} strokeWidth={1.5} />
-        </IconButton>
-        <Textarea
-          ref={textareaRef}
-          rows={1}
-          autoGrow
-          maxHeight={200}
-          placeholder={placeholder}
-          value={draft}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          className="flex-1"
-        />
+        {recordingElapsed != null ? (
+          <div className="flex flex-1 items-center gap-2 rounded-md border border-line bg-slate-900 px-3 py-2">
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label="Cancelar gravação"
+              title="Cancelar gravação"
+              onClick={() => finishRecording(true)}
+            >
+              <Trash size={16} strokeWidth={1.5} className="text-err" />
+            </IconButton>
+            <span className="size-2 shrink-0 animate-pulse rounded-full bg-err" aria-hidden />
+            <span className="flex-1 font-mono text-[13px] text-muted">
+              Gravando áudio · {formatDuration(recordingElapsed)}
+            </span>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label="Parar gravação"
+              title="Parar gravação"
+              onClick={() => finishRecording(false)}
+            >
+              <Square size={16} strokeWidth={1.5} />
+            </IconButton>
+          </div>
+        ) : (
+          <>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label="Anexar arquivo"
+              title="Anexar arquivo"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip size={18} strokeWidth={1.5} />
+            </IconButton>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              aria-label="Gravar áudio"
+              title="Gravar áudio"
+              onClick={startRecording}
+            >
+              <Mic size={18} strokeWidth={1.5} />
+            </IconButton>
+            <Textarea
+              ref={textareaRef}
+              rows={1}
+              autoGrow
+              maxHeight={200}
+              placeholder={placeholder}
+              value={draft}
+              onChange={onChange}
+              onKeyDown={onKeyDown}
+              onPaste={onPaste}
+              className="flex-1"
+            />
+          </>
+        )}
         <Button
           iconOnly
           aria-label="Enviar"
           leftIcon={<Send size={16} strokeWidth={1.5} />}
           onClick={submit}
           loading={busy}
-          disabled={!draft.trim() && files.length === 0}
+          disabled={(!draft.trim() && files.length === 0) || recordingElapsed != null}
         />
         <input
           ref={fileInputRef}
