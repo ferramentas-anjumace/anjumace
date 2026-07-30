@@ -141,19 +141,50 @@ function Flag({ code, className = '' }) {
   )
 }
 
-function CtaPill({ label, onClick, type = 'button', loading = false, variant = 'sage', fullWidth = false }) {
-  const dark = variant === 'dark'
+/** Logo do WhatsApp em traço (não existe no lucide-react, que só cobre
+    ícones genéricos) — desenhado no mesmo padrão minimalista dos demais
+    ícones do CtaPill (stroke currentColor, cantos arredondados). */
+function WhatsappIcon({ className, strokeWidth = 1.5, ...rest }) {
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={loading}
-      className={`group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-6 pr-2 font-medium uppercase tracking-normal disabled:pointer-events-none disabled:opacity-60 sm:gap-3 sm:tracking-wide md:gap-4 md:pl-8 ${fullWidth ? 'w-full' : ''} ${dark ? darkGradient : gradient}`}
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      {...rest}
     >
+      <path d="M6.5 17.5 5 21l3.6-1.45A8.5 8.5 0 1 0 5.5 16.5Z" />
+      <path d="M9 10c0 3 2 5 5 5" />
+      <path d="M9 10v-.5a.5.5 0 0 1 1 0V10a.5.5 0 0 1-1 0Z" />
+      <path d="M14 15h.5a.5.5 0 0 0 0-1H14a.5.5 0 0 0 0 1Z" />
+    </svg>
+  )
+}
+
+function CtaPill({ label, onClick, href, type = 'button', loading = false, variant = 'sage', fullWidth = false, icon: Icon = ArrowRight }) {
+  const dark = variant === 'dark'
+  const className = `group inline-flex h-16 items-center gap-2.5 rounded-full py-2 pl-6 pr-2 font-medium uppercase tracking-normal disabled:pointer-events-none disabled:opacity-60 sm:gap-3 sm:tracking-wide md:gap-4 md:pl-8 ${fullWidth ? 'w-full' : ''} ${dark ? darkGradient : gradient}`
+  const content = (
+    <>
       <span className="flex-1 whitespace-nowrap text-center text-sm sm:text-base">{loading ? 'Enviando…' : label}</span>
       <span className={`inline-grid size-12 shrink-0 place-items-center rounded-full transition-transform duration-moderate ease-spring group-hover:translate-x-0.5 ${dark ? 'bg-sage-400 text-graphite-900' : 'bg-cream-100/80 text-graphite-900'}`}>
-        <ArrowRight className={`size-5 ${loading ? 'animate-pulse' : ''}`} strokeWidth={1.5} aria-hidden />
+        <Icon className={`size-5 ${loading ? 'animate-pulse' : ''}`} strokeWidth={1.5} aria-hidden />
       </span>
+    </>
+  )
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {content}
+      </a>
+    )
+  }
+  return (
+    <button type={type} onClick={onClick} disabled={loading} className={className}>
+      {content}
     </button>
   )
 }
@@ -753,11 +784,6 @@ export function AppAordemCaptura() {
                   <Video className="size-2 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
                   Zoom
                 </span>
-                <span className="hidden h-3 w-px bg-cream-100/15 sm:block lg:h-5" aria-hidden />
-                <span className="inline-flex items-center gap-0.5 whitespace-nowrap sm:gap-1.5">
-                  <Clock className="size-2 shrink-0 text-sage-400 sm:size-3.5 lg:size-5" strokeWidth={1.5} aria-hidden />
-                  Uma hora e meia
-                </span>
               </div>
             </div>
           </Reveal>
@@ -1150,9 +1176,15 @@ export function AppAordemCaptura() {
                   </span>
                 </span>
                 <h3 className="text-h3 text-graphite-900">Recebido, obrigada.</h3>
-                <p className="max-w-sm text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900/70">
-                  Suas respostas vão ajudar a Anju a preparar<br className="hidden md:block" /> o encontro pensando em você.<br className="hidden md:block" /> A gente se vê na sala.
-                </p>
+                <div className="flex max-w-sm flex-col gap-3 text-[16px] leading-relaxed tracking-tight lg:text-[18px] text-graphite-900/70">
+                  <p>Suas respostas vão ajudar a Anju a preparar<br className="hidden md:block" /> o encontro pensando em você.</p>
+                  <p>Agora falta um passo: entrar no grupo do WhatsApp, onde vão sair os<br className="hidden md:block" /> lembretes e o link da sala.</p>
+                </div>
+                <CtaPill
+                  label="Entrar no grupo do WhatsApp"
+                  href="https://chat.whatsapp.com/EC0ZhtpVdLhHFm3AAucb0Q?s=cl&p=i&ilr=2&amv=2"
+                  icon={WhatsappIcon}
+                />
               </div>
             ) : (
               <>
