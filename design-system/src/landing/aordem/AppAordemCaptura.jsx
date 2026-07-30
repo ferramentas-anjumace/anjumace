@@ -1182,7 +1182,7 @@ export function AppAordemCaptura() {
                 </div>
                 <CtaPill
                   label="Entrar no grupo do WhatsApp"
-                  href="https://chat.whatsapp.com/EC0ZhtpVdLhHFm3AAucb0Q?s=cl&p=i&ilr=2&amv=2"
+                  href="https://devzapp.com.br/#/dev-zap-grupos/6a6b806cd61f56000114a8a0"
                   icon={WhatsappIcon}
                 />
               </div>
@@ -1198,7 +1198,7 @@ export function AppAordemCaptura() {
                     teve a chance de entrar no grupo (pedido do usuário 30/07,
                     a pesquisa é opcional e não pode travar o convite). */}
                 <a
-                  href="https://chat.whatsapp.com/EC0ZhtpVdLhHFm3AAucb0Q?s=cl&p=i&ilr=2&amv=2"
+                  href="https://devzapp.com.br/#/dev-zap-grupos/6a6b806cd61f56000114a8a0"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group mb-4 flex items-center gap-3 rounded-full bg-[#25D366] py-2 pl-3 pr-2 shadow-md transition-[transform,box-shadow] duration-slow ease-out hover:scale-[1.01] hover:shadow-lg"
