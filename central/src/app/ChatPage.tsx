@@ -858,6 +858,8 @@ function Composer({
         <Textarea
           ref={textareaRef}
           rows={1}
+          autoGrow
+          maxHeight={200}
           placeholder={placeholder}
           value={draft}
           onChange={onChange}
