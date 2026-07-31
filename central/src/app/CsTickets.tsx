@@ -203,7 +203,7 @@ export function CsTickets() {
                     <TableCell><CatBadge catalog="support_channel" value={t.channel} /></TableCell>
                     <TableCell><CatBadge catalog="support_topic" value={t.topic} /></TableCell>
                     <TableCell className="max-w-72">
-                      <span className="line-clamp-2 text-body-s text-muted">{t.summary || '—'}</span>
+                      <span className="whitespace-pre-wrap text-body-s text-muted">{t.summary || '—'}</span>
                     </TableCell>
                     <TableCell>
                       {owner ? (
