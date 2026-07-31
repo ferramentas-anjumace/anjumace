@@ -19,6 +19,8 @@ import {
   Trash,
   Play,
   Pause,
+  Lock,
+  ChevronUp,
 } from 'lucide-react'
 import {
   Avatar,
@@ -727,7 +729,7 @@ function MessageItem({
   replyMeta?: ReplyMeta
   /** Abre a thread desta mensagem (só no canal; ausente dentro da thread). */
   onOpenThread?: () => void
-  /** Clique numa "@Menção" no corpo da mensagem — abre a DM com a pessoa. */
+  /** Clique numa "@Menção", no avatar ou no nome do autor — abre a DM com a pessoa. */
   onMentionClick?: (name: string) => void
 }) {
   const { getMember } = useProfiles()
@@ -747,6 +749,21 @@ function MessageItem({
       <div className="w-10 shrink-0">
         {grouped ? (
           <span className="block w-10" aria-hidden />
+        ) : message.authorId && message.authorId !== myId && onMentionClick ? (
+          <button
+            type="button"
+            onClick={() => onMentionClick(message.authorName)}
+            aria-label={`Abrir conversa com ${message.authorName}`}
+            title={`Abrir conversa com ${message.authorName}`}
+            className="block rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            <Avatar
+              size="md"
+              name={message.authorName}
+              src={member?.avatar ?? undefined}
+              status={isOnline(message.authorId) ? 'online' : 'offline'}
+            />
+          </button>
         ) : (
           <Avatar
             size="md"
@@ -759,7 +776,17 @@ function MessageItem({
       <div className="min-w-0 flex-1">
         {!grouped && (
           <div className="flex items-center gap-2">
-            <span className="text-body-l font-semibold text-strong">{message.authorName}</span>
+            {message.authorId && message.authorId !== myId && onMentionClick ? (
+              <button
+                type="button"
+                onClick={() => onMentionClick(message.authorName)}
+                className="text-body-l font-semibold text-strong transition-colors hover:underline focus-visible:outline-none"
+              >
+                {message.authorName}
+              </button>
+            ) : (
+              <span className="text-body-l font-semibold text-strong">{message.authorName}</span>
+            )}
             <span className="font-mono text-[13px] text-faint">{timeAgo(message.createdAt)}</span>
           </div>
         )}
@@ -884,6 +911,11 @@ function StagedFile({ file, onRemove }: { file: File; onRemove: () => void }) {
     (menciona todo mundo relevante da conversa — ver `mentionAll` em `submit`). */
 type MentionSuggestion = { kind: 'all' } | { kind: 'member'; member: Member }
 
+// Toque-e-segure pra gravar (mobile, estilo WhatsApp): arrastar o dedo pra
+// cima por essa distância trava a gravação em modo "mãos livres".
+const LOCK_DRAG_THRESHOLD = 56
+const LOCK_DRAG_MAX = 72
+
 function Composer({
   placeholder,
   members,
@@ -908,6 +940,12 @@ function Composer({
   const recordingTimerRef = useRef<number | null>(null)
   const discardRecordingRef = useRef(false)
   const recordingResolveRef = useRef<((file: File | null) => void) | null>(null)
+  // Toque-e-segure (mobile): `holding` mantém o botão de mic montado do
+  // pointerdown até o pointerup, mesmo depois que a gravação já começou
+  // (senão o elemento troca no meio do gesto e perde o pointer capture).
+  const [holding, setHolding] = useState(false)
+  const [dragUp, setDragUp] = useState(0)
+  const holdStartYRef = useRef<number | null>(null)
 
   const stopRecordingStream = () => {
     recordingStreamRef.current?.getTracks().forEach((t) => t.stop())
@@ -974,6 +1012,55 @@ function Composer({
       recordingResolveRef.current = resolve
       mediaRecorderRef.current.stop()
     })
+  }
+
+  /** Toque-e-segure no botão de mic (mobile): pressionar já começa a
+      gravar. Soltar sem travar manda o áudio na hora (como segurar o
+      mic do WhatsApp); arrastar o dedo pra cima trava em modo mãos
+      livres — aí quem manda é o botão Enviar, igual ao fluxo de clique. */
+  const onHoldStart = (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    holdStartYRef.current = e.clientY
+    setDragUp(0)
+    setHolding(true)
+    void startRecording()
+  }
+
+  const onHoldMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (holdStartYRef.current == null) return
+    const delta = holdStartYRef.current - e.clientY
+    setDragUp(Math.max(0, Math.min(delta, LOCK_DRAG_MAX)))
+    if (delta >= LOCK_DRAG_THRESHOLD) {
+      // Trava: a gravação segue rolando mãos livres, sem precisar do dedo.
+      holdStartYRef.current = null
+      setDragUp(0)
+      setHolding(false)
+    }
+  }
+
+  const onHoldEnd = () => {
+    if (holdStartYRef.current == null) return
+    holdStartYRef.current = null
+    setDragUp(0)
+    void (async () => {
+      const audioFile = await stopRecordingForSend()
+      setHolding(false)
+      if (!audioFile) return
+      setBusy(true)
+      try {
+        await onSend('', [audioFile], [], false)
+      } finally {
+        setBusy(false)
+      }
+    })()
+  }
+
+  const onHoldCancel = () => {
+    if (holdStartYRef.current == null) return
+    holdStartYRef.current = null
+    setDragUp(0)
+    setHolding(false)
+    discardRecording()
   }
 
   const suggestions = useMemo<MentionSuggestion[]>(() => {
@@ -1100,6 +1187,11 @@ function Composer({
     }
   }
 
+  // No mobile, sem texto/anexo e fora de gravação travada, o botão Enviar
+  // vira o botão de segurar-pra-gravar (permanece montado durante o toque
+  // inteiro, mesmo já gravando — só evapora quando solta ou trava).
+  const showHoldMic = holding || (recordingElapsed == null && !draft.trim() && files.length === 0)
+
   return (
     <div className="border-t border-line px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       {files.length > 0 && (
@@ -1109,7 +1201,7 @@ function Composer({
           ))}
         </div>
       )}
-      <div className="relative flex items-end gap-2">
+      <div className="relative flex items-center gap-2">
         {/* Seletor de @menção (ancorado acima do composer) */}
         {mention && suggestions.length > 0 && (
           <div className="absolute bottom-full left-0 z-dropdown mb-1 w-64 overflow-hidden rounded-lg border border-strong bg-slate-700 py-1 shadow-e2 animate-slide-up">
@@ -1179,6 +1271,7 @@ function Composer({
               aria-label="Gravar áudio"
               title="Gravar áudio"
               onClick={startRecording}
+              className="hidden md:inline-flex"
             >
               <Mic size={18} strokeWidth={1.5} />
             </IconButton>
@@ -1203,7 +1296,34 @@ function Composer({
           onClick={submit}
           loading={busy}
           disabled={recordingElapsed == null && !draft.trim() && files.length === 0}
+          className={showHoldMic ? 'hidden md:inline-flex' : undefined}
         />
+        {showHoldMic && (
+          <button
+            type="button"
+            aria-label="Segurar para gravar áudio"
+            title="Segurar para gravar · arraste pra cima pra travar"
+            onPointerDown={onHoldStart}
+            onPointerMove={onHoldMove}
+            onPointerUp={onHoldEnd}
+            onPointerCancel={onHoldCancel}
+            onContextMenu={(e) => e.preventDefault()}
+            className="relative grid size-10 shrink-0 touch-none place-items-center rounded-full bg-steel-500 text-accent-fg transition-transform active:scale-95 md:hidden"
+          >
+            <Mic size={16} strokeWidth={1.5} />
+            {holding && (
+              <div
+                className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1"
+                style={{ bottom: `calc(100% + 10px + ${dragUp}px)` }}
+              >
+                <span className="grid size-8 place-items-center rounded-full border border-line bg-slate-800 text-steel-300 shadow-e2">
+                  <Lock size={14} strokeWidth={1.5} />
+                </span>
+                <ChevronUp size={12} strokeWidth={1.5} className="text-faint" aria-hidden />
+              </div>
+            )}
+          </button>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -1524,11 +1644,7 @@ export function ChatPage() {
   const activeDm = activeChannel?.kind === 'dm' ? dms.find((d) => d.id === activeId) : undefined
   const dmOther = activeDm?.otherUserId ? getMember(activeDm.otherUserId) : undefined
   const activeTitle = activeChannel ? (activeChannel.kind === 'dm' ? dmOther?.name ?? 'Conversa' : activeChannel.name) : ''
-  const composerPlaceholder = activeChannel
-    ? activeChannel.kind === 'dm'
-      ? `Mensagem para ${(dmOther?.name ?? 'a pessoa').split(' ')[0]}…`
-      : `Mensagem para #${activeChannel.name}…`
-    : ''
+  const composerPlaceholder = activeChannel ? 'Digite uma mensagem' : ''
 
   const handleSend = async (text: string, files: File[], mentionIds: string[], mentionAll: boolean) => {
     const label = activeChannel?.kind === 'dm' ? 'uma conversa' : `#${activeChannel?.name ?? ''}`

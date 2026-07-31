@@ -40,8 +40,16 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       if (!autoGrow) return
       const el = innerRef.current
       if (!el) return
-      el.style.height = 'auto'
-      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+      const resize = () => {
+        el.style.height = 'auto'
+        el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+      }
+      resize()
+      // Na primeira carga (comum no celular, rede mais lenta), a fonte
+      // custom (@fontsource) pode ainda não ter aplicado nesse momento —
+      // o scrollHeight sai medido com a métrica da fonte de fallback
+      // (mais alta) e fica "preso" assim. Recalcula quando a fonte carrega.
+      document.fonts?.ready.then(resize)
     }, [autoGrow, maxHeight, value])
 
     return (

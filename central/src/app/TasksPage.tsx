@@ -953,6 +953,7 @@ function ChecklistSection({ task, onChange }: { task: Task; onChange: (items: Ch
 function TaskDetailModal({
   task,
   canManage,
+  canMove,
   editorialApproval,
   onClose,
   onMove,
@@ -962,6 +963,7 @@ function TaskDetailModal({
 }: {
   task: Task | null
   canManage: boolean
+  canMove: boolean
   /** Status do Editorial (derivado das etapas copy/arte), quando a tarefa veio de uma postagem vinculada. */
   editorialApproval?: PostApprovalState
   onClose: () => void
@@ -1052,7 +1054,7 @@ function TaskDetailModal({
           {/* Status */}
           <div>
             <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">Status</div>
-            {canManage ? (
+            {canManage || canMove ? (
               <Select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as TaskStatus)}>
                 {TASK_STATUS_ORDER.map((s) => (
                   <option key={s} value={s}>{TASK_STATUS_META[s].label}</option>
@@ -1397,6 +1399,7 @@ export function TasksPage() {
       <TaskDetailModal
         task={openTask}
         canManage={canManage}
+        canMove={canMove}
         editorialApproval={openTask ? approvalByTask[openTask.id] : undefined}
         onClose={() => setOpenTaskId(null)}
         onMove={(status) => openTask && moveTask(openTask.id, status)}
