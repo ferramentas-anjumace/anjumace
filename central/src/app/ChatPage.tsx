@@ -16,8 +16,9 @@ import {
   FileText,
   Users,
   Mic,
-  Square,
   Trash,
+  Play,
+  Pause,
 } from 'lucide-react'
 import {
   Avatar,
@@ -171,14 +172,66 @@ const isAudio = (a: Attachment) => (a.mime ?? '').startsWith('audio/')
 
 function formatDuration(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
-  const s = totalSeconds % 60
+  const s = Math.floor(totalSeconds % 60)
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-/** Player de mensagem de voz (resolve a signed URL ao montar, como ImageThumb). */
-function AudioPlayer({ att }: { att: Attachment }) {
+function hourMinute(iso: string): string {
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
+const WAVEFORM_BARS = 32
+
+/** Amostra as ondas reais do áudio (Web Audio API) pra desenhar o waveform;
+    se decodificar falhar (ex. CORS), cai num waveform decorativo fixo. */
+function useWaveformPeaks(url: string | null): number[] | null {
+  const [peaks, setPeaks] = useState<number[] | null>(null)
+  useEffect(() => {
+    if (!url) return
+    let cancelled = false
+    setPeaks(null)
+    ;(async () => {
+      try {
+        const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        const ctx = new AudioCtx()
+        const buf = await (await fetch(url)).arrayBuffer()
+        const decoded = await ctx.decodeAudioData(buf)
+        const data = decoded.getChannelData(0)
+        const step = Math.max(1, Math.floor(data.length / WAVEFORM_BARS))
+        const bars: number[] = []
+        for (let i = 0; i < WAVEFORM_BARS; i++) {
+          let max = 0
+          for (let j = i * step; j < Math.min((i + 1) * step, data.length); j++) {
+            const v = Math.abs(data[j])
+            if (v > max) max = v
+          }
+          bars.push(max)
+        }
+        void ctx.close()
+        const peak = Math.max(...bars, 0.05)
+        if (!cancelled) setPeaks(bars.map((b) => Math.min(1, Math.max(0.12, b / peak))))
+      } catch {
+        if (!cancelled) setPeaks(Array.from({ length: WAVEFORM_BARS }, (_, i) => 0.25 + 0.5 * Math.abs(Math.sin(i * 1.7))))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+  return peaks
+}
+
+/** Player de mensagem de voz — play/pause, waveform com progresso
+    arrastável, duração e horário (estilo WhatsApp). */
+function AudioPlayer({ att, createdAt }: { att: Attachment; createdAt: string }) {
   const { getViewUrl } = useAttachments()
   const [url, setUrl] = useState<string | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [current, setCurrent] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const peaks = useWaveformPeaks(url)
+
   useEffect(() => {
     let on = true
     getViewUrl(att).then((u) => {
@@ -189,10 +242,96 @@ function AudioPlayer({ att }: { att: Attachment }) {
     }
   }, [att, getViewUrl])
 
-  if (!url) return <Skeleton className="h-10 w-64 rounded-full" />
+  useEffect(
+    () => () => {
+      audioRef.current?.pause()
+    },
+    [],
+  )
+
+  if (!url) return <Skeleton className="h-14 w-72 max-w-full rounded-2xl" />
+
+  const toggle = () => {
+    const el = audioRef.current
+    if (!el) return
+    if (playing) el.pause()
+    else void el.play()
+  }
+
+  const seekTo = (ratio: number) => {
+    const el = audioRef.current
+    if (!el || !duration) return
+    el.currentTime = ratio * duration
+    setCurrent(el.currentTime)
+  }
+
+  const progress = duration ? current / duration : 0
+  const displaySeconds = current > 0 ? current : duration
+  const bars = peaks ?? Array.from({ length: WAVEFORM_BARS }, () => 0.4)
+
   return (
-    // eslint-disable-next-line jsx-a11y/media-has-caption
-    <audio controls src={url} preload="metadata" className="h-10 w-64 max-w-full" />
+    <div className="flex w-fit max-w-full items-center gap-2.5 rounded-lg border border-line bg-slate-900 px-3 py-2">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio
+        ref={audioRef}
+        src={url}
+        preload="metadata"
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onEnded={() => {
+          setPlaying(false)
+          setCurrent(0)
+        }}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? 'Pausar áudio' : 'Reproduzir áudio'}
+        title={playing ? 'Pausar' : 'Reproduzir'}
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-steel-500 text-accent-fg transition-colors hover:bg-steel-600 focus-visible:outline-none focus-visible:shadow-focus"
+      >
+        {playing ? (
+          <Pause size={15} fill="currentColor" strokeWidth={0} />
+        ) : (
+          <Play size={15} fill="currentColor" strokeWidth={0} className="ml-0.5" />
+        )}
+      </button>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            seekTo(Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)))
+          }}
+          aria-label="Avançar na reprodução do áudio"
+          className="relative flex h-6 w-full min-w-36 items-center justify-between"
+        >
+          {bars.map((h, i) => (
+            <span
+              key={i}
+              className={cn(
+                'w-[2.5px] shrink-0 rounded-full transition-colors',
+                i / WAVEFORM_BARS < progress ? 'bg-steel-400' : 'bg-slate-700',
+              )}
+              style={{ height: `${Math.max(15, h * 100)}%` }}
+              aria-hidden
+            />
+          ))}
+          <span
+            className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-steel-300 shadow"
+            style={{ left: `${progress * 100}%` }}
+            aria-hidden
+          />
+        </button>
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] text-faint">{formatDuration(displaySeconds)}</span>
+          <span className="font-mono text-[11px] text-faint">{hourMinute(createdAt)}</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -351,7 +490,7 @@ function ImageLightbox({ att, url, onClose }: { att: Attachment; url: string; on
 }
 
 /** Anexos de uma mensagem: imagens inline + chips de arquivo. */
-function MessageAttachments({ messageId }: { messageId: string }) {
+function MessageAttachments({ messageId, createdAt }: { messageId: string; createdAt: string }) {
   const toast = useToast()
   const { getAttachments, getDownloadUrl } = useAttachments()
   const atts = getAttachments('chat_message', messageId)
@@ -372,7 +511,7 @@ function MessageAttachments({ messageId }: { messageId: string }) {
         <ImageThumb key={att.id} att={att} />
       ))}
       {atts.filter(isAudio).map((att) => (
-        <AudioPlayer key={att.id} att={att} />
+        <AudioPlayer key={att.id} att={att} createdAt={createdAt} />
       ))}
       {atts.filter((a) => !isImage(a) && !isAudio(a)).map((att) => (
         <button
@@ -635,7 +774,7 @@ function MessageItem({
                 )}
               </p>
             )}
-            <MessageAttachments messageId={message.id} />
+            <MessageAttachments messageId={message.id} createdAt={message.createdAt} />
             <ReactionBar reactions={reactions} myId={myId} onToggle={onToggleReaction} />
             {onOpenThread && replyMeta && replyMeta.count > 0 && (
               <ThreadSummary meta={replyMeta} onOpen={onOpenThread} />
@@ -768,6 +907,7 @@ function Composer({
   const audioChunksRef = useRef<BlobPart[]>([])
   const recordingTimerRef = useRef<number | null>(null)
   const discardRecordingRef = useRef(false)
+  const recordingResolveRef = useRef<((file: File | null) => void) | null>(null)
 
   const stopRecordingStream = () => {
     recordingStreamRef.current?.getTracks().forEach((t) => t.stop())
@@ -794,16 +934,20 @@ function Composer({
       }
       recorder.onstop = () => {
         stopRecordingStream()
+        let file: File | null = null
         if (!discardRecordingRef.current && audioChunksRef.current.length) {
           const type = recorder.mimeType || 'audio/webm'
           const blob = new Blob(audioChunksRef.current, { type })
           const ext = type.includes('ogg') ? 'ogg' : 'webm'
-          const file = new File([blob], `audio-${Date.now()}.${ext}`, { type })
-          setFiles((prev) => [...prev, file])
+          file = new File([blob], `audio-${Date.now()}.${ext}`, { type })
         }
         audioChunksRef.current = []
         mediaRecorderRef.current = null
         setRecordingElapsed(null)
+        const resolveSend = recordingResolveRef.current
+        recordingResolveRef.current = null
+        if (resolveSend) resolveSend(file)
+        else if (file) setFiles((prev) => [...prev, file])
       }
       mediaRecorderRef.current = recorder
       recorder.start()
@@ -816,9 +960,20 @@ function Composer({
     }
   }
 
-  const finishRecording = (discard: boolean) => {
-    discardRecordingRef.current = discard
+  const discardRecording = () => {
+    discardRecordingRef.current = true
     mediaRecorderRef.current?.stop()
+  }
+
+  /** Enviar durante a gravação (botão Enviar já liberado, como no WhatsApp):
+      encerra o áudio e manda na hora, sem passo intermediário de revisão. */
+  const stopRecordingForSend = (): Promise<File | null> => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current) return resolve(null)
+      discardRecordingRef.current = false
+      recordingResolveRef.current = resolve
+      mediaRecorderRef.current.stop()
+    })
   }
 
   const suggestions = useMemo<MentionSuggestion[]>(() => {
@@ -892,15 +1047,22 @@ function Composer({
   }
 
   const submit = async () => {
-    const text = draft.trim()
-    if ((!text && files.length === 0) || busy) return
-    const mentionIds = text
-      ? members.filter((m) => m.name && text.includes(`@${m.name}`)).map((m) => m.id)
-      : []
-    const mentionAll = /(?:^|\s)@todos\b/i.test(text)
+    if (busy) return
     setBusy(true)
     try {
-      await onSend(text, files, mentionIds, mentionAll)
+      let pendingFiles = files
+      if (recordingElapsed != null) {
+        const audioFile = await stopRecordingForSend()
+        if (!audioFile) return
+        pendingFiles = [...files, audioFile]
+      }
+      const text = draft.trim()
+      if (!text && pendingFiles.length === 0) return
+      const mentionIds = text
+        ? members.filter((m) => m.name && text.includes(`@${m.name}`)).map((m) => m.id)
+        : []
+      const mentionAll = /(?:^|\s)@todos\b/i.test(text)
+      await onSend(text, pendingFiles, mentionIds, mentionAll)
       setDraft('')
       setFiles([])
       setMention(null)
@@ -991,7 +1153,7 @@ function Composer({
               variant="ghost"
               aria-label="Cancelar gravação"
               title="Cancelar gravação"
-              onClick={() => finishRecording(true)}
+              onClick={discardRecording}
             >
               <Trash size={16} strokeWidth={1.5} className="text-err" />
             </IconButton>
@@ -999,15 +1161,6 @@ function Composer({
             <span className="flex-1 font-mono text-[13px] text-muted">
               Gravando áudio · {formatDuration(recordingElapsed)}
             </span>
-            <IconButton
-              size="sm"
-              variant="ghost"
-              aria-label="Parar gravação"
-              title="Parar gravação"
-              onClick={() => finishRecording(false)}
-            >
-              <Square size={16} strokeWidth={1.5} />
-            </IconButton>
           </div>
         ) : (
           <>
@@ -1049,7 +1202,7 @@ function Composer({
           leftIcon={<Send size={16} strokeWidth={1.5} />}
           onClick={submit}
           loading={busy}
-          disabled={(!draft.trim() && files.length === 0) || recordingElapsed != null}
+          disabled={recordingElapsed == null && !draft.trim() && files.length === 0}
         />
         <input
           ref={fileInputRef}
