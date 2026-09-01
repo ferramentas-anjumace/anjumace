@@ -2,6 +2,7 @@ import { AppTemploSingular } from './landing/singular/AppTemploSingular'
 import { AppObrigadoTemplo } from './landing/obrigado/AppObrigadoTemplo'
 import { AppObrigadoSingular } from './landing/obrigado-singular/AppObrigadoSingular'
 import { AppListaEspera } from './landing/lista-espera/AppListaEspera'
+import { AppConsultoria } from './landing/consultoria/AppConsultoria'
 import { AppGuiaCaptura } from './landing/guia/AppGuiaCaptura'
 import { AppAordemCaptura } from './landing/aordem/AppAordemCaptura'
 import { AppGuiaDownload } from './landing/guia/AppGuiaDownload'
@@ -34,5 +35,6 @@ export default function App() {
   if (window.location.pathname.startsWith('/singular')) return <AppTemploSingular />
   if (window.location.pathname.startsWith('/obrigado-singular')) return <AppObrigadoSingular />
   if (window.location.pathname.startsWith('/obrigado')) return <AppObrigadoTemplo />
+  if (window.location.pathname.startsWith('/consultoria')) return <AppConsultoria />
   return <AppListaEspera />
 }
