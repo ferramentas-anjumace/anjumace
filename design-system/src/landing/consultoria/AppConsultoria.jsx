@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { ArrowRight } from 'lucide-react'
 
 const WHATSAPP_URL =
-  'https://wa.me/5531992098139?text=Olá!%20Gostaria%20de%20entender%20melhor%20como%20funciona%20a%20consultoria%20individual.'
+  'https://wa.me/5531992337389?text=Olá!%20Gostaria%20de%20entender%20melhor%20como%20funciona%20a%20consultoria%20individual.'
 
 const gradient =
   'bg-gradient-to-r from-sage-400 via-cream-200 to-sage-500 bg-[length:200%_100%] bg-left hover:bg-right text-graphite-900 shadow-md hover:shadow-lg transition-[background-position,box-shadow,transform] duration-slow ease-out'
